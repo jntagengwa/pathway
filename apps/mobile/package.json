@@ -1,0 +1,12 @@
+{
+  "name": "@pathway/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo mobile-dev",
+    "build": "echo mobile-build",
+    "lint": "eslint .",
+    "typecheck": "tsc -v",
+    "test": "echo mobile-test"
+  }
+}

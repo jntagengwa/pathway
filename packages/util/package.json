@@ -1,0 +1,11 @@
+{
+  "name": "@pathway/util",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo util-build",
+    "lint": "eslint .",
+    "typecheck": "tsc -v",
+    "test": "echo util-test"
+  }
+}

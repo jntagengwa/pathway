@@ -1,0 +1,12 @@
+{
+  "name": "@pathway/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo api-dev",
+    "build": "echo api-build",
+    "lint": "eslint .",
+    "typecheck": "tsc -v",
+    "test": "echo api-test"
+  }
+}

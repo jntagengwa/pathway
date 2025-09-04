@@ -1,0 +1,11 @@
+{
+  "name": "@pathway/types",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo types-build",
+    "lint": "eslint .",
+    "typecheck": "tsc -v",
+    "test": "echo types-test"
+  }
+}
