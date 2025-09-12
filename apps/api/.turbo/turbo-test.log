@@ -1,18 +1,766 @@
 
+
 > @pathway/api@0.1.0 test /Users/JeanFidele/Projects/pathway/apps/api
 > jest
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[1m[2mDetermining test suites to run...[22m[22m[999D[K
 
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        0 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
 
-PASS src/health/tests/health.e2e-spec.ts
-  HealthController (e2e)
-    ✓ /health (GET) (45 ms)
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        0 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
 
-Test Suites: 1 passed, 1 total
-Tests:       1 passed, 1 total
-Snapshots:   0 total
-Time:        1.452 s
-Ran all test suites.
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [2mconsole.log[22m
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[2m[22m
+[2m      [2mat _log ([22m[2m../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js[2m:139:11)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[32m PASS [39m[22m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  TenantsService
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    list
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A      [32m✓[39m [2mreturns tenants (3 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    getBySlug
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A      [32m✓[39m [2mreturns a tenant when found (1 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A      [32m✓[39m [2mthrows NotFound when missing[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    create
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A      [32m✓[39m [2mlowercases slug and creates tenant (1 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A      [32m✓[39m [2mthrows BadRequest when slug already exists (pre-check)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A      [32m✓[39m [2mthrows BadRequest when unique constraint race occurs (P2002)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.service.spec.ts[22m
+
+[1mTest Suites: [22m0 of 7 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[32m PASS [39m[22m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  TenantsController
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mshould be defined (7 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mlist should return array (2 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mbySlug should return a tenant (1 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mcreate should call service and return tenant (1 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.controller.spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m1 passed[39m[22m, 1 of 7 total
+[1mTests:       [22m[1m[32m6 passed[39m[22m, 6 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1 s, estimated 2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [1m● [22mTest suite failed to run
+
+    Your test suite must contain at least one test.
+
+      [2mat onResult ([22m../../node_modules/.pnpm/@jest+core@29.7.0_ts-node@10.9.2_@types+node@20.19.13_typescript@5.9.2_/node_modules/@jest/core/build/TestScheduler.js[2m:133:18)[22m
+      [2mat [22m../../node_modules/.pnpm/@jest+core@29.7.0_ts-node@10.9.2_@types+node@20.19.13_typescript@5.9.2_/node_modules/@jest/core/build/TestScheduler.js[2m:254:19[22m
+      [2mat [22m../../node_modules/.pnpm/emittery@0.13.1/node_modules/emittery/index.js[2m:363:13[22m
+          at Array.map (<anonymous>)
+      [2mat Emittery.emit ([22m../../node_modules/.pnpm/emittery@0.13.1/node_modules/emittery/index.js[2m:361:23)[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  [1m● [22mTest suite failed to run
+
+    Your test suite must contain at least one test.
+
+      [2mat onResult ([22m../../node_modules/.pnpm/@jest+core@29.7.0_ts-node@10.9.2_@types+node@20.19.13_typescript@5.9.2_/node_modules/@jest/core/build/TestScheduler.js[2m:133:18)[22m
+      [2mat [22m../../node_modules/.pnpm/@jest+core@29.7.0_ts-node@10.9.2_@types+node@20.19.13_typescript@5.9.2_/node_modules/@jest/core/build/TestScheduler.js[2m:254:19[22m
+      [2mat [22m../../node_modules/.pnpm/emittery@0.13.1/node_modules/emittery/index.js[2m:363:13[22m
+          at Array.map (<anonymous>)
+      [2mat Emittery.emit ([22m../../node_modules/.pnpm/emittery@0.13.1/node_modules/emittery/index.js[2m:361:23)[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[32m PASS [39m[22m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  HealthController (e2e)
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2m/health (GET) (29 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[32m PASS [39m[22m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  Tenants (e2e)
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mGET /tenants should return array (13 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mPOST /tenants should create a tenant (14 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mGET /tenants/:slug should return the created tenant (2 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mPOST /tenants duplicate slug should 400 (3 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [32m✓[39m [2mGET /tenants/unknown should 404 (2 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.service.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.controller.spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/tenants/tests/[22m[1mtenants.e2e-spec.ts[22m
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/health/tests/[22m[1mhealth.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 of 7 total
+[1mTests:       [22m[1m[32m10 passed[39m[22m, 10 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A  Users (e2e)
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [31m✕[39m [2mGET /users should return array (10 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [31m✕[39m [2mPOST /users should create a user (5 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [31m✕[39m [2mGET /users/:id should return the created user (4 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [31m✕[39m [2mPOST /users duplicate email should 400 (2 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A    [31m✕[39m [2mPOST /users invalid email should 400 (1 ms)[22m
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[1m[31m  [1m● [22m[1mUsers (e2e) › GET /users should return array[39m[22m
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m200[39m
+    Received: [31m404[39m
+[2m[22m
+[2m    [0m [90m 49 |[39m   it([32m"GET /users should return array"[39m[33m,[39m [36masync[39m () [33m=>[39m {[22m
+[2m     [90m 50 |[39m     [36mconst[39m res [33m=[39m [36mawait[39m request(app[33m.[39mgetHttpServer())[33m.[39m[36mget[39m([32m"/users"[39m)[33m;[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 51 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m[22m
+[2m     [90m    |[39m                        [31m[1m^[22m[2m[39m[22m
+[2m     [90m 52 |[39m     expect([33mArray[39m[33m.[39misArray(res[33m.[39mbody))[33m.[39mtoBe([36mtrue[39m)[33m;[39m[22m
+[2m     [90m 53 |[39m   })[33m;[39m[22m
+[2m     [90m 54 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/users/tests/users.e2e-spec.ts[39m[0m[2m:51:24)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mUsers (e2e) › POST /users should create a user[39m[22m
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m404[39m
+[2m[22m
+[2m    [0m [90m 59 |[39m       [33m.[39m[36mset[39m([32m"content-type"[39m[33m,[39m [32m"application/json"[39m)[33m;[39m[22m
+[2m     [90m 60 |[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 61 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m[22m
+[2m     [90m    |[39m                        [31m[1m^[22m[2m[39m[22m
+[2m     [90m 62 |[39m     expect(res[33m.[39mbody)[33m.[39mtoMatchObject({ email[33m:[39m email[33m.[39mtoLowerCase()[33m,[39m name })[33m;[39m[22m
+[2m     [90m 63 |[39m     expect(res[33m.[39mbody)[33m.[39mtoHaveProperty([32m"id"[39m)[33m;[39m[22m
+[2m     [90m 64 |[39m   })[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/users/tests/users.e2e-spec.ts[39m[0m[2m:61:24)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mUsers (e2e) › GET /users/:id should return the created user[39m[22m
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mnull[39m
+[2m[22m
+[2m    [0m [90m 67 |[39m     [90m// Find the created user to get its id[39m[22m
+[2m     [90m 68 |[39m     [36mconst[39m created [33m=[39m [36mawait[39m prisma[33m.[39muser[33m.[39mfindUnique({ where[33m:[39m { email } })[33m;[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 69 |[39m     expect(created)[33m.[39mtoBeTruthy()[33m;[39m[22m
+[2m     [90m    |[39m                     [31m[1m^[22m[2m[39m[22m
+[2m     [90m 70 |[39m     [36mconst[39m res [33m=[39m [36mawait[39m request(app[33m.[39mgetHttpServer())[33m.[39m[36mget[39m([32m`/users/${created!.id}`[39m)[33m;[39m[22m
+[2m     [90m 71 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m[22m
+[2m     [90m 72 |[39m     expect(res[33m.[39mbody)[33m.[39mtoMatchObject({[0m[22m
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/users/tests/users.e2e-spec.ts[39m[0m[2m:69:21)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mUsers (e2e) › POST /users duplicate email should 400[39m[22m
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m400[39m
+    Received: [31m404[39m
+[2m[22m
+[2m    [0m [90m 83 |[39m       [33m.[39m[36mset[39m([32m"content-type"[39m[33m,[39m [32m"application/json"[39m)[33m;[39m[22m
+[2m     [90m 84 |[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 85 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m[22m
+[2m     [90m    |[39m                        [31m[1m^[22m[2m[39m[22m
+[2m     [90m 86 |[39m     expect(res[33m.[39mbody)[33m.[39mtoHaveProperty([32m"message"[39m)[33m;[39m[22m
+[2m     [90m 87 |[39m   })[33m;[39m[22m
+[2m     [90m 88 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/users/tests/users.e2e-spec.ts[39m[0m[2m:85:24)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mUsers (e2e) › POST /users invalid email should 400[39m[22m
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m400[39m
+    Received: [31m404[39m
+[2m[22m
+[2m    [0m [90m 93 |[39m       [33m.[39m[36mset[39m([32m"content-type"[39m[33m,[39m [32m"application/json"[39m)[33m;[39m[22m
+[2m     [90m 94 |[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 95 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m[22m
+[2m     [90m    |[39m                        [31m[1m^[22m[2m[39m[22m
+[2m     [90m 96 |[39m   })[33m;[39m[22m
+[2m     [90m 97 |[39m })[33m;[39m[22m
+[2m     [90m 98 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/users/tests/users.e2e-spec.ts[39m[0m[2m:95:24)[22m[2m[22m
+
+
+[0m[7m[33m[1m RUNS [22m[39m[27m[0m [2msrc/users/tests/[22m[1musers.e2e-spec.ts[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m4 passed[39m[22m, 6 of 7 total
+[1mTests:       [22m[1m[32m16 passed[39m[22m, 16 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2 s[K[1A[K[1A[K[1A[K[1A[K[1A[K[1A[999D[K[1mTest Suites: [22m[1m[31m3 failed[39m[22m, [1m[32m4 passed[39m[22m, 7 total
+[1mTests:       [22m[1m[31m5 failed[39m[22m, [1m[32m16 passed[39m[22m, 21 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2.583 s
+[2mRan all test suites[22m[2m.[22m
+[41m[30m ELIFECYCLE [39m[49m [31mTest failed. See above for more details.[39m

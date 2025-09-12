@@ -16,7 +16,10 @@
     "db:generate": "pnpm --filter @pathway/db run generate",
     "db:migrate": "pnpm --filter @pathway/db run migrate",
     "db:deploy": "pnpm --filter @pathway/db run deploy",
-    "db:seed": "pnpm --filter @pathway/db run seed"
+    "db:seed": "pnpm --filter @pathway/db run seed",
+    "reset": "git restore apps/**/.turbo/*.log packages/**/.turbo/*.log",
+    "clean:cache": "git clean -fdX .turbo",
+    "clean:all": "rm -rf node_modules .turbo && pnpm install"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
