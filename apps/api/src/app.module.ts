@@ -1,54 +1,41 @@
 import { Module } from "@nestjs/common";
+
+// Core modules
 import { HealthModule } from "./health/health.module";
+import { TenantsModule } from "./tenants/tenants.module"; // TODO: rename file
+// import { UsersModule } from "./users/users.module";
+// import { GroupsModule } from "./groups/groups.module";
+// import { ChildrenModule } from "./children/children.module";
+// import { AttendanceModule } from "./attendance/attendance.module";
+// import { LessonsModule } from "./lessons/lessons.module";
 
-// --- Feature modules (scaffolds only; endpoints/services added later) ---
-@Module({})
-class TenantsModule {}
-@Module({})
-class UsersModule {}
-@Module({})
-class GroupsModule {}
-@Module({})
-class ChildrenModule {}
-@Module({})
-class AttendanceModule {}
-@Module({})
-class LessonsModule {}
+// // Scheduling / Rota
+// import { SessionsModule } from "./sessions/sessions.module";
+// import { AssignmentsModule } from "./assignments/assignments.module";
+// import { PreferencesModule } from "./preferences/preferences.module";
+// import { SwapsModule } from "./swaps/swaps.module";
 
-// Scheduling / Rota
-@Module({})
-class SessionsModule {}
-@Module({})
-class AssignmentsModule {}
-@Module({})
-class PreferencesModule {}
-@Module({})
-class SwapsModule {}
-
-// Comms & Safeguarding
-@Module({})
-class AnnouncementsModule {}
-@Module({})
-class NotesModule {}
-@Module({})
-class ConcernsModule {}
+// // Comms & Safeguarding
+// import { AnnouncementsModule } from "./announcements/announcements.module";
+// import { NotesModule } from "./notes/notes.module";
+// import { ConcernsModule } from "./concerns/concerns.module";
 
 @Module({
   imports: [
     HealthModule,
     TenantsModule,
-    UsersModule,
-    GroupsModule,
-    ChildrenModule,
-    AttendanceModule,
-    LessonsModule,
-    SessionsModule,
-    AssignmentsModule,
-    PreferencesModule,
-    SwapsModule,
-    AnnouncementsModule,
-    NotesModule,
-    ConcernsModule,
+    // UsersModule,
+    // GroupsModule,
+    // ChildrenModule,
+    // AttendanceModule,
+    // LessonsModule,
+    // SessionsModule,
+    // AssignmentsModule,
+    // PreferencesModule,
+    // SwapsModule,
+    // AnnouncementsModule,
+    // NotesModule,
+    // ConcernsModule,
   ],
 })
 export class AppModule {}
