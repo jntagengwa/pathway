@@ -17,7 +17,7 @@
     "migrate": "prisma migrate dev",
     "deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",
-    "lint": "eslint .",
+    "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

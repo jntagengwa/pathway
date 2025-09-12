@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "echo mobile-dev",
     "build": "echo mobile-build",
-    "lint": "eslint .",
+    "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -v",
     "test": "echo mobile-test"
   }

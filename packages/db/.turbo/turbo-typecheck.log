@@ -1,0 +1,4 @@
+
+> @pathway/db@0.0.1 typecheck /Users/JeanFidele/Projects/pathway/packages/db
+> tsc -p tsconfig.json --noEmit
+
