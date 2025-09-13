@@ -5,7 +5,7 @@ import { HealthModule } from "./health/health.module";
 import { TenantsModule } from "./tenants/tenants.module"; // TODO: rename file
 import { UsersModule } from "./users/users.module";
 import { GroupsModule } from "./groups/groups.module";
-// import { ChildrenModule } from "./children/children.module";
+import { ChildrenModule } from "./children/children.module";
 // import { AttendanceModule } from "./attendance/attendance.module";
 // import { LessonsModule } from "./lessons/lessons.module";
 
@@ -26,7 +26,7 @@ import { GroupsModule } from "./groups/groups.module";
     TenantsModule,
     UsersModule,
     GroupsModule,
-    // ChildrenModule,
+    ChildrenModule,
     // AttendanceModule,
     // LessonsModule,
     // SessionsModule,
