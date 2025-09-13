@@ -4,7 +4,7 @@ import { Module } from "@nestjs/common";
 import { HealthModule } from "./health/health.module";
 import { TenantsModule } from "./tenants/tenants.module"; // TODO: rename file
 import { UsersModule } from "./users/users.module";
-// import { GroupsModule } from "./groups/groups.module";
+import { GroupsModule } from "./groups/groups.module";
 // import { ChildrenModule } from "./children/children.module";
 // import { AttendanceModule } from "./attendance/attendance.module";
 // import { LessonsModule } from "./lessons/lessons.module";
@@ -25,7 +25,7 @@ import { UsersModule } from "./users/users.module";
     HealthModule,
     TenantsModule,
     UsersModule,
-    // GroupsModule,
+    GroupsModule,
     // ChildrenModule,
     // AttendanceModule,
     // LessonsModule,
