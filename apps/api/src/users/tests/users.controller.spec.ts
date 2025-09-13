@@ -56,7 +56,13 @@ describe("UsersController", () => {
   });
 
   it("create should call service and return user", async () => {
-    const dto = { email: "alice@example.com", name: "Alice", tenantId: "t1" };
+    const dto = {
+      email: "alice@example.com",
+      name: "Alice",
+      tenantId: "t1",
+      hasServeAccess: false,
+      hasFamilyAccess: false,
+    };
     await expect(controller.create(dto)).resolves.toEqual(user);
     expect(service.create).toHaveBeenCalledWith(dto);
   });
