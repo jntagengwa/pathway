@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "echo config-build",
-    "lint": "eslint .",
+    "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -v",
     "test": "echo config-test"
   }

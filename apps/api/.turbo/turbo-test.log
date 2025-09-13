@@ -1,0 +1,167 @@
+
+> @pathway/api@0.1.0 test /Users/JeanFidele/Projects/pathway/apps/api
+> jest
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS src/users/tests/users.controller.spec.ts
+  UsersController
+    ✓ should be defined (7 ms)
+    ✓ list should return array (1 ms)
+    ✓ getById should return a user when found (1 ms)
+    ✓ getById should throw NotFound when missing (1 ms)
+    ✓ create should call service and return user (1 ms)
+
+PASS src/tenants/tests/tenants.controller.spec.ts
+  TenantsController
+    ✓ should be defined (21 ms)
+    ✓ list should return array (11 ms)
+    ✓ bySlug should return a tenant (2 ms)
+    ✓ create should call service and return tenant (1 ms)
+
+PASS src/groups/tests/groups.e2e-spec.ts
+  Groups (e2e)
+    ✓ GET /groups should return array (20 ms)
+    ✓ POST /groups should create a group (21 ms)
+    ✓ GET /groups/:id should return the created group (4 ms)
+    ✓ PATCH /groups/:id should update group (17 ms)
+    ✓ POST /groups duplicate name for same tenant should 400 (31 ms)
+    ✓ POST /groups invalid ages should 400 (2 ms)
+
+PASS src/users/tests/users.service.spec.ts
+  UsersService
+    list
+      ✓ returns users (3 ms)
+    getById
+      ✓ returns a user when found (1 ms)
+      ✓ throws NotFound when missing
+    create
+      ✓ normalizes email and creates user (with tenant connect) (2 ms)
+      ✓ connects children when provided (and all exist in same tenant)
+      ✓ 400 when any child id is missing (1 ms)
+      ✓ 400 when any child is cross-tenant
+      ✓ throws BadRequest when duplicate email (pre-check)
+      ✓ throws BadRequest when unique constraint race (P2002)
+      ✓ throws BadRequest for invalid email (ZodError mapping)
+    update
+      ✓ updates user fields and returns selection
+      ✓ lowercases email on update when provided
+      ✓ replaces children set when provided (same tenant) (1 ms)
+      ✓ 404 when user not found before validation
+      ✓ 400 when updating children with missing ids
+      ✓ 400 when updating children cross-tenant (target tenant is current)
+      ✓ throws BadRequest on unique email conflict (P2002)
+      ✓ throws NotFound on missing user (P2025) when update bubbles
+
+PASS src/tenants/tests/tenants.service.spec.ts
+  TenantsService
+    list
+      ✓ returns tenants (3 ms)
+    getBySlug
+      ✓ returns a tenant when found
+      ✓ throws NotFound when missing
+    create
+      ✓ lowercases slug and creates tenant (1 ms)
+      ✓ throws BadRequest when slug already exists (pre-check) (1 ms)
+      ✓ throws BadRequest when unique constraint race occurs (P2002)
+
+PASS src/groups/tests/groups.controller.spec.ts
+  GroupsController
+    ✓ should be defined (7 ms)
+    ✓ list should return array (1 ms)
+    ✓ getById should return a group when found (2 ms)
+    ✓ getById should throw NotFound when missing
+    ✓ create should call service and return group (2 ms)
+    ✓ update should call service and return updated group (1 ms)
+
+PASS src/groups/tests/groups.service.spec.ts
+  GroupsService
+    list
+      ✓ returns groups (3 ms)
+    getById
+      ✓ returns a group when found
+      ✓ throws NotFound when missing (1 ms)
+    create
+      ✓ validates & creates with tenant connect (1 ms)
+      ✓ throws BadRequest when duplicate (pre-check)
+      ✓ throws BadRequest when unique constraint race (P2002) (1 ms)
+      ✓ throws BadRequest for invalid ages (min>max)
+    update
+      ✓ updates name and ages (1 ms)
+      ✓ throws BadRequest when unique name conflict (P2002)
+      ✓ throws NotFound when group missing (P2025)
+      ✓ throws BadRequest when invalid ages provided
+
+PASS src/health/tests/health.e2e-spec.ts
+  HealthController (e2e)
+    ✓ /health (GET) (23 ms)
+
+PASS src/tenants/tests/tenants.e2e-spec.ts
+  Tenants (e2e)
+    ✓ GET /tenants should return array (11 ms)
+    ✓ POST /tenants should create a tenant (10 ms)
+    ✓ GET /tenants/:slug should return the created tenant (3 ms)
+    ✓ POST /tenants duplicate slug should 400 (3 ms)
+    ✓ GET /tenants/unknown should 404 (4 ms)
+
+PASS src/users/tests/users.e2e-spec.ts
+  Users (e2e)
+    ✓ GET /users should return array (15 ms)
+    ✓ POST /users should create a user (14 ms)
+    ✓ GET /users/:id should return the created user (3 ms)
+    ✓ POST /users duplicate email should 400 (3 ms)
+    ✓ POST /users invalid email should 400 (1 ms)
+
+Test Suites: 10 passed, 10 total
+Tests:       67 passed, 67 total
+Snapshots:   0 total
+Time:        4.44 s
+Ran all test suites.

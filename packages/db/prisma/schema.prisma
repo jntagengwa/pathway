@@ -60,12 +60,16 @@ model Child {
   id         String      @id @default(uuid())
   firstName  String
   lastName   String
+  allergies  String @default("unknown")
   photoKey   String?
+  notes      String?
   tenantId   String
   tenant     Tenant      @relation(fields: [tenantId], references: [id])
   guardians  User[]      @relation("ParentChildren")
   groupId    String?
   group      Group?      @relation(fields: [groupId], references: [id])
+  disabilities String[]  @default([])
+  concerns     Concern[]
   attendance Attendance[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -90,4 +94,16 @@ model Attendance {
   group     Group    @relation(fields: [groupId], references: [id])
   present   Boolean
   timestamp DateTime @default(now())
+}
+
+model Concern {
+  id        String   @id @default(uuid())
+  childId   String
+  child     Child    @relation(fields: [childId], references: [id])
+  summary   String
+  details   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
 }

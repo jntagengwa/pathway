@@ -1,0 +1,4 @@
+
+> @pathway/mobile@0.0.0 lint /Users/JeanFidele/Projects/pathway/apps/mobile
+> eslint "src/**/*.{ts,tsx,js}" --no-error-on-unmatched-pattern
+

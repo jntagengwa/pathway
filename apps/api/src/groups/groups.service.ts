@@ -1,0 +1,124 @@
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
+import { prisma } from "@pathway/db";
+import { createGroupDto, type CreateGroupDto } from "./dto/create-group.dto";
+import { updateGroupDto, type UpdateGroupDto } from "./dto/update-group.dto";
+import { ZodError } from "zod";
+
+function isPrismaError(err: unknown): err is { code: string } {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    typeof (err as { code?: unknown }).code === "string"
+  );
+}
+
+@Injectable()
+export class GroupsService {
+  async list() {
+    return prisma.group.findMany({
+      select: { id: true, name: true, tenantId: true },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  async getById(id: string) {
+    const group = await prisma.group.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        tenantId: true,
+        minAge: true,
+        maxAge: true,
+      },
+    });
+    if (!group) throw new NotFoundException("Group not found");
+    return group;
+  }
+
+  async create(input: CreateGroupDto) {
+    // Normalize then validate
+    const normalized: CreateGroupDto = {
+      ...input,
+      name: String(input.name).trim(),
+      minAge: input.minAge,
+      maxAge: input.maxAge,
+    };
+
+    try {
+      const parsed = createGroupDto.parse(normalized);
+
+      // optional: prevent duplicate group names per tenant (if you have a unique index)
+      // adjust if schema enforces uniqueness differently
+      const existing = await prisma.group.findFirst({
+        where: { tenantId: parsed.tenantId, name: parsed.name },
+      });
+      if (existing)
+        throw new BadRequestException("group name already exists for tenant");
+
+      return await prisma.group.create({
+        data: {
+          name: parsed.name,
+          minAge: parsed.minAge,
+          maxAge: parsed.maxAge,
+          tenant: { connect: { id: parsed.tenantId } },
+        },
+        select: {
+          id: true,
+          name: true,
+          tenantId: true,
+          minAge: true,
+          maxAge: true,
+        },
+      });
+    } catch (e: unknown) {
+      if (e instanceof ZodError) {
+        throw new BadRequestException(e.errors);
+      }
+      if (isPrismaError(e) && e.code === "P2002") {
+        // unique constraint violation
+        throw new BadRequestException("group already exists");
+      }
+      throw e;
+    }
+  }
+
+  async update(id: string, input: UpdateGroupDto) {
+    const normalized = {
+      ...input,
+      name: input.name ? String(input.name).trim() : undefined,
+    };
+
+    try {
+      const parsed = updateGroupDto.parse(normalized);
+
+      return await prisma.group.update({
+        where: { id },
+        data: parsed,
+        select: {
+          id: true,
+          name: true,
+          tenantId: true,
+          minAge: true,
+          maxAge: true,
+        },
+      });
+    } catch (e: unknown) {
+      if (e instanceof ZodError) {
+        throw new BadRequestException(e.errors);
+      }
+      if (isPrismaError(e) && e.code === "P2002") {
+        throw new BadRequestException("group already exists");
+      }
+      if (isPrismaError(e) && e.code === "P2025") {
+        throw new NotFoundException("Group not found");
+      }
+      throw e;
+    }
+  }
+}

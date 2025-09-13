@@ -1,0 +1,4 @@
+
+> @pathway/types@0.0.0 lint /Users/JeanFidele/Projects/pathway/packages/types
+> eslint "src/**/*.{ts,tsx,js}" --no-error-on-unmatched-pattern
+
