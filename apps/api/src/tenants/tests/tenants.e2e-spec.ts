@@ -69,6 +69,22 @@ describe("Tenants (e2e)", () => {
     expect(res.body).toHaveProperty("message");
   });
 
+  it("POST /tenants invalid slug should 400 (controller DTO validation)", async () => {
+    const badPayload = { name: "Bad Tenant", slug: "Bad Slug" }; // invalid format (uppercase + space)
+    const res = await request(app.getHttpServer())
+      .post("/tenants")
+      .send(badPayload)
+      .set("content-type", "application/json");
+
+    expect(res.status).toBe(400);
+    // Controller returns zod formatted error (no `message` property). Validate the structure.
+    expect(res.body).toHaveProperty("slug._errors");
+    expect(Array.isArray(res.body.slug._errors)).toBe(true);
+    expect(res.body.slug._errors[0]).toMatch(
+      /lowercase, numbers and hyphens only/,
+    );
+  });
+
   it("GET /tenants/unknown should 404", async () => {
     const res = await request(app.getHttpServer()).get(
       `/tenants/nope-${unique}`,

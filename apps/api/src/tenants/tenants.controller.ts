@@ -1,5 +1,13 @@
-import { Controller, Get, Param, Post, Body } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Body,
+  BadRequestException,
+} from "@nestjs/common";
 import { TenantsService } from "./tenants.service";
+import { createTenantDto } from "./dto/create-tenant.dto";
 import type { CreateTenantDto } from "./dto/create-tenant.dto";
 
 @Controller("tenants")
@@ -18,6 +26,10 @@ export class TenantsController {
 
   @Post()
   async create(@Body() body: CreateTenantDto) {
-    return this.svc.create(body);
+    const result = createTenantDto.safeParse(body);
+    if (!result.success) {
+      throw new BadRequestException(result.error.format());
+    }
+    return this.svc.create(result.data);
   }
 }

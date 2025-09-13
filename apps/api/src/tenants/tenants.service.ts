@@ -47,9 +47,34 @@ export class TenantsService {
       throw new BadRequestException("slug already exists");
     }
 
+    // Optional relation connects from DTO (IDs of existing records)
+    const usersConnect =
+      parsed.users && parsed.users.length > 0
+        ? { connect: parsed.users.map((id) => ({ id })) }
+        : undefined;
+    const groupsConnect =
+      parsed.groups && parsed.groups.length > 0
+        ? { connect: parsed.groups.map((id) => ({ id })) }
+        : undefined;
+    const childrenConnect =
+      parsed.children && parsed.children.length > 0
+        ? { connect: parsed.children.map((id) => ({ id })) }
+        : undefined;
+    const rolesConnect =
+      parsed.roles && parsed.roles.length > 0
+        ? { connect: parsed.roles.map((id) => ({ id })) }
+        : undefined;
+
     try {
       return await prisma.tenant.create({
-        data: parsed,
+        data: {
+          name: parsed.name,
+          slug: parsed.slug,
+          ...(usersConnect ? { users: usersConnect } : {}),
+          ...(groupsConnect ? { groups: groupsConnect } : {}),
+          ...(childrenConnect ? { children: childrenConnect } : {}),
+          ...(rolesConnect ? { roles: rolesConnect } : {}),
+        },
         select: { id: true, name: true, slug: true, createdAt: true },
       });
     } catch (e: unknown) {

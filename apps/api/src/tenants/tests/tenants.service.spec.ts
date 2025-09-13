@@ -81,6 +81,58 @@ describe("TenantsService", () => {
       expect(result.slug).toBe("new-church");
     });
 
+    it("creates tenant and connects optional relations when provided", async () => {
+      findUnique.mockResolvedValue(null); // pre-check: no duplicate
+      create.mockResolvedValue({ ...tenant, slug: "demo-with-links" });
+
+      const dto = {
+        name: "Demo With Links",
+        slug: "demo-with-links",
+        users: [
+          "11111111-1111-1111-1111-111111111111",
+          "22222222-2222-2222-2222-222222222222",
+        ],
+        groups: ["33333333-3333-3333-3333-333333333333"],
+        children: [
+          "44444444-4444-4444-4444-444444444444",
+          "55555555-5555-5555-5555-555555555555",
+          "66666666-6666-6666-6666-666666666666",
+        ],
+        roles: ["77777777-7777-7777-7777-777777777777"],
+      };
+
+      const result = await svc.create(dto);
+
+      expect(create).toHaveBeenCalledWith({
+        data: {
+          name: "Demo With Links",
+          slug: "demo-with-links",
+          users: {
+            connect: [
+              { id: "11111111-1111-1111-1111-111111111111" },
+              { id: "22222222-2222-2222-2222-222222222222" },
+            ],
+          },
+          groups: {
+            connect: [{ id: "33333333-3333-3333-3333-333333333333" }],
+          },
+          children: {
+            connect: [
+              { id: "44444444-4444-4444-4444-444444444444" },
+              { id: "55555555-5555-5555-5555-555555555555" },
+              { id: "66666666-6666-6666-6666-666666666666" },
+            ],
+          },
+          roles: {
+            connect: [{ id: "77777777-7777-7777-7777-777777777777" }],
+          },
+        },
+        select: { id: true, name: true, slug: true, createdAt: true },
+      });
+
+      expect(result.slug).toBe("demo-with-links");
+    });
+
     it("throws BadRequest when slug already exists (pre-check)", async () => {
       findUnique.mockResolvedValue(tenant); // duplicate
       await expect(
