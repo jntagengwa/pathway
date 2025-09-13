@@ -6,7 +6,7 @@ import { TenantsModule } from "./tenants/tenants.module"; // TODO: rename file
 import { UsersModule } from "./users/users.module";
 import { GroupsModule } from "./groups/groups.module";
 import { ChildrenModule } from "./children/children.module";
-// import { AttendanceModule } from "./attendance/attendance.module";
+import { AttendanceModule } from "./attendance/attendance.module";
 // import { LessonsModule } from "./lessons/lessons.module";
 
 // // Scheduling / Rota
@@ -27,7 +27,7 @@ import { ChildrenModule } from "./children/children.module";
     UsersModule,
     GroupsModule,
     ChildrenModule,
-    // AttendanceModule,
+    AttendanceModule,
     // LessonsModule,
     // SessionsModule,
     // AssignmentsModule,
