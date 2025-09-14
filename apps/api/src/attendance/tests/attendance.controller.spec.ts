@@ -10,6 +10,7 @@ interface AttendanceRow {
   id: string;
   childId: string;
   groupId: string;
+  sessionId: string | null;
   present: boolean;
   timestamp: Date;
 }
@@ -56,6 +57,7 @@ describe("AttendanceController", () => {
       id: "att-1",
       childId: "11111111-1111-1111-1111-111111111111",
       groupId: "22222222-2222-2222-2222-222222222222",
+      sessionId: null,
       present: true,
       timestamp: new Date(),
     };
@@ -72,6 +74,7 @@ describe("AttendanceController", () => {
       id: "att-2",
       childId: "11111111-1111-1111-1111-111111111111",
       groupId: "22222222-2222-2222-2222-222222222222",
+      sessionId: null,
       present: false,
       timestamp: new Date(),
     };
@@ -92,6 +95,7 @@ describe("AttendanceController", () => {
       id: "att-3",
       childId: dto.childId,
       groupId: dto.groupId,
+      sessionId: null,
       present: true,
       timestamp: new Date(),
     };
@@ -119,6 +123,7 @@ describe("AttendanceController", () => {
       id: "att-4",
       childId: "11111111-1111-1111-1111-111111111111",
       groupId: "22222222-2222-2222-2222-222222222222",
+      sessionId: null,
       present: false,
       timestamp: new Date(),
     };

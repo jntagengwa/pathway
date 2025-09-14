@@ -75,6 +75,7 @@ describe("AttendanceService", () => {
         groupId: "g1",
         present: true,
         timestamp: new Date(),
+        sessionId: null,
       };
       aFindUnique.mockResolvedValueOnce(row);
       const res = await svc.getById("att1");
@@ -153,6 +154,7 @@ describe("AttendanceService", () => {
         groupId: groupSame,
         present: true,
         timestamp: new Date(),
+        sessionId: null,
       });
 
       const res = await svc.create({
@@ -199,6 +201,7 @@ describe("AttendanceService", () => {
         groupId: groupSame,
         present: false,
         timestamp: ts,
+        sessionId: null,
       });
 
       const res = await svc.create({
@@ -248,6 +251,7 @@ describe("AttendanceService", () => {
         groupId: "g1",
         present: false,
         timestamp: new Date(),
+        sessionId: null,
       });
 
       const res = await svc.update(id, { present: false });
@@ -295,6 +299,7 @@ describe("AttendanceService", () => {
         groupId: newGroup,
         present: true,
         timestamp: new Date(),
+        sessionId: null,
       });
 
       await svc.update(id, { groupId: newGroup });

@@ -3,17 +3,12 @@
 > jest
 
   console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
   console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -21,6 +16,50 @@
     [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS src/attendance/tests/attendance.service.spec.ts
+  AttendanceService
+    list
+      ✓ returns attendance ordered by timestamp desc (3 ms)
+    getById
+      ✓ returns a record when found (1 ms)
+      ✓ throws NotFound when missing
+    create
+      ✓ throws when child not found
+      ✓ throws when group not found (1 ms)
+      ✓ throws when child and group are in different tenants
+      ✓ creates with default timestamp when not provided
+      ✓ creates with provided timestamp (1 ms)
+    update
+      ✓ throws NotFound if attendance missing
+      ✓ updates present only
+      ✓ throws when changing group across tenants
+      ✓ connects new group when same tenant
 
   console.log
     [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
@@ -33,7 +72,7 @@
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
   console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -42,126 +81,191 @@
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
+PASS src/children/tests/children.controller.spec.ts
+  ChildrenController
+    ✓ should be defined (8 ms)
+    ✓ list should return array (1 ms)
+    ✓ getById should return a child (1 ms)
+    ✓ create should validate and call service (1 ms)
+    ✓ create should 400 on invalid body (missing allergies) (2 ms)
+    ✓ update should validate and call service (1 ms)
+    ✓ update should 400 on invalid uuid for groupId (1 ms)
+
   console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
+PASS src/groups/tests/groups.controller.spec.ts
+  GroupsController
+    ✓ should be defined (1 ms)
+    ✓ list should return array (1 ms)
+    ✓ getById should return a group when found (1 ms)
+    ✓ getById should throw NotFound when missing
+    ✓ create should call service and return group (1 ms)
+    ✓ update should call service and return updated group (8 ms)
+
   console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
 PASS src/users/tests/users.controller.spec.ts
   UsersController
-    ✓ should be defined (7 ms)
-    ✓ list should return array (1 ms)
+    ✓ should be defined (6 ms)
+    ✓ list should return array (11 ms)
     ✓ getById should return a user when found (1 ms)
     ✓ getById should throw NotFound when missing (1 ms)
     ✓ create should call service and return user (1 ms)
 
-PASS src/tenants/tests/tenants.controller.spec.ts
-  TenantsController
-    ✓ should be defined (21 ms)
-    ✓ list should return array (11 ms)
-    ✓ bySlug should return a tenant (2 ms)
-    ✓ create should call service and return tenant (1 ms)
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
 
-PASS src/groups/tests/groups.e2e-spec.ts
-  Groups (e2e)
-    ✓ GET /groups should return array (20 ms)
-    ✓ POST /groups should create a group (21 ms)
-    ✓ GET /groups/:id should return the created group (4 ms)
-    ✓ PATCH /groups/:id should update group (17 ms)
-    ✓ POST /groups duplicate name for same tenant should 400 (31 ms)
-    ✓ POST /groups invalid ages should 400 (2 ms)
-
-PASS src/users/tests/users.service.spec.ts
-  UsersService
-    list
-      ✓ returns users (3 ms)
-    getById
-      ✓ returns a user when found (1 ms)
-      ✓ throws NotFound when missing
-    create
-      ✓ normalizes email and creates user (with tenant connect) (2 ms)
-      ✓ connects children when provided (and all exist in same tenant)
-      ✓ 400 when any child id is missing (1 ms)
-      ✓ 400 when any child is cross-tenant
-      ✓ throws BadRequest when duplicate email (pre-check)
-      ✓ throws BadRequest when unique constraint race (P2002)
-      ✓ throws BadRequest for invalid email (ZodError mapping)
-    update
-      ✓ updates user fields and returns selection
-      ✓ lowercases email on update when provided
-      ✓ replaces children set when provided (same tenant) (1 ms)
-      ✓ 404 when user not found before validation
-      ✓ 400 when updating children with missing ids
-      ✓ 400 when updating children cross-tenant (target tenant is current)
-      ✓ throws BadRequest on unique email conflict (P2002)
-      ✓ throws NotFound on missing user (P2025) when update bubbles
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
 PASS src/tenants/tests/tenants.service.spec.ts
   TenantsService
     list
-      ✓ returns tenants (3 ms)
+      ✓ returns tenants
     getBySlug
-      ✓ returns a tenant when found
+      ✓ returns a tenant when found (1 ms)
       ✓ throws NotFound when missing
     create
-      ✓ lowercases slug and creates tenant (1 ms)
-      ✓ throws BadRequest when slug already exists (pre-check) (1 ms)
+      ✓ lowercases slug and creates tenant
+      ✓ creates tenant and connects optional relations when provided (4 ms)
+      ✓ throws BadRequest when slug already exists (pre-check)
       ✓ throws BadRequest when unique constraint race occurs (P2002)
 
-PASS src/groups/tests/groups.controller.spec.ts
-  GroupsController
-    ✓ should be defined (7 ms)
-    ✓ list should return array (1 ms)
-    ✓ getById should return a group when found (2 ms)
-    ✓ getById should throw NotFound when missing
-    ✓ create should call service and return group (2 ms)
-    ✓ update should call service and return updated group (1 ms)
+  console.log
+    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS src/users/tests/users.service.spec.ts
+  UsersService
+    list
+      ✓ returns users (1 ms)
+    getById
+      ✓ returns a user when found
+      ✓ throws NotFound when missing
+    create
+      ✓ normalizes email and creates user (with tenant connect) (1 ms)
+      ✓ connects children when provided (and all exist in same tenant)
+      ✓ 400 when any child id is missing
+      ✓ 400 when any child is cross-tenant
+      ✓ throws BadRequest when duplicate email (pre-check)
+      ✓ throws BadRequest when unique constraint race (P2002)
+      ✓ throws BadRequest for invalid email (ZodError mapping) (1 ms)
+    update
+      ✓ updates user fields and returns selection
+      ✓ lowercases email on update when provided
+      ✓ replaces children set when provided (same tenant)
+      ✓ 404 when user not found before validation
+      ✓ 400 when updating children with missing ids
+      ✓ 400 when updating children cross-tenant (target tenant is current) (1 ms)
+      ✓ throws BadRequest on unique email conflict (P2002)
+      ✓ throws NotFound on missing user (P2025) when update bubbles
 
 PASS src/groups/tests/groups.service.spec.ts
   GroupsService
     list
-      ✓ returns groups (3 ms)
+      ✓ returns groups
     getById
-      ✓ returns a group when found
-      ✓ throws NotFound when missing (1 ms)
+      ✓ returns a group when found (1 ms)
+      ✓ throws NotFound when missing
     create
-      ✓ validates & creates with tenant connect (1 ms)
+      ✓ validates & creates with tenant connect
       ✓ throws BadRequest when duplicate (pre-check)
-      ✓ throws BadRequest when unique constraint race (P2002) (1 ms)
+      ✓ throws BadRequest when unique constraint race (P2002)
       ✓ throws BadRequest for invalid ages (min>max)
     update
       ✓ updates name and ages (1 ms)
       ✓ throws BadRequest when unique name conflict (P2002)
       ✓ throws NotFound when group missing (P2025)
-      ✓ throws BadRequest when invalid ages provided
+      ✓ throws BadRequest when invalid ages provided (1 ms)
 
-PASS src/health/tests/health.e2e-spec.ts
-  HealthController (e2e)
-    ✓ /health (GET) (23 ms)
+PASS src/children/tests/children.e2e.spec.ts
+  Children (e2e)
+    ✓ GET /children should return array (33 ms)
+    ✓ POST /children should create a child (minimal) (32 ms)
+    ✓ GET /children/:id should return the created child (7 ms)
+    ✓ PATCH /children/:id should update group and guardians (32 ms)
+    ✓ POST /children invalid body should 400 (missing allergies) (3 ms)
+    ✓ POST /children group from another tenant should 400 (10 ms)
+
+PASS src/children/tests/children.service.spec.ts
+  ChildrenService
+    list
+      ✓ returns children (optionally by tenant) (6 ms)
+    getById
+      ✓ returns a child when found
+      ✓ throws NotFound when missing (1 ms)
+    create
+      ✓ creates child with tenant only
+      ✓ validates group belongs to same tenant (1 ms)
+      ✓ validates guardians belong to tenant and exist
+      ✓ throws when tenant not found
+    update
+      ✓ updates standard fields (1 ms)
+      ✓ validates group tenant on update
+      ✓ replaces guardians set when provided
+      ✓ throws NotFound if child missing on update
+
+PASS src/tenants/tests/tenants.controller.spec.ts
+  TenantsController
+    ✓ should be defined (6 ms)
+    ✓ list should return array (1 ms)
+    ✓ bySlug should return a tenant (4 ms)
+    ✓ create should call service and return tenant (2 ms)
+    ✓ create should accept optional relation arrays and pass them to service (2 ms)
+    ✓ create should 400 on invalid slug (fails DTO validation) (1 ms)
 
 PASS src/tenants/tests/tenants.e2e-spec.ts
   Tenants (e2e)
-    ✓ GET /tenants should return array (11 ms)
-    ✓ POST /tenants should create a tenant (10 ms)
+    ✓ GET /tenants should return array (14 ms)
+    ✓ POST /tenants should create a tenant (11 ms)
     ✓ GET /tenants/:slug should return the created tenant (3 ms)
     ✓ POST /tenants duplicate slug should 400 (3 ms)
-    ✓ GET /tenants/unknown should 404 (4 ms)
+    ✓ POST /tenants invalid slug should 400 (controller DTO validation) (3 ms)
+    ✓ GET /tenants/unknown should 404 (2 ms)
+
+PASS src/health/tests/health.e2e-spec.ts
+  HealthController (e2e)
+    ✓ /health (GET) (28 ms)
 
 PASS src/users/tests/users.e2e-spec.ts
   Users (e2e)
-    ✓ GET /users should return array (15 ms)
+    ✓ GET /users should return array (14 ms)
     ✓ POST /users should create a user (14 ms)
-    ✓ GET /users/:id should return the created user (3 ms)
+    ✓ GET /users/:id should return the created user (4 ms)
     ✓ POST /users duplicate email should 400 (3 ms)
-    ✓ POST /users invalid email should 400 (1 ms)
+    ✓ POST /users invalid email should 400 (2 ms)
 
-Test Suites: 10 passed, 10 total
-Tests:       67 passed, 67 total
+PASS src/groups/tests/groups.e2e-spec.ts
+  Groups (e2e)
+    ✓ GET /groups should return array (14 ms)
+    ✓ POST /groups should create a group (12 ms)
+    ✓ GET /groups/:id should return the created group (5 ms)
+    ✓ PATCH /groups/:id should update group (3 ms)
+    ✓ POST /groups duplicate name for same tenant should 400 (7 ms)
+    ✓ POST /groups invalid ages should 400 (2 ms)
+
+PASS src/attendance/tests/attendance.e2e.spec.ts
+  Groups (e2e)
+    ✓ POST /groups should create a group for tenant (18 ms)
+
+PASS src/attendance/tests/attendance.controller.spec.ts
+  AttendanceController
+    ✓ should be defined (6 ms)
+    ✓ list should return array (1 ms)
+    ✓ getById should return a record
+    ✓ create should validate and call service (2 ms)
+    ✓ create should 400 on invalid body (missing present) (2 ms)
+    ✓ update should validate and call service (1 ms)
+    ✓ update should 400 on invalid uuid in groupId (1 ms)
+
+Test Suites: 16 passed, 16 total
+Tests:       115 passed, 115 total
 Snapshots:   0 total
-Time:        4.44 s
+Time:        4.972 s
 Ran all test suites.

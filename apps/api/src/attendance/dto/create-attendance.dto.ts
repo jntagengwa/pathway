@@ -18,6 +18,7 @@ export const createAttendanceDto = z.object({
       z.date(),
     ])
     .optional(),
+  sessionId: z.string().uuid().optional(),
 });
 
 export type CreateAttendanceDto = z.infer<typeof createAttendanceDto>;
