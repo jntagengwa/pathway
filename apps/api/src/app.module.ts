@@ -10,7 +10,7 @@ import { AttendanceModule } from "./attendance/attendance.module";
 // import { LessonsModule } from "./lessons/lessons.module";
 
 // // Scheduling / Rota
-// import { SessionsModule } from "./sessions/sessions.module";
+import { SessionsModule } from "./sessions/sessions.module";
 // import { AssignmentsModule } from "./assignments/assignments.module";
 // import { PreferencesModule } from "./preferences/preferences.module";
 // import { SwapsModule } from "./swaps/swaps.module";
@@ -29,7 +29,7 @@ import { AttendanceModule } from "./attendance/attendance.module";
     ChildrenModule,
     AttendanceModule,
     // LessonsModule,
-    // SessionsModule,
+    SessionsModule,
     // AssignmentsModule,
     // PreferencesModule,
     // SwapsModule,

@@ -13,10 +13,12 @@
   },
   "scripts": {
     "prisma": "prisma",
-    "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
-    "deploy": "prisma migrate deploy",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:reset": "prisma migrate reset --force --skip-generate --skip-seed",
     "seed": "tsx prisma/seed.ts",
+    "postinstall": "prisma generate",
     "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

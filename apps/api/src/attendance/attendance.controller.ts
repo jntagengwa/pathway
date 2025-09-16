@@ -32,23 +32,20 @@ export class AttendanceController {
   }
 
   @Post()
-  async create(@Body() body: unknown) {
+  async create(@Body() body: CreateAttendanceDto) {
     const parsed = createAttendanceDto.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }
-    return this.attendanceService.create(parsed.data as CreateAttendanceDto);
+    return this.attendanceService.create(parsed.data);
   }
 
   @Patch(":id")
-  async update(@Param("id") id: string, @Body() body: unknown) {
+  async update(@Param("id") id: string, @Body() body: UpdateAttendanceDto) {
     const parsed = updateAttendanceDto.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }
-    return this.attendanceService.update(
-      id,
-      parsed.data as UpdateAttendanceDto,
-    );
+    return this.attendanceService.update(id, parsed.data);
   }
 }

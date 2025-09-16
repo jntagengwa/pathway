@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node", "jest"]
+  },
+  "include": [
+    "src",
+    "test.setup.ts",
+    "types/**/*.d.ts",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts"
+  ]
+}

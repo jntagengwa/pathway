@@ -20,7 +20,13 @@ function isPrismaError(err: unknown): err is { code: string } {
 export class TenantsService {
   async list() {
     return prisma.tenant.findMany({
-      select: { id: true, name: true, slug: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -28,7 +34,13 @@ export class TenantsService {
   async getBySlug(slug: string) {
     const t = await prisma.tenant.findUnique({
       where: { slug },
-      select: { id: true, name: true, slug: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
     if (!t) throw new NotFoundException("tenant not found");
     return t;
@@ -36,7 +48,11 @@ export class TenantsService {
 
   async create(input: CreateTenantDto) {
     // Normalize first (be forgiving to clients), then validate
-    const normalized = { ...input, slug: String(input.slug).toLowerCase() };
+    const normalized = {
+      ...input,
+      name: String(input.name).trim(),
+      slug: String(input.slug).trim().toLowerCase(),
+    };
     const parsed = createTenantDto.parse(normalized);
 
     // Pre-check for unique slug to provide a clean error (still race-safe with unique index)
@@ -75,11 +91,24 @@ export class TenantsService {
           ...(childrenConnect ? { children: childrenConnect } : {}),
           ...(rolesConnect ? { roles: rolesConnect } : {}),
         },
-        select: { id: true, name: true, slug: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
     } catch (e: unknown) {
-      if (isPrismaError(e) && e.code === "P2002") {
-        throw new BadRequestException("slug already exists");
+      if (isPrismaError(e)) {
+        if (e.code === "P2002") {
+          // Unique constraint (e.g., slug)
+          throw new BadRequestException("slug already exists");
+        }
+        if (e.code === "P2003" || e.code === "P2025") {
+          // Foreign key constraint / record to connect not found
+          throw new BadRequestException("one or more related IDs do not exist");
+        }
       }
       throw e;
     }

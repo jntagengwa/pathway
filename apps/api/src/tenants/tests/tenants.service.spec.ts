@@ -38,7 +38,13 @@ describe("TenantsService", () => {
       findMany.mockResolvedValue([tenant]);
       await expect(svc.list()).resolves.toEqual([tenant]);
       expect(findMany).toHaveBeenCalledWith({
-        select: { id: true, name: true, slug: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { createdAt: "desc" },
       });
     });
@@ -50,7 +56,13 @@ describe("TenantsService", () => {
       await expect(svc.getBySlug("demo-church")).resolves.toEqual(tenant);
       expect(findUnique).toHaveBeenCalledWith({
         where: { slug: "demo-church" },
-        select: { id: true, name: true, slug: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
     });
 
@@ -76,7 +88,13 @@ describe("TenantsService", () => {
       });
       expect(create).toHaveBeenCalledWith({
         data: { name: "New Church", slug: "new-church" },
-        select: { id: true, name: true, slug: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       expect(result.slug).toBe("new-church");
     });
@@ -127,7 +145,13 @@ describe("TenantsService", () => {
             connect: [{ id: "77777777-7777-7777-7777-777777777777" }],
           },
         },
-        select: { id: true, name: true, slug: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
 
       expect(result.slug).toBe("demo-with-links");

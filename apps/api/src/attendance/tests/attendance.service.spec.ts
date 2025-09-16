@@ -60,6 +60,7 @@ describe("AttendanceService", () => {
           childId: true,
           groupId: true,
           present: true,
+          sessionId: true,
           timestamp: true,
         },
         orderBy: [{ timestamp: "desc" }],
@@ -87,6 +88,7 @@ describe("AttendanceService", () => {
           childId: true,
           groupId: true,
           present: true,
+          sessionId: true,
           timestamp: true,
         },
       });
@@ -180,6 +182,7 @@ describe("AttendanceService", () => {
           childId: true,
           groupId: true,
           present: true,
+          sessionId: true,
           timestamp: true,
         },
       });
@@ -223,6 +226,7 @@ describe("AttendanceService", () => {
           childId: true,
           groupId: true,
           present: true,
+          sessionId: true,
           timestamp: true,
         },
       });
@@ -264,6 +268,7 @@ describe("AttendanceService", () => {
           childId: true,
           groupId: true,
           present: true,
+          sessionId: true,
           timestamp: true,
         },
       });
@@ -315,6 +320,7 @@ describe("AttendanceService", () => {
           childId: true,
           groupId: true,
           present: true,
+          sessionId: true,
           timestamp: true,
         },
       });

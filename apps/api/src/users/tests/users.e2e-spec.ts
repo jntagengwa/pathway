@@ -22,27 +22,22 @@ describe("Users (e2e)", () => {
   const tenantSlug = `e2e-tenant-${unique}`;
 
   beforeAll(async () => {
-    // Prepare isolated tenant for this test run
-    const tenant = await prisma.tenant.upsert({
-      where: { slug: tenantSlug },
-      create: { name: `E2E Tenant ${unique}`, slug: tenantSlug },
-      update: {},
-    });
-    tenantId = tenant.id;
-
+    // Spin up app first
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
+
+    // Prepare isolated tenant for this test run
+    const tenant = await prisma.tenant.create({
+      data: { name: `E2E Tenant ${unique}`, slug: tenantSlug },
+    });
+    tenantId = tenant.id;
   });
 
   afterAll(async () => {
-    // Clean up created users for this email
-    await prisma.user.deleteMany({ where: { email } });
-    // Then remove the test tenant (must be after users to satisfy FK)
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
     await app.close();
   });
 
@@ -55,7 +50,13 @@ describe("Users (e2e)", () => {
   it("POST /users should create a user", async () => {
     const res = await request(app.getHttpServer())
       .post("/users")
-      .send({ email, name, tenantId })
+      .send({
+        email,
+        name,
+        tenantId,
+        hasServeAccess: false,
+        hasFamilyAccess: false,
+      })
       .set("content-type", "application/json");
 
     expect(res.status).toBe(201);
@@ -79,7 +80,13 @@ describe("Users (e2e)", () => {
   it("POST /users duplicate email should 400", async () => {
     const res = await request(app.getHttpServer())
       .post("/users")
-      .send({ email, name: "Dup User", tenantId })
+      .send({
+        email,
+        name: "Dup User",
+        tenantId,
+        hasServeAccess: false,
+        hasFamilyAccess: false,
+      })
       .set("content-type", "application/json");
 
     expect(res.status).toBe(400);
@@ -89,7 +96,13 @@ describe("Users (e2e)", () => {
   it("POST /users invalid email should 400", async () => {
     const res = await request(app.getHttpServer())
       .post("/users")
-      .send({ email: "not-an-email", name: "Bad", tenantId })
+      .send({
+        email: "not-an-email",
+        name: "Bad",
+        tenantId,
+        hasServeAccess: false,
+        hasFamilyAccess: false,
+      })
       .set("content-type", "application/json");
 
     expect(res.status).toBe(400);

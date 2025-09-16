@@ -12,6 +12,9 @@ jest.mock("@pathway/db", () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
+    tenant: {
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -21,6 +24,7 @@ const findUnique = prisma.group.findUnique as unknown as jest.Mock;
 const findFirst = prisma.group.findFirst as unknown as jest.Mock;
 const create = prisma.group.create as unknown as jest.Mock;
 const update = prisma.group.update as unknown as jest.Mock;
+const tFindUnique = prisma.tenant.findUnique as unknown as jest.Mock;
 
 describe("GroupsService", () => {
   let svc: GroupsService;
@@ -36,6 +40,7 @@ describe("GroupsService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     svc = new GroupsService();
+    tFindUnique.mockResolvedValue({ id: "t1" });
   });
 
   describe("list", () => {
@@ -75,6 +80,7 @@ describe("GroupsService", () => {
 
   describe("create", () => {
     it("validates & creates with tenant connect", async () => {
+      tFindUnique.mockResolvedValue({ id: "t1" });
       findFirst.mockResolvedValue(null); // no duplicate
       create.mockResolvedValue(group);
 
@@ -107,6 +113,7 @@ describe("GroupsService", () => {
     });
 
     it("throws BadRequest when duplicate (pre-check)", async () => {
+      tFindUnique.mockResolvedValue({ id: "t1" });
       findFirst.mockResolvedValue(group);
       await expect(
         svc.create({ name: "Kids 7-9", tenantId: "t1", minAge: 7, maxAge: 9 }),
@@ -115,6 +122,7 @@ describe("GroupsService", () => {
     });
 
     it("throws BadRequest when unique constraint race (P2002)", async () => {
+      tFindUnique.mockResolvedValue({ id: "t1" });
       findFirst.mockResolvedValue(null);
       const p2002 = Object.assign(new Error("Unique"), { code: "P2002" });
       create.mockRejectedValue(p2002);

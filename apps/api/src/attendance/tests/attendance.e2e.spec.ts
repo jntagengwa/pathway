@@ -5,12 +5,21 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 
 const ids = {
-  tenant: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-  tenant2: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
   group: "11111111-1111-1111-1111-111111111111",
   group2: "22222222-2222-2222-2222-222222222222",
   child: "33333333-3333-3333-3333-333333333333",
 } as const;
+
+const nonce = Date.now();
+
+const TENANT_A_ID = process.env.E2E_TENANT_ID;
+const TENANT_B_ID = process.env.E2E_TENANT2_ID;
+
+if (!TENANT_A_ID || !TENANT_B_ID) {
+  throw new Error(
+    "E2E_TENANT_ID / E2E_TENANT2_ID are missing. Ensure test.setup.e2e.ts seeds tenants and exports their IDs.",
+  );
+}
 
 describe("Attendance (e2e)", () => {
   let app: INestApplication;
@@ -23,70 +32,56 @@ describe("Attendance (e2e)", () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    // Clean ONLY our fixture data (FK‑safe order + targeted by tenant)
+    // Minimal, ID-scoped cleanup to avoid cross-suite FK issues
+    // 1) Wipe attendance tied to our fixture ids
     await prisma.attendance.deleteMany({
       where: {
         OR: [
-          { child: { is: { tenantId: { in: [ids.tenant, ids.tenant2] } } } },
-          { group: { is: { tenantId: { in: [ids.tenant, ids.tenant2] } } } },
+          { childId: ids.child },
+          { groupId: { in: [ids.group, ids.group2] } },
         ],
       },
     });
 
-    await prisma.child.deleteMany({
-      where: { tenantId: { in: [ids.tenant, ids.tenant2] } },
-    });
+    // 2) Remove child & groups if they exist
+    await prisma.child.deleteMany({ where: { id: ids.child } });
     await prisma.group.deleteMany({
-      where: { tenantId: { in: [ids.tenant, ids.tenant2] } },
-    });
-    await prisma.userTenantRole.deleteMany({
-      where: { tenantId: { in: [ids.tenant, ids.tenant2] } },
-    });
-    await prisma.user.deleteMany({
-      where: { tenantId: { in: [ids.tenant, ids.tenant2] } },
-    });
-    await prisma.session
-      ?.deleteMany?.({ where: { tenantId: { in: [ids.tenant, ids.tenant2] } } })
-      .catch(() => {});
-    await prisma.tenant.deleteMany({
-      where: { id: { in: [ids.tenant, ids.tenant2] } },
+      where: { id: { in: [ids.group, ids.group2] } },
     });
 
-    // Seed tenants
-    await prisma.tenant.create({
-      data: { id: ids.tenant, name: "Demo Tenant", slug: "demo-tenant" },
-    });
-    await prisma.tenant.create({
-      data: { id: ids.tenant2, name: "Other Tenant", slug: "other-tenant" },
-    });
-
-    // Seed groups
-    await prisma.group.create({
-      data: {
+    // 4) Upsert groups under their respective tenants
+    await prisma.group.upsert({
+      where: { id: ids.group },
+      update: {},
+      create: {
         id: ids.group,
-        name: "Kids A",
-        tenantId: ids.tenant,
+        name: `Kids A ${nonce}` as string,
+        tenantId: TENANT_A_ID,
         minAge: 3,
         maxAge: 5,
       },
     });
-    await prisma.group.create({
-      data: {
+    await prisma.group.upsert({
+      where: { id: ids.group2 },
+      update: {},
+      create: {
         id: ids.group2,
-        name: "Kids B",
-        tenantId: ids.tenant2,
+        name: `Kids B ${nonce}` as string,
+        tenantId: TENANT_B_ID,
         minAge: 6,
         maxAge: 8,
       },
     });
 
-    // Seed a child in first tenant
-    await prisma.child.create({
-      data: {
+    // 5) Upsert child in first tenant
+    await prisma.child.upsert({
+      where: { id: ids.child },
+      update: {},
+      create: {
         id: ids.child,
         firstName: "Sam",
         lastName: "Smith",
-        tenantId: ids.tenant,
+        tenantId: TENANT_A_ID,
         groupId: ids.group,
         allergies: "none",
         disabilities: [],

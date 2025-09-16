@@ -8,7 +8,7 @@ export const createAttendanceDto = z.object({
     .string({ required_error: "groupId is required" })
     .uuid("groupId must be a valid uuid"),
   present: z.boolean({ required_error: "present is required" }),
-  // Optional timestamp; if provided, coerce to Date and validate
+  sessionId: z.string().uuid().optional(),
   timestamp: z
     .union([
       z
@@ -18,7 +18,6 @@ export const createAttendanceDto = z.object({
       z.date(),
     ])
     .optional(),
-  sessionId: z.string().uuid().optional(),
 });
 
 export type CreateAttendanceDto = z.infer<typeof createAttendanceDto>;

@@ -13,6 +13,7 @@ const SELECT = {
   groupId: true,
   present: true,
   timestamp: true,
+  sessionId: true,
 } as const;
 
 @Injectable()
@@ -48,6 +49,23 @@ export class AttendanceService {
     });
     if (!group) throw new BadRequestException("group not found");
 
+    // Optional: validate session exists and is consistent
+    if (input.sessionId) {
+      const session = await prisma.session.findUnique({
+        where: { id: input.sessionId },
+        select: { id: true, tenantId: true, groupId: true },
+      });
+      if (!session) throw new BadRequestException("session not found");
+      if (session.tenantId !== child.tenantId) {
+        throw new BadRequestException(
+          "session does not belong to the child's tenant",
+        );
+      }
+      if (session.groupId && session.groupId !== input.groupId) {
+        throw new BadRequestException("session is for a different group");
+      }
+    }
+
     // Cross-tenant guard
     if (child.tenantId !== group.tenantId) {
       throw new BadRequestException(
@@ -61,6 +79,9 @@ export class AttendanceService {
         group: { connect: { id: input.groupId } },
         present: input.present,
         timestamp: input.timestamp ?? new Date(),
+        ...(input.sessionId
+          ? { session: { connect: { id: input.sessionId } } }
+          : {}),
       },
       select: SELECT,
     });
@@ -71,7 +92,11 @@ export class AttendanceService {
     // Ensure row exists (also used to infer tenant via relations if needed)
     const current = await prisma.attendance.findUnique({
       where: { id },
-      select: { id: true, child: { select: { tenantId: true } } },
+      select: {
+        id: true,
+        groupId: true,
+        child: { select: { tenantId: true } },
+      },
     });
     if (!current) throw new NotFoundException("Attendance not found");
 
@@ -89,12 +114,38 @@ export class AttendanceService {
       }
     }
 
+    // Optional: validate session exists and is consistent
+    if (input.sessionId) {
+      const session = await prisma.session.findUnique({
+        where: { id: input.sessionId },
+        select: { id: true, tenantId: true, groupId: true },
+      });
+      if (!session) throw new BadRequestException("session not found");
+      if (session.tenantId !== current.child.tenantId) {
+        throw new BadRequestException(
+          "session does not belong to the child's tenant",
+        );
+      }
+      // If either the incoming groupId or the current groupId exists, ensure it matches the session's group (when session has one)
+      const effectiveGroupId = input.groupId ?? current.groupId ?? undefined;
+      if (
+        session.groupId &&
+        effectiveGroupId &&
+        session.groupId !== effectiveGroupId
+      ) {
+        throw new BadRequestException("session is for a different group");
+      }
+    }
+
     const updated = await prisma.attendance.update({
       where: { id },
       data: {
         present: input.present ?? undefined,
         timestamp: input.timestamp ?? undefined,
         ...(input.groupId ? { group: { connect: { id: input.groupId } } } : {}),
+        ...(input.sessionId
+          ? { session: { connect: { id: input.sessionId } } }
+          : {}),
       },
       select: SELECT,
     });

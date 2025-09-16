@@ -10,6 +10,7 @@ describe("Children (e2e)", () => {
   let groupId: string;
   let guardianId: string;
   let childId: string;
+  const nonce = Date.now();
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -20,14 +21,14 @@ describe("Children (e2e)", () => {
 
     // Ensure a fresh tenant for isolation
     const t = await prisma.tenant.create({
-      data: { name: "ChildTest Tenant", slug: `childtest-${Date.now()}` },
+      data: { name: "ChildTest Tenant", slug: `childtest-${nonce}` },
       select: { id: true },
     });
     tenantId = t.id;
 
     // A group in the same tenant
     const g = await prisma.group.create({
-      data: { name: "Sparks", minAge: 5, maxAge: 7, tenantId },
+      data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
       select: { id: true },
     });
     groupId = g.id;
@@ -35,7 +36,7 @@ describe("Children (e2e)", () => {
     // A guardian user in the same tenant
     const u = await prisma.user.create({
       data: {
-        email: `guardian_${Date.now()}@example.com`,
+        email: `guardian_${nonce}@example.com`,
         name: "Guardian One",
         tenantId,
       },
@@ -46,7 +47,7 @@ describe("Children (e2e)", () => {
 
   afterAll(async () => {
     await app.close();
-    await prisma.$disconnect();
+    // Do not call prisma.$disconnect() here to avoid interfering with parallel e2e suites.
   });
 
   it("GET /children should return array", async () => {
@@ -108,15 +109,22 @@ describe("Children (e2e)", () => {
   });
 
   it("POST /children group from another tenant should 400", async () => {
-    // Create another tenant + group
-    const other = await prisma.tenant.create({
-      data: { name: "Other", slug: `other-${Date.now()}` },
-      select: { id: true },
+    // Create another tenant with a nested group (single transaction to avoid FK races)
+    const created = await prisma.tenant.create({
+      data: {
+        name: "Other",
+        slug: `other-${nonce}`,
+        groups: {
+          create: {
+            name: "Older",
+            minAge: 8,
+            maxAge: 10,
+          },
+        },
+      },
+      include: { groups: { select: { id: true } } },
     });
-    const otherGroup = await prisma.group.create({
-      data: { name: "Older", minAge: 8, maxAge: 10, tenantId: other.id },
-      select: { id: true },
-    });
+    const otherGroup = { id: created.groups[0].id };
 
     const res = await request(app.getHttpServer())
       .post("/children")
@@ -125,6 +133,7 @@ describe("Children (e2e)", () => {
         lastName: "Tenant",
         allergies: "none",
         tenantId,
+        disabilities: [],
         groupId: otherGroup.id, // mismatched tenant
       })
       .set("content-type", "application/json");
