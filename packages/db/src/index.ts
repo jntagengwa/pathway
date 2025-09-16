@@ -28,4 +28,4 @@ export async function resetDatabase() {
 
 // Re-export types & enums only
 export type { Prisma, PrismaClient } from "@prisma/client";
-export { AssignmentStatus, Role } from "@prisma/client";
+export { AssignmentStatus, Role, Weekday } from "@prisma/client";
