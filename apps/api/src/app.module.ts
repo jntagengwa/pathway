@@ -17,7 +17,7 @@ import { SwapsModule } from "./swaps/swaps.module";
 
 // // Comms & Safeguarding
 import { AnnouncementsModule } from "./announcements/announcements.module";
-// import { NotesModule } from "./notes/notes.module";
+import { NotesModule } from "./notes/notes.module";
 // import { ConcernsModule } from "./concerns/concerns.module";
 
 @Module({
@@ -34,7 +34,7 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
     PreferencesModule,
     SwapsModule,
     AnnouncementsModule,
-    // NotesModule,
+    NotesModule,
     // ConcernsModule,
   ],
 })
