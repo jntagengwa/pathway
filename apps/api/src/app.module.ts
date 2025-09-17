@@ -7,7 +7,7 @@ import { UsersModule } from "./users/users.module";
 import { GroupsModule } from "./groups/groups.module";
 import { ChildrenModule } from "./children/children.module";
 import { AttendanceModule } from "./attendance/attendance.module";
-// import { LessonsModule } from "./lessons/lessons.module";
+import { LessonsModule } from "./lessons/lessons.module";
 
 // // Scheduling / Rota
 import { SessionsModule } from "./sessions/sessions.module";
@@ -28,7 +28,7 @@ import { SwapsModule } from "./swaps/swaps.module";
     GroupsModule,
     ChildrenModule,
     AttendanceModule,
-    // LessonsModule,
+    LessonsModule,
     SessionsModule,
     AssignmentsModule,
     PreferencesModule,
