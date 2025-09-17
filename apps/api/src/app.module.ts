@@ -16,7 +16,7 @@ import { PreferencesModule } from "./preferences/preferences.module";
 import { SwapsModule } from "./swaps/swaps.module";
 
 // // Comms & Safeguarding
-// import { AnnouncementsModule } from "./announcements/announcements.module";
+import { AnnouncementsModule } from "./announcements/announcements.module";
 // import { NotesModule } from "./notes/notes.module";
 // import { ConcernsModule } from "./concerns/concerns.module";
 
@@ -33,7 +33,7 @@ import { SwapsModule } from "./swaps/swaps.module";
     AssignmentsModule,
     PreferencesModule,
     SwapsModule,
-    // AnnouncementsModule,
+    AnnouncementsModule,
     // NotesModule,
     // ConcernsModule,
   ],
