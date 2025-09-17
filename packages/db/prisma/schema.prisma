@@ -39,6 +39,12 @@ enum Weekday {
   SAT
 }
 
+enum AnnouncementAudience {
+  ALL
+  PARENTS
+  STAFF
+}
+
 // --- Models ---
 
 model Tenant {
@@ -239,12 +245,14 @@ model Announcement {
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
   title      String
   body       String
+  audience   AnnouncementAudience @default(ALL)
   publishedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([tenantId])
   @@index([publishedAt])
+  @@index([tenantId, audience, publishedAt])
 }
 
 model ChildNote {

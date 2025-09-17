@@ -129,13 +129,10 @@ describe("SwapsService", () => {
     });
 
     // Now import the service (it will receive the mocked prisma)
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const svcMod = await import("../../swaps/swaps.service");
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     SwapsServiceClass = svcMod.SwapsService;
 
     // Also import prisma from the mocked module so we can assert on calls
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const db = (await import("@pathway/db")) as unknown as {
       prisma: PrismaMock;
     };

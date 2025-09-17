@@ -1,13 +1,20 @@
-import { PrismaClient } from "@prisma/client";
+// ESM/CJS/Jest-safe Prisma bootstrap that won't break existing tests
+import type { PrismaClient as PrismaClientType } from "@prisma/client";
+import * as PrismaNS from "@prisma/client";
+
+// Extract ctor via namespace import to avoid "PrismaClient is not a constructor" in some runtimes
+const PrismaClientCtor = (
+  PrismaNS as unknown as { PrismaClient: new () => PrismaClientType }
+).PrismaClient;
 
 // Keep a single PrismaClient instance across hot-reloads in dev/test.
 // We attach it to globalThis to avoid creating multiple connections.
 const globalForPrisma = globalThis as unknown as {
-  __prisma?: PrismaClient;
+  __prisma?: PrismaClientType;
 };
 
-export const prisma: PrismaClient =
-  globalForPrisma.__prisma ?? new PrismaClient();
+export const prisma: PrismaClientType =
+  globalForPrisma.__prisma ?? new PrismaClientCtor();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.__prisma = prisma;
@@ -26,6 +33,6 @@ export async function resetDatabase() {
   );
 }
 
-// Re-export types & enums only
+// Re-export types & enums only (public API unchanged)
 export type { Prisma, PrismaClient } from "@prisma/client";
 export { AssignmentStatus, Role, Weekday, SwapStatus } from "@prisma/client";
