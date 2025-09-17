@@ -13,7 +13,7 @@ import { AttendanceModule } from "./attendance/attendance.module";
 import { SessionsModule } from "./sessions/sessions.module";
 import { AssignmentsModule } from "./assignments/assignments.module";
 import { PreferencesModule } from "./preferences/preferences.module";
-// import { SwapsModule } from "./swaps/swaps.module";
+import { SwapsModule } from "./swaps/swaps.module";
 
 // // Comms & Safeguarding
 // import { AnnouncementsModule } from "./announcements/announcements.module";
@@ -32,7 +32,7 @@ import { PreferencesModule } from "./preferences/preferences.module";
     SessionsModule,
     AssignmentsModule,
     PreferencesModule,
-    // SwapsModule,
+    SwapsModule,
     // AnnouncementsModule,
     // NotesModule,
     // ConcernsModule,
