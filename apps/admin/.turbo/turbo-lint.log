@@ -1,5 +1,4 @@
 
-
 > @pathway/admin@0.0.0 lint /Users/JeanFidele/Projects/pathway/apps/admin
 > eslint "src/**/*.{ts,tsx,js}" --no-error-on-unmatched-pattern
 

@@ -8,8 +8,8 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { ChildrenService } from "./children.service";
-import { createChildDto, CreateChildDto } from "./dto/create-child.dto";
-import { updateChildDto, UpdateChildDto } from "./dto/update-child.dto";
+import { createChildSchema, CreateChildDto } from "./dto/create-child.dto";
+import { UpdateChildDto, updateChildSchema } from "./dto/update-child.dto";
 
 @Controller("children")
 export class ChildrenController {
@@ -27,7 +27,7 @@ export class ChildrenController {
 
   @Post()
   async create(@Body() body: unknown) {
-    const parsed = createChildDto.safeParse(body);
+    const parsed = createChildSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }
@@ -36,7 +36,7 @@ export class ChildrenController {
 
   @Patch(":id")
   async update(@Param("id") id: string, @Body() body: unknown) {
-    const parsed = updateChildDto.safeParse(body);
+    const parsed = updateChildSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }

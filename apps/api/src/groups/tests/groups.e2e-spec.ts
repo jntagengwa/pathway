@@ -20,15 +20,15 @@ describe("Groups (e2e)", () => {
   let tenantId: string;
   let createdGroupId: string;
 
-  const unique = Date.now();
-  const tenantSlug = `e2e-groups-tenant-${unique}`;
-  const baseName = `Group-${unique}`;
+  const nonce = Date.now();
+  const tenantSlug = `e2e-groups-tenant-${nonce}`;
+  const baseName = `Group-${nonce}`;
 
   beforeAll(async () => {
-    // Ensure isolated tenant exists
+    // Ensure isolated tenant exists for this suite only (no global truncate)
     const tenant = await prisma.tenant.upsert({
       where: { slug: tenantSlug },
-      create: { name: `E2E Groups Tenant ${unique}`, slug: tenantSlug },
+      create: { name: `E2E Groups Tenant ${nonce}`, slug: tenantSlug },
       update: {},
     });
     tenantId = tenant.id;
@@ -42,9 +42,7 @@ describe("Groups (e2e)", () => {
   });
 
   afterAll(async () => {
-    // Cleanup groups created under this tenant, then the tenant
-    await prisma.group.deleteMany({ where: { tenantId } });
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
+    // Cleanup is handled by per-suite TRUNCATE; nothing to do here except close app
     await app.close();
   });
 
@@ -88,13 +86,13 @@ describe("Groups (e2e)", () => {
   it("PATCH /groups/:id should update group", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/groups/${createdGroupId}`)
-      .send({ name: `${baseName}-updated`, minAge: 6, maxAge: 10 })
+      .send({ name: `Group-${nonce}-updated`, minAge: 6, maxAge: 10 })
       .set("content-type", "application/json");
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: createdGroupId,
-      name: `${baseName}-updated`,
+      name: `Group-${nonce}-updated`,
       tenantId,
       minAge: 6,
       maxAge: 10,
@@ -103,7 +101,7 @@ describe("Groups (e2e)", () => {
 
   it("POST /groups duplicate name for same tenant should 400", async () => {
     // First create another group with a fixed name
-    const name = `${baseName}-dup`;
+    const name = `Group-${nonce}-dup`;
     const res1 = await request(app.getHttpServer())
       .post("/groups")
       .send({ name, tenantId, minAge: 5, maxAge: 6 })
@@ -122,7 +120,7 @@ describe("Groups (e2e)", () => {
   it("POST /groups invalid ages should 400", async () => {
     const res = await request(app.getHttpServer())
       .post("/groups")
-      .send({ name: `${baseName}-bad`, tenantId, minAge: 10, maxAge: 9 }) // invalid: minAge > maxAge
+      .send({ name: `Group-${nonce}-bad`, tenantId, minAge: 10, maxAge: 9 }) // invalid: minAge > maxAge
       .set("content-type", "application/json");
 
     expect(res.status).toBe(400);

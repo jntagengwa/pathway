@@ -53,6 +53,20 @@ export class GroupsService {
     try {
       const parsed = createGroupDto.parse(normalized);
 
+      // additional validation: minAge must be <= maxAge
+      if (parsed.minAge > parsed.maxAge) {
+        throw new BadRequestException("minAge cannot exceed maxAge");
+      }
+
+      // ensure tenant exists to return clean 400 instead of FK error
+      const tenantExists = await prisma.tenant.findUnique({
+        where: { id: parsed.tenantId },
+        select: { id: true },
+      });
+      if (!tenantExists) {
+        throw new BadRequestException("tenant not found");
+      }
+
       // optional: prevent duplicate group names per tenant (if you have a unique index)
       // adjust if schema enforces uniqueness differently
       const existing = await prisma.group.findFirst({
@@ -96,6 +110,15 @@ export class GroupsService {
 
     try {
       const parsed = updateGroupDto.parse(normalized);
+
+      // if both ages provided, ensure logical order
+      if (
+        typeof parsed.minAge === "number" &&
+        typeof parsed.maxAge === "number" &&
+        parsed.minAge > parsed.maxAge
+      ) {
+        throw new BadRequestException("minAge cannot exceed maxAge");
+      }
 
       return await prisma.group.update({
         where: { id },

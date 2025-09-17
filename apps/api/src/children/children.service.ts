@@ -14,7 +14,6 @@ const childSelect = {
   lastName: true,
   photoKey: true,
   allergies: true,
-  notes: true,
   disabilities: true,
   tenantId: true,
   groupId: true,
@@ -94,7 +93,6 @@ export class ChildrenService {
         lastName,
         photoKey: input.photoKey ?? null,
         allergies: input.allergies,
-        notes: input.notes ?? null,
         disabilities: input.disabilities ?? [],
         tenant: { connect: { id: input.tenantId } },
         ...(input.groupId ? { group: { connect: { id: input.groupId } } } : {}),
@@ -157,7 +155,6 @@ export class ChildrenService {
         ...(input.allergies !== undefined
           ? { allergies: input.allergies }
           : {}),
-        ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.disabilities !== undefined
           ? { disabilities: input.disabilities }
           : {}),

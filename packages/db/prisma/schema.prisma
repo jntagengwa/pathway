@@ -16,6 +16,29 @@ enum Role {
   PARENT
 }
 
+enum AssignmentStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
+enum SwapStatus {
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+enum Weekday {
+  SUN
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+}
+
 // --- Models ---
 
 model Tenant {
@@ -26,6 +49,10 @@ model Tenant {
   groups    Group[]
   children  Child[]
   roles     UserTenantRole[]
+  sessions      Session[]
+  lessons       Lesson[]
+  announcements Announcement[]
+  preferences   VolunteerPreference[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -54,6 +81,11 @@ model User {
   hasServeAccess Boolean @default(false)
   hasFamilyAccess Boolean @default(false)
   roles    UserTenantRole[]
+  assignments Assignment[]
+  preferences VolunteerPreference[]
+  notes       ChildNote[]
+  swapRequestsFrom SwapRequest[] @relation("SwapFromUser")
+  swapRequestsTo   SwapRequest[] @relation("SwapToUser")
 }
 
 model Child {
@@ -71,6 +103,7 @@ model Child {
   disabilities String[]  @default([])
   concerns     Concern[]
   attendance Attendance[]
+  childNotes ChildNote[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -84,6 +117,8 @@ model Group {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   children  Child[]
   attendances Attendance[]
+  sessions    Session[]
+  lessons     Lesson[]
 }
 
 model Attendance {
@@ -92,8 +127,13 @@ model Attendance {
   child     Child    @relation(fields: [childId], references: [id])
   groupId   String
   group     Group    @relation(fields: [groupId], references: [id])
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id])
   present   Boolean
   timestamp DateTime @default(now())
+
+  @@index([childId])
+  @@index([sessionId])
 }
 
 model Concern {
@@ -106,4 +146,117 @@ model Concern {
   updatedAt DateTime @updatedAt
 
   @@index([childId])
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  groupId    String?
+  group      Group?   @relation(fields: [groupId], references: [id])
+  startsAt   DateTime
+  endsAt     DateTime
+  title      String?
+  assignments Assignment[]
+  attendances Attendance[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([groupId])
+  @@index([startsAt])
+}
+
+model Assignment {
+  id         String   @id @default(uuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  role       Role
+  status     AssignmentStatus @default(CONFIRMED)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  swapRequests SwapRequest[] @relation("AssignmentSwapRequests")
+
+  @@unique([sessionId, userId, role])
+  @@index([userId])
+}
+
+model VolunteerPreference {
+  id           String  @id @default(uuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id])
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  weekday      Weekday
+  startMinute  Int     // minutes from 00:00 (0-1439)
+  endMinute    Int     // minutes from 00:00 (1-1440)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@unique([userId, tenantId, weekday, startMinute, endMinute])
+}
+
+model SwapRequest {
+  id            String   @id @default(uuid())
+  assignmentId  String
+  assignment    Assignment @relation("AssignmentSwapRequests", fields: [assignmentId], references: [id])
+  fromUserId    String
+  fromUser      User     @relation("SwapFromUser", fields: [fromUserId], references: [id])
+  toUserId      String?
+  toUser        User?    @relation("SwapToUser", fields: [toUserId], references: [id])
+  status        SwapStatus @default(REQUESTED)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model Lesson {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  groupId    String?
+  group      Group?   @relation(fields: [groupId], references: [id])
+  title      String
+  description String?
+  fileKey    String?   // storage key for uploaded content
+  weekOf     DateTime  // e.g., Monday of the week
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([groupId])
+  @@index([weekOf])
+}
+
+model Announcement {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  title      String
+  body       String
+  publishedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([publishedAt])
+}
+
+model ChildNote {
+  id         String   @id @default(uuid())
+  childId    String
+  child      Child    @relation(fields: [childId], references: [id])
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  text       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([childId])
+  @@index([authorId])
 }
