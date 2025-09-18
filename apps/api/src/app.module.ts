@@ -18,7 +18,7 @@ import { SwapsModule } from "./swaps/swaps.module";
 // // Comms & Safeguarding
 import { AnnouncementsModule } from "./announcements/announcements.module";
 import { NotesModule } from "./notes/notes.module";
-// import { ConcernsModule } from "./concerns/concerns.module";
+import { ConcernsModule } from "./concerns/concerns.module";
 
 @Module({
   imports: [
@@ -35,7 +35,7 @@ import { NotesModule } from "./notes/notes.module";
     SwapsModule,
     AnnouncementsModule,
     NotesModule,
-    // ConcernsModule,
+    ConcernsModule,
   ],
 })
 export class AppModule {}
