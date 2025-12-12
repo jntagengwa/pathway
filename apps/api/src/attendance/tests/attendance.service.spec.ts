@@ -1,6 +1,10 @@
 import { NotFoundException } from "@nestjs/common";
 import { AttendanceService } from "../attendance.service";
 import { prisma } from "@pathway/db";
+import { PathwayRequestContext, UserTenantRole } from "@pathway/auth";
+import { Av30ActivityService } from "../../av30/av30-activity.service";
+import type { AuthContext } from "@pathway/auth/src/types/auth-context";
+import type { Request } from "express";
 
 // --- Prisma mocks
 const aFindMany = jest.spyOn(prisma.attendance, "findMany");
@@ -13,6 +17,37 @@ const gFindUnique = jest.spyOn(prisma.group, "findUnique");
 
 describe("AttendanceService", () => {
   let svc: AttendanceService;
+  let mockAv30Service: Av30ActivityService;
+  let mockRequestContext: PathwayRequestContext;
+
+  const createMockContext = (): PathwayRequestContext => {
+    const context: AuthContext = {
+      user: {
+        userId: "user-123",
+        email: "staff@example.com",
+        authProvider: "debug",
+      },
+      org: {
+        orgId: "org-123",
+        auth0OrgId: "auth0|org123",
+      },
+      tenant: {
+        tenantId: "tenant-123",
+        orgId: "org-123",
+      },
+      roles: {
+        org: [],
+        tenant: [UserTenantRole.TEACHER],
+      },
+      permissions: [],
+      rawClaims: {},
+    };
+
+    const mockRequest = {} as unknown as Request;
+    const ctx = new PathwayRequestContext(mockRequest);
+    ctx.setContext(context);
+    return ctx;
+  };
 
   const makeChild = (tenantId: string) => ({
     id: "" as string,
@@ -46,7 +81,15 @@ describe("AttendanceService", () => {
     aUpdate.mockReset();
     cFindUnique.mockReset();
     gFindUnique.mockReset();
-    svc = new AttendanceService();
+
+    mockAv30Service = {
+      recordActivityForCurrentUser: jest.fn().mockResolvedValue(undefined),
+      recordActivity: jest.fn().mockResolvedValue(undefined),
+    } as unknown as Av30ActivityService;
+
+    mockRequestContext = createMockContext();
+
+    svc = new AttendanceService(mockAv30Service, mockRequestContext);
   });
 
   describe("list", () => {
@@ -188,6 +231,10 @@ describe("AttendanceService", () => {
           timestamp: true,
         },
       });
+      // Verify AV30 activity was recorded
+      expect(
+        mockAv30Service.recordActivityForCurrentUser,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it("creates with provided timestamp", async () => {
@@ -277,6 +324,10 @@ describe("AttendanceService", () => {
           timestamp: true,
         },
       });
+      // Verify AV30 activity was recorded
+      expect(
+        mockAv30Service.recordActivityForCurrentUser,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it("throws when changing group across tenants", async () => {

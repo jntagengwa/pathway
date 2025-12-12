@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { CommonModule } from "../common/common.module";
+import { Av30Module } from "../av30/av30.module";
 import { AssignmentsController } from "./assignments.controller";
 import { AssignmentsService } from "./assignments.service";
 
 @Module({
-  imports: [CommonModule],
+  imports: [CommonModule, Av30Module],
   controllers: [AssignmentsController],
   providers: [AssignmentsService],
   exports: [AssignmentsService],
