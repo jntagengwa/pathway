@@ -24,6 +24,7 @@
     "@nestjs/platform-express": "^10.4.7",
     "@pathway/auth": "workspace:*",
     "@pathway/db": "workspace:*",
+    "@pathway/types": "workspace:*",
     "@pathway/util": "workspace:*",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

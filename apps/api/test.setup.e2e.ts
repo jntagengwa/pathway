@@ -75,6 +75,12 @@ if (allowReset) {
   console.log(
     "[test.setup.e2e] E2E DB reset enabled via E2E_ALLOW_RESET=true; running prisma migrate reset.",
   );
+  const resetUrl = process.env.SUPER_TEST_DATABASE ?? process.env.DATABASE_URL;
+  if (!resetUrl) {
+    throw new Error(
+      "E2E_ALLOW_RESET=true but no DATABASE_URL/TEST_DATABASE_URL/SUPER_TEST_DATABASE set",
+    );
+  }
   try {
     execSync(
       "pnpm --filter @pathway/db exec prisma migrate reset --force --skip-seed --skip-generate",
@@ -82,7 +88,7 @@ if (allowReset) {
         stdio: "inherit",
         env: {
           ...process.env,
-          DATABASE_URL: process.env.DATABASE_URL as string, // already includes unique ?schema=
+          DATABASE_URL: resetUrl, // use elevated URL if provided
         },
       },
     );

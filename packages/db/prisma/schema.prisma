@@ -95,6 +95,7 @@ model Org {
   billingEvents    BillingEvent[]
   userOrgRoles     UserOrgRole[]
   auditEvents      AuditEvent[]
+  staffActivities  StaffActivity[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -117,6 +118,7 @@ model Tenant {
   announcements Announcement[]
   preferences   VolunteerPreference[]
   auditEvents   AuditEvent[]
+  staffActivities StaffActivity[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -172,6 +174,7 @@ model User {
   swapRequestsFrom SwapRequest[] @relation("SwapFromUser")
   swapRequestsTo   SwapRequest[] @relation("SwapToUser")
   orgRoles  UserOrgRole[]
+  staffActivities StaffActivity[]
 }
 
 model Child {
@@ -438,4 +441,22 @@ model BillingEvent {
   createdAt DateTime @default(now())
 
   @@index([orgId, createdAt])
+}
+
+model StaffActivity {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  orgId        String
+  org          Org      @relation(fields: [orgId], references: [id])
+  staffUserId  String
+  staffUser    User     @relation(fields: [staffUserId], references: [id])
+  activityType String   // Av30ActivityType enum value
+  occurredAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, staffUserId, occurredAt])
+  @@index([orgId, occurredAt])
+  @@index([orgId, staffUserId, occurredAt])
 }

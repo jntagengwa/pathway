@@ -4,6 +4,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
+import { PathwayRequestContext } from "@pathway/auth";
+import { Av30ActivityType } from "@pathway/types/av30";
+import { Av30ActivityService } from "../av30/av30-activity.service";
 import { CreateAttendanceDto } from "./dto/create-attendance.dto";
 import { UpdateAttendanceDto } from "./dto/update-attendance.dto";
 
@@ -18,6 +21,11 @@ const SELECT = {
 
 @Injectable()
 export class AttendanceService {
+  constructor(
+    private readonly av30ActivityService: Av30ActivityService,
+    private readonly requestContext: PathwayRequestContext,
+  ) {}
+
   async list(tenantId: string) {
     return prisma.attendance.findMany({
       where: { child: { tenantId } },
@@ -84,6 +92,19 @@ export class AttendanceService {
       },
       select: SELECT,
     });
+
+    // Record AV30 activity: staff user recorded attendance
+    await this.av30ActivityService
+      .recordActivityForCurrentUser(
+        this.requestContext,
+        Av30ActivityType.ATTENDANCE_RECORDED,
+        input.timestamp ?? new Date(),
+      )
+      .catch((err) => {
+        // Log but don't fail the attendance creation if AV30 recording fails
+        console.error("Failed to record AV30 activity for attendance", err);
+      });
+
     return created;
   }
 
@@ -147,6 +168,22 @@ export class AttendanceService {
       },
       select: SELECT,
     });
+
+    // Record AV30 activity: staff user updated attendance
+    await this.av30ActivityService
+      .recordActivityForCurrentUser(
+        this.requestContext,
+        Av30ActivityType.ATTENDANCE_RECORDED,
+        input.timestamp ?? updated.timestamp,
+      )
+      .catch((err) => {
+        // Log but don't fail the attendance update if AV30 recording fails
+        console.error(
+          "Failed to record AV30 activity for attendance update",
+          err,
+        );
+      });
+
     return updated;
   }
 }

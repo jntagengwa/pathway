@@ -24,7 +24,7 @@ packages/db/prisma/.env
 # VSCode / IDE
 .vscode/
 .idea/
-
+.cursor/
 # OS
 .DS_Store
 Thumbs.db

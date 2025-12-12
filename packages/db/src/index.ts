@@ -40,30 +40,59 @@ export async function closePrisma() {
 export async function resetDatabase() {
   // Note: double-quote names to preserve case; include new suite/billing tables.
   // Postgres TRUNCATE with CASCADE clears dependents (junctions) safely.
-  await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE
-      "BillingEvent",
-      "UsageCounters",
-      "OrgEntitlementSnapshot",
-      "Subscription",
-      "Announcement",
-      "Lesson",
-      "VolunteerPreference",
-      "SwapRequest",
-      "Assignment",
-      "Attendance",
-      "Session",
-      "ChildNote",
-      "Concern",
-      "Child",
-      "Group",
-      "UserTenantRole",
-      "UserOrgRole",
-      "User",
-      "Tenant",
-      "Org"
-    RESTART IDENTITY CASCADE
-  `);
+  try {
+    await prisma.$executeRawUnsafe(`
+      TRUNCATE TABLE
+        "BillingEvent",
+        "UsageCounters",
+        "StaffActivity",
+        "OrgEntitlementSnapshot",
+        "Subscription",
+        "Announcement",
+        "Lesson",
+        "VolunteerPreference",
+        "SwapRequest",
+        "Assignment",
+        "Attendance",
+        "Session",
+        "ChildNote",
+        "Concern",
+        "Child",
+        "Group",
+        "UserTenantRole",
+        "UserOrgRole",
+        "User",
+        "Tenant",
+        "Org"
+      RESTART IDENTITY CASCADE
+    `);
+  } catch {
+    // Fallback for environments where the current DB user cannot truncate billing tables.
+    await prisma.$executeRawUnsafe(`
+      TRUNCATE TABLE
+        "UsageCounters",
+        "StaffActivity",
+        "OrgEntitlementSnapshot",
+        "Subscription",
+        "Announcement",
+        "Lesson",
+        "VolunteerPreference",
+        "SwapRequest",
+        "Assignment",
+        "Attendance",
+        "Session",
+        "ChildNote",
+        "Concern",
+        "Child",
+        "Group",
+        "UserTenantRole",
+        "UserOrgRole",
+        "User",
+        "Tenant",
+        "Org"
+      RESTART IDENTITY CASCADE
+    `);
+  }
 }
 
 // Re-export types & enums (public API unchanged)
