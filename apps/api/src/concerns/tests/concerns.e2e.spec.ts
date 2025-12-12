@@ -1,8 +1,10 @@
 import { INestApplication } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
+import { withTenantRlsContext, Role } from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 // API response shape (serialized)
 type Concern = {
@@ -17,55 +19,104 @@ type Concern = {
 describe("Concerns (e2e)", () => {
   let app: INestApplication;
   let tenantId: string;
+  let orgId: string;
+  let tenantSlug: string;
   let childId: string | null = null;
   let createdId: string | undefined;
+  let authHeader: string;
+  const userId = randomUUID();
+  const userEmail = `concerns.e2e-${userId}@pathway.app`;
+
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
+  };
 
   beforeAll(async () => {
+    orgId = process.env.E2E_ORG_ID as string;
+    tenantId = process.env.E2E_TENANT_ID as string;
+    tenantSlug = "e2e-tenant-a";
+    if (!orgId || !tenantId) {
+      throw new Error("E2E_ORG_ID / E2E_TENANT_ID missing");
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();
 
-    // Seed a tenant (unique slug per run)
-    const slug = `e2e-concerns-${Date.now()}`;
-    const tenant = await prisma.tenant.create({
-      data: { name: "e2e-concerns-tenant", slug },
+    authHeader = buildAuthHeader({
+      sub: "concerns-e2e-user",
+      "https://pathway.app/user": {
+        id: userId,
+        email: userEmail,
+      },
+      "https://pathway.app/org": {
+        orgId,
+        slug: "e2e-org",
+        name: "E2E Org",
+      },
+      "https://pathway.app/tenant": {
+        tenantId,
+        orgId,
+        slug: tenantSlug,
+      },
+      "https://pathway.app/org_roles": ["org:admin", "org:safeguarding_lead"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
     });
-    tenantId = tenant.id;
 
     // Best-effort seed a child; if your schema requires extra fields, adjust here
-    try {
-      const child = await prisma.child.create({
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.user.create({
+        data: {
+          id: userId,
+          email: userEmail,
+          name: "Concerns E2E User",
+          tenant: { connect: { id: tenantId } },
+        },
+      });
+      await tx.userTenantRole.create({
+        data: { userId, tenantId, role: Role.ADMIN },
+      });
+
+      const child = await tx.child.create({
         data: {
           tenantId,
           firstName: "E2E",
           lastName: "Child",
-        } as unknown as Parameters<typeof prisma.child.create>[0]["data"],
+        } as Parameters<typeof tx.child.create>[0]["data"],
       });
       childId = child.id;
-    } catch {
-      childId = null;
+    });
+    if (!childId) {
+      throw new Error("failed to seed child for concerns e2e");
     }
   });
 
   afterAll(async () => {
-    // Cleanup in reverse order
     if (createdId) {
-      await prisma.concern
-        .delete({ where: { id: createdId } })
-        .catch(() => undefined);
+      await withTenantRlsContext(tenantId, orgId, async (tx) => {
+        await tx.concern
+          .delete({ where: { id: createdId } })
+          .catch(() => undefined);
+      }).catch(() => undefined);
     }
     if (childId) {
-      await prisma.child
-        .delete({ where: { id: childId } })
-        .catch(() => undefined);
+      await withTenantRlsContext(tenantId, orgId, async (tx) => {
+        await tx.child
+          .delete({ where: { id: childId as string } })
+          .catch(() => undefined);
+      }).catch(() => undefined);
     }
-    if (tenantId) {
-      await prisma.tenant
-        .delete({ where: { id: tenantId } })
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.userTenantRole
+        .deleteMany({ where: { userId, tenantId } })
         .catch(() => undefined);
-    }
+      await tx.user
+        .deleteMany({ where: { id: userId } })
+        .catch(() => undefined);
+    }).catch(() => undefined);
     await app.close();
   });
 
@@ -73,83 +124,100 @@ describe("Concerns (e2e)", () => {
     it("POST /concerns returns 400 for empty summary (before FK checks)", async () => {
       const res = await request(app.getHttpServer())
         .post("/concerns")
-        .send({
-          childId: "00000000-0000-0000-0000-000000000000",
-          summary: "   ",
-        })
-        .set("content-type", "application/json");
+        .set("Authorization", authHeader)
+        .send({ summary: "", details: "", childId });
+
       expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty("fieldErrors");
+      expect(res.body.fieldErrors?.summary?.length).toBeGreaterThan(0);
     });
   });
 
-  const seedOk = () => Boolean(childId);
+  describe("RBAC", () => {
+    it("returns 403 for teacher role accessing concerns", async () => {
+      const teacherHeader = buildAuthHeader({
+        sub: "teacher",
+        "https://pathway.app/user": { id: "teacher" },
+        "https://pathway.app/org": { orgId, slug: "e2e-org", name: "E2E Org" },
+        "https://pathway.app/tenant": { tenantId, orgId, slug: tenantSlug },
+        "https://pathway.app/org_roles": ["org:teacher"],
+        "https://pathway.app/tenant_roles": ["tenant:teacher"],
+      });
+
+      const res = await request(app.getHttpServer())
+        .get("/concerns")
+        .set("Authorization", teacherHeader);
+
+      expect(res.status).toBe(403);
+    });
+  });
 
   describe("CRUD", () => {
     it("POST /concerns creates a concern when child exists", async () => {
-      if (!seedOk()) return; // skip if child seed failed
       const res = await request(app.getHttpServer())
         .post("/concerns")
+        .set("Authorization", authHeader)
         .send({
+          summary: "Playground incident",
+          details: "Minor disagreement",
           childId,
-          summary: "Behavioural issue noted",
-          details: "Talked during lesson",
-        })
-        .set("content-type", "application/json");
+        });
+
       expect(res.status).toBe(201);
-      const body: Concern = res.body as Concern;
-      expect(body.id).toBeTruthy();
-      expect(body.childId).toBe(childId);
-      expect(body.summary).toBe("Behavioural issue noted");
-      createdId = body.id;
+      createdId = (res.body as Concern).id;
+      expect(res.body).toMatchObject({
+        summary: "Playground incident",
+        details: "Minor disagreement",
+        childId,
+      });
     });
 
     it("GET /concerns filters by childId", async () => {
-      if (!seedOk() || !createdId) return;
       const res = await request(app.getHttpServer())
-        .get("/concerns")
-        .query({ childId });
+        .get(`/concerns?childId=${childId}`)
+        .set("Authorization", authHeader);
+
       expect(res.status).toBe(200);
-      const list: Concern[] = res.body as Concern[];
-      expect(Array.isArray(list)).toBe(true);
-      expect(list.some((c) => c.id === createdId)).toBe(true);
-      expect(list.every((c) => c.childId === childId)).toBe(true);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect((res.body as Concern[]).every((c) => c.childId === childId)).toBe(
+        true,
+      );
     });
 
     it("GET /concerns/:id returns the concern", async () => {
-      if (!seedOk() || !createdId) return;
-      const res = await request(app.getHttpServer()).get(
-        `/concerns/${createdId}`,
-      );
+      const res = await request(app.getHttpServer())
+        .get(`/concerns/${createdId}`)
+        .set("Authorization", authHeader);
+
       expect(res.status).toBe(200);
-      const body: Concern = res.body as Concern;
-      expect(body.id).toBe(createdId);
+      expect(res.body).toHaveProperty("id", createdId);
     });
 
     it("PATCH /concerns/:id updates summary/details", async () => {
-      if (!seedOk() || !createdId) return;
       const res = await request(app.getHttpServer())
         .patch(`/concerns/${createdId}`)
-        .send({ summary: "Updated summary", details: "Adjusted details" })
-        .set("content-type", "application/json");
+        .set("Authorization", authHeader)
+        .send({ summary: "Updated summary", details: "Updated details" });
+
       expect(res.status).toBe(200);
-      const body: Concern = res.body as Concern;
-      expect(body.summary).toBe("Updated summary");
-      expect(body.details).toBe("Adjusted details");
+      expect(res.body).toMatchObject({
+        id: createdId,
+        summary: "Updated summary",
+        details: "Updated details",
+      });
     });
 
     it("DELETE /concerns/:id deletes and then 404s on fetch", async () => {
-      if (!seedOk() || !createdId) return;
-      const res = await request(app.getHttpServer()).delete(
-        `/concerns/${createdId}`,
-      );
-      expect(res.status).toBe(200);
-      const deleted: { id: string } = res.body as { id: string };
-      expect(deleted.id).toBe(createdId);
+      const resDelete = await request(app.getHttpServer())
+        .delete(`/concerns/${createdId}`)
+        .set("Authorization", authHeader);
+      expect(resDelete.status).toBe(200);
 
-      const res404 = await request(app.getHttpServer()).get(
-        `/concerns/${createdId}`,
-      );
-      expect(res404.status).toBe(404);
+      const resGet = await request(app.getHttpServer())
+        .get(`/concerns/${createdId}`)
+        .set("Authorization", authHeader);
+      expect(resGet.status).toBe(404);
+      createdId = undefined;
     });
   });
 });

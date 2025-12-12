@@ -1,8 +1,10 @@
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
+import { withTenantRlsContext } from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 // Types for responses
 type Note = {
@@ -10,16 +12,29 @@ type Note = {
   childId: string;
   authorId: string;
   text: string;
+  visibleToParents: boolean;
+  approvedByUserId?: string | null;
+  approvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 describe("Notes (e2e)", () => {
   let app: INestApplication;
-  let tenantId: string;
+  const orgId = process.env.E2E_ORG_ID as string;
+  const tenantId = process.env.E2E_TENANT_ID as string;
+  const tenantSlug = "e2e-tenant-a";
+  const seededAuthorId = randomUUID();
+  const seededChildId = randomUUID();
   let childId: string | null = null;
   let authorId: string | null = null;
   let createdId: string;
+  let authHeader: string;
+
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -28,63 +43,80 @@ describe("Notes (e2e)", () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    // Seed tenant (common across repo)
-    const slug = `e2e-notes-${Date.now()}`;
-    const tenant = await prisma.tenant.create({
-      data: { name: "e2e-notes-tenant", slug },
-    });
-    tenantId = tenant.id;
+    if (!orgId || !tenantId) {
+      throw new Error("E2E_ORG_ID / E2E_TENANT_ID missing");
+    }
 
-    // Best-effort seeding of author (User) and child (Child) with common minimal shapes.
-    // If your schema requires different fields, adjust here.
-    try {
-      const user = await prisma.user.create({
+    // Seed author and child within tenant RLS context
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.childNote.deleteMany({
+        where: {
+          OR: [{ childId: seededChildId }, { authorId: seededAuthorId }],
+        },
+      });
+      await tx.concern.deleteMany({ where: { childId: seededChildId } });
+      await tx.child.deleteMany({ where: { id: seededChildId } });
+      await tx.user.deleteMany({ where: { id: seededAuthorId } });
+
+      const user = await tx.user.create({
         data: {
-          // Common minimal fields across repos
+          id: seededAuthorId,
           tenantId,
           name: "E2E Author",
           email: `e2e.author.${Date.now()}@example.com`,
-        } as unknown as Parameters<typeof prisma.user.create>[0]["data"],
+        } as Parameters<typeof tx.user.create>[0]["data"],
       });
       authorId = user.id;
-    } catch {
-      authorId = null;
-    }
 
-    try {
-      const child = await prisma.child.create({
+      const child = await tx.child.create({
         data: {
+          id: seededChildId,
           tenantId,
           firstName: "E2E",
           lastName: "Child",
-        } as unknown as Parameters<typeof prisma.child.create>[0]["data"],
+        } as Parameters<typeof tx.child.create>[0]["data"],
       });
       childId = child.id;
-    } catch {
-      childId = null;
-    }
+    });
+
+    const claimUserId = authorId ?? "notes-e2e-user";
+    authHeader = buildAuthHeader({
+      sub: claimUserId,
+      "https://pathway.app/user": {
+        id: claimUserId,
+        email: "notes.e2e@pathway.app",
+      },
+      "https://pathway.app/org": {
+        orgId,
+        slug: "e2e-org",
+        name: "E2E Org",
+      },
+      "https://pathway.app/tenant": {
+        tenantId,
+        orgId,
+        slug: tenantSlug,
+      },
+      "https://pathway.app/org_roles": ["org:admin", "org:safeguarding_lead"],
+      "https://pathway.app/tenant_roles": [
+        "tenant:admin",
+        "tenant:coordinator",
+      ],
+    });
   });
 
   afterAll(async () => {
     // Cleanup in reverse order; guard for missing FKs
-    if (createdId) {
-      await prisma.childNote
-        .delete({ where: { id: createdId } })
-        .catch(() => undefined);
+    if (createdId || childId || authorId) {
+      await withTenantRlsContext(tenantId, orgId, async (tx) => {
+        if (createdId)
+          await tx.childNote.deleteMany({ where: { id: createdId } });
+        if (childId) {
+          await tx.concern.deleteMany({ where: { childId } });
+          await tx.child.deleteMany({ where: { id: childId } });
+        }
+        if (authorId) await tx.user.deleteMany({ where: { id: authorId } });
+      }).catch(() => undefined);
     }
-    if (childId) {
-      await prisma.child
-        .delete({ where: { id: childId } })
-        .catch(() => undefined);
-    }
-    if (authorId) {
-      await prisma.user
-        .delete({ where: { id: authorId } })
-        .catch(() => undefined);
-    }
-    await prisma.tenant
-      .delete({ where: { id: tenantId } })
-      .catch(() => undefined);
     await app.close();
   });
 
@@ -92,9 +124,9 @@ describe("Notes (e2e)", () => {
     it("POST /notes should 400 on empty text", async () => {
       const res = await request(app.getHttpServer())
         .post("/notes")
+        .set("Authorization", authHeader)
         .send({
           childId: "00000000-0000-0000-0000-000000000000",
-          authorId: "00000000-0000-0000-0000-000000000000",
           text: "   ",
         })
         .set("content-type", "application/json");
@@ -104,6 +136,31 @@ describe("Notes (e2e)", () => {
 
   const seedOk = () => Boolean(childId && authorId);
 
+  describe("RBAC", () => {
+    it("blocks parents from accessing staff notes", async () => {
+      if (!seedOk()) return;
+      const parentHeader = buildAuthHeader({
+        sub: "parent-user",
+        "https://pathway.app/user": { id: "parent-user" },
+        "https://pathway.app/org": {
+          orgId,
+          slug: "parent",
+        },
+        "https://pathway.app/tenant": {
+          tenantId,
+          orgId,
+          slug: tenantSlug,
+        },
+        "https://pathway.app/tenant_roles": ["tenant:parent"],
+      });
+
+      const res = await request(app.getHttpServer())
+        .get("/notes")
+        .set("Authorization", parentHeader);
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe("CRUD", () => {
     it("POST /notes should create a note when FKs exist", async () => {
       if (!seedOk()) {
@@ -112,7 +169,8 @@ describe("Notes (e2e)", () => {
       }
       const res = await request(app.getHttpServer())
         .post("/notes")
-        .send({ childId, authorId, text: "Great progress today" })
+        .set("Authorization", authHeader)
+        .send({ childId, text: "Great progress today" })
         .set("content-type", "application/json");
       expect(res.status).toBe(201);
       const body: Note = res.body as Note;
@@ -126,6 +184,7 @@ describe("Notes (e2e)", () => {
       if (!seedOk()) return;
       const res = await request(app.getHttpServer())
         .get("/notes")
+        .set("Authorization", authHeader)
         .query({ childId });
       expect(res.status).toBe(200);
       const list: Note[] = res.body as Note[];
@@ -135,7 +194,9 @@ describe("Notes (e2e)", () => {
 
     it("GET /notes/:id should return the note", async () => {
       if (!seedOk()) return;
-      const res = await request(app.getHttpServer()).get(`/notes/${createdId}`);
+      const res = await request(app.getHttpServer())
+        .get(`/notes/${createdId}`)
+        .set("Authorization", authHeader);
       expect(res.status).toBe(200);
       const body: Note = res.body as Note;
       expect(body.id).toBe(createdId);
@@ -145,6 +206,7 @@ describe("Notes (e2e)", () => {
       if (!seedOk()) return;
       const res = await request(app.getHttpServer())
         .patch(`/notes/${createdId}`)
+        .set("Authorization", authHeader)
         .send({ text: "Updated note text" })
         .set("content-type", "application/json");
       expect(res.status).toBe(200);
@@ -154,16 +216,16 @@ describe("Notes (e2e)", () => {
 
     it("DELETE /notes/:id should delete and then 404 on fetch", async () => {
       if (!seedOk()) return;
-      const res = await request(app.getHttpServer()).delete(
-        `/notes/${createdId}`,
-      );
+      const res = await request(app.getHttpServer())
+        .delete(`/notes/${createdId}`)
+        .set("Authorization", authHeader);
       expect(res.status).toBe(200);
       const deleted: { id: string } = res.body as { id: string };
       expect(deleted.id).toBe(createdId);
 
-      const res404 = await request(app.getHttpServer()).get(
-        `/notes/${createdId}`,
-      );
+      const res404 = await request(app.getHttpServer())
+        .get(`/notes/${createdId}`)
+        .set("Authorization", authHeader);
       expect(res404.status).toBe(404);
     });
   });

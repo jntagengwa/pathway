@@ -6,9 +6,15 @@ jest.mock("@pathway/db", () => {
   const assignment = {
     create: jest.fn(),
     findMany: jest.fn(),
-    findUnique: jest.fn(),
+    findFirst: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+  };
+  const session = {
+    findUnique: jest.fn(),
+  };
+  const user = {
+    findUnique: jest.fn(),
   };
 
   return {
@@ -16,6 +22,8 @@ jest.mock("@pathway/db", () => {
     prisma: {
       ...actual.prisma,
       assignment,
+      session,
+      user,
     },
   };
 });
@@ -49,6 +57,14 @@ describe("AssignmentsService", () => {
 
   it("should create an assignment", async () => {
     asMock(prisma.assignment.create).mockResolvedValue(baseAssignment);
+    asMock(prisma.session.findUnique).mockResolvedValue({
+      id: baseAssignment.sessionId,
+      tenantId: "tenant-1",
+    });
+    asMock(prisma.user.findUnique).mockResolvedValue({
+      id: baseAssignment.userId,
+      tenantId: "tenant-1",
+    });
 
     const dto: CreateAssignmentDto = {
       sessionId: baseAssignment.sessionId,
@@ -57,7 +73,7 @@ describe("AssignmentsService", () => {
       status: AssignmentStatus.CONFIRMED,
     };
 
-    const created = await service.create(dto);
+    const created = await service.create(dto, "tenant-1");
 
     expect(prisma.assignment.create).toHaveBeenCalledWith({ data: dto });
     expect(created).toEqual(baseAssignment);
@@ -67,6 +83,7 @@ describe("AssignmentsService", () => {
     asMock(prisma.assignment.findMany).mockResolvedValue([baseAssignment]);
 
     const result = await service.findAll({
+      tenantId: "tenant-1",
       sessionId: baseAssignment.sessionId,
       userId: baseAssignment.userId,
       role: baseAssignment.role,
@@ -76,6 +93,7 @@ describe("AssignmentsService", () => {
     expect(prisma.assignment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          session: { tenantId: "tenant-1" },
           sessionId: baseAssignment.sessionId,
           userId: baseAssignment.userId,
           role: baseAssignment.role,
@@ -88,12 +106,12 @@ describe("AssignmentsService", () => {
   });
 
   it("should get a single assignment by id", async () => {
-    asMock(prisma.assignment.findUnique).mockResolvedValue(baseAssignment);
+    asMock(prisma.assignment.findFirst).mockResolvedValue(baseAssignment);
 
-    const result = await service.findOne(baseAssignment.id);
+    const result = await service.findOne(baseAssignment.id, "tenant-1");
 
-    expect(prisma.assignment.findUnique).toHaveBeenCalledWith({
-      where: { id: baseAssignment.id },
+    expect(prisma.assignment.findFirst).toHaveBeenCalledWith({
+      where: { id: baseAssignment.id, session: { tenantId: "tenant-1" } },
     });
     expect(result).toEqual(baseAssignment);
   });
@@ -105,9 +123,16 @@ describe("AssignmentsService", () => {
     };
 
     const updated = { ...baseAssignment, ...updateDto, updatedAt: new Date() };
+    asMock(prisma.assignment.findFirst).mockResolvedValue({
+      id: baseAssignment.id,
+    });
     asMock(prisma.assignment.update).mockResolvedValue(updated);
 
-    const result = await service.update(baseAssignment.id, updateDto);
+    const result = await service.update(
+      baseAssignment.id,
+      updateDto,
+      "tenant-1",
+    );
 
     expect(prisma.assignment.update).toHaveBeenCalledWith({
       where: { id: baseAssignment.id },
@@ -117,9 +142,10 @@ describe("AssignmentsService", () => {
   });
 
   it("should delete an assignment", async () => {
+    asMock(prisma.assignment.findFirst).mockResolvedValue(baseAssignment);
     asMock(prisma.assignment.delete).mockResolvedValue(baseAssignment);
 
-    const result = await service.remove(baseAssignment.id);
+    const result = await service.remove(baseAssignment.id, "tenant-1");
 
     expect(prisma.assignment.delete).toHaveBeenCalledWith({
       where: { id: baseAssignment.id },

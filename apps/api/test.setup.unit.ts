@@ -2,7 +2,7 @@
 import { config } from "dotenv";
 import path from "node:path";
 import { execSync } from "node:child_process";
-import type { PrismaClient as PrismaClientType } from "@pathway/db";
+import type { PrismaClientType } from "@pathway/db";
 
 // 1) Load test env first, then fallback to root .env (quiet to suppress logs)
 config({ path: path.resolve(__dirname, "../../.env.test"), override: true });
@@ -33,38 +33,49 @@ beforeAll(async () => {
     }
   };
 
-  // Try a clean reset first. If the DB is brand new, `_prisma_migrations` may not exist (P1014).
-  const firstAttempt = run("migrate reset --force --skip-generate --skip-seed");
-  if (firstAttempt !== true) {
-    const msg = String((firstAttempt as Error)?.message ?? firstAttempt);
-    if (msg.includes("P1014")) {
-      // Fresh DB: create migrations table, then reset
-      const deployed = run("migrate deploy");
-      if (deployed === true) {
-        const secondAttempt = run(
-          "migrate reset --force --skip-generate --skip-seed",
-        );
-        if (secondAttempt !== true) {
+  const allowReset = process.env.UNIT_ALLOW_RESET === "true";
+
+  if (allowReset) {
+    // Try a clean reset first. If the DB is brand new, `_prisma_migrations` may not exist (P1014).
+    const firstAttempt = run(
+      "migrate reset --force --skip-generate --skip-seed",
+    );
+    if (firstAttempt !== true) {
+      const msg = String((firstAttempt as Error)?.message ?? firstAttempt);
+      if (msg.includes("P1014")) {
+        // Fresh DB: create migrations table, then reset
+        const deployed = run("migrate deploy");
+        if (deployed === true) {
+          const secondAttempt = run(
+            "migrate reset --force --skip-generate --skip-seed",
+          );
+          if (secondAttempt !== true) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[test.setup.unit] migrate reset failed after deploy (continuing):",
+              secondAttempt,
+            );
+          }
+        } else {
           // eslint-disable-next-line no-console
           console.warn(
-            "[test.setup.unit] migrate reset failed after deploy (continuing):",
-            secondAttempt,
+            "[test.setup.unit] migrate deploy failed during P1014 fallback (continuing):",
+            deployed,
           );
         }
       } else {
         // eslint-disable-next-line no-console
         console.warn(
-          "[test.setup.unit] migrate deploy failed during P1014 fallback (continuing):",
-          deployed,
+          "[test.setup.unit] migrate reset failed (continuing):",
+          firstAttempt,
         );
       }
-    } else {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[test.setup.unit] migrate reset failed (continuing):",
-        firstAttempt,
-      );
     }
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      "[test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).",
+    );
   }
 
   // Import prisma AFTER DATABASE_URL is final and migrations are applied so the client binds to the unit DB

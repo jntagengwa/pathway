@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { z, ZodError } from "zod";
 import { LessonsService } from "./lessons.service";
 import { createLessonDto, updateLessonDto } from "./dto";
+import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
 
 // Simple UUID validator for path params
 const idParam = z
@@ -19,23 +21,31 @@ const idParam = z
   .uuid("id must be a valid uuid");
 
 // Optional filters for list
+// TODO(Epic1-Task1.3): once PathwayRequestContext is globally enforced, drop the tenantId query param
+// and rely on @CurrentTenant() to keep handlers multi-tenant safe by default.
 const listQuery = z
   .object({
-    tenantId: z.string().uuid().optional(),
     groupId: z.string().uuid().optional(),
     weekOf: z.coerce.date().optional(),
   })
   .strict();
 
+@UseGuards(PathwayAuthGuard)
 @Controller("lessons")
 export class LessonsController {
   constructor(private readonly lessons: LessonsService) {}
 
   @Post()
-  async create(@Body() body: unknown) {
+  async create(
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     try {
       const dto = await createLessonDto.parseAsync(body);
-      return await this.lessons.create(dto);
+      if (dto.tenantId !== tenantId) {
+        throw new BadRequestException("tenantId must match current tenant");
+      }
+      return await this.lessons.create(dto, tenantId);
     } catch (e) {
       if (e instanceof ZodError) throw new BadRequestException(e.errors);
       throw e;
@@ -43,10 +53,13 @@ export class LessonsController {
   }
 
   @Get()
-  async findAll(@Query() query: Record<string, unknown>) {
+  async findAll(
+    @Query() query: Record<string, unknown>,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     try {
       const filters = await listQuery.parseAsync(query);
-      return await this.lessons.findAll(filters);
+      return await this.lessons.findAll({ ...filters, tenantId });
     } catch (e) {
       if (e instanceof ZodError) throw new BadRequestException(e.errors);
       throw e;
@@ -54,10 +67,13 @@ export class LessonsController {
   }
 
   @Get(":id")
-  async findOne(@Param("id") idRaw: string) {
+  async findOne(
+    @Param("id") idRaw: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     try {
       const id = idParam.parse(idRaw);
-      return await this.lessons.findOne(id);
+      return await this.lessons.findOne(id, tenantId);
     } catch (e) {
       if (e instanceof ZodError) throw new BadRequestException(e.errors);
       throw e;
@@ -65,11 +81,15 @@ export class LessonsController {
   }
 
   @Patch(":id")
-  async update(@Param("id") idRaw: string, @Body() body: unknown) {
+  async update(
+    @Param("id") idRaw: string,
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     try {
       const id = idParam.parse(idRaw);
       const dto = await updateLessonDto.parseAsync(body);
-      return await this.lessons.update(id, dto);
+      return await this.lessons.update(id, dto, tenantId);
     } catch (e) {
       if (e instanceof ZodError) throw new BadRequestException(e.errors);
       throw e;
@@ -77,10 +97,13 @@ export class LessonsController {
   }
 
   @Delete(":id")
-  async remove(@Param("id") idRaw: string) {
+  async remove(
+    @Param("id") idRaw: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     try {
       const id = idParam.parse(idRaw);
-      return await this.lessons.remove(id);
+      return await this.lessons.remove(id, tenantId);
     } catch (e) {
       if (e instanceof ZodError) throw new BadRequestException(e.errors);
       throw e;

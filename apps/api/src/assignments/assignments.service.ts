@@ -13,7 +13,21 @@ export class AssignmentsService {
    * Create an assignment. Relies on DB FKs and the unique index
    * (sessionId, userId, role) to enforce integrity.
    */
-  async create(dto: CreateAssignmentDto) {
+  async create(dto: CreateAssignmentDto, tenantId: string) {
+    const session = await prisma.session.findUnique({
+      where: { id: dto.sessionId },
+      select: { id: true, tenantId: true },
+    });
+    if (!session || session.tenantId !== tenantId)
+      throw new NotFoundException("Assignment not found");
+
+    const user = await prisma.user.findUnique({
+      where: { id: dto.userId },
+      select: { id: true, tenantId: true },
+    });
+    if (!user || user.tenantId !== tenantId)
+      throw new NotFoundException("Assignment not found");
+
     try {
       return await prisma.assignment.create({
         data: {
@@ -31,9 +45,13 @@ export class AssignmentsService {
   /**
    * List assignments with optional filters.
    */
-  async findAll(where: Prisma.AssignmentWhereInput = {}) {
+  async findAll(where: Prisma.AssignmentWhereInput & { tenantId: string }) {
+    const { tenantId, ...rest } = where;
     return prisma.assignment.findMany({
-      where,
+      where: {
+        ...rest,
+        session: { tenantId },
+      },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -41,8 +59,10 @@ export class AssignmentsService {
   /**
    * Get a single assignment by id.
    */
-  async findOne(id: string) {
-    const found = await prisma.assignment.findUnique({ where: { id } });
+  async findOne(id: string, tenantId: string) {
+    const found = await prisma.assignment.findFirst({
+      where: { id, session: { tenantId } },
+    });
     if (!found) throw new NotFoundException("Assignment not found");
     return found;
   }
@@ -50,7 +70,13 @@ export class AssignmentsService {
   /**
    * Update an assignment by id.
    */
-  async update(id: string, dto: UpdateAssignmentDto) {
+  async update(id: string, dto: UpdateAssignmentDto, tenantId: string) {
+    const existing = await prisma.assignment.findFirst({
+      where: { id, session: { tenantId } },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException("Assignment not found");
+
     try {
       return await prisma.assignment.update({
         where: { id },
@@ -68,7 +94,13 @@ export class AssignmentsService {
   /**
    * Delete an assignment by id.
    */
-  async remove(id: string) {
+  async remove(id: string, tenantId: string) {
+    const existing = await prisma.assignment.findFirst({
+      where: { id, session: { tenantId } },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException("Assignment not found");
+
     try {
       return await prisma.assignment.delete({ where: { id } });
     } catch (e) {

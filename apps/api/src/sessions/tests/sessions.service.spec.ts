@@ -21,8 +21,8 @@ describe("SessionsService", () => {
   const sFindMany = jest.fn() as jest.MockedFunction<
     (args?: Prisma.SessionFindManyArgs) => Promise<SessionRow[]>
   >;
-  const sFindUnique = jest.fn() as jest.MockedFunction<
-    (args: Prisma.SessionFindUniqueArgs) => Promise<SessionRow | null>
+  const sFindFirst = jest.fn() as jest.MockedFunction<
+    (args: Prisma.SessionFindFirstArgs) => Promise<SessionRow | null>
   >;
   const sCreate = jest.fn() as jest.MockedFunction<
     (args: Prisma.SessionCreateArgs) => Promise<SessionRow>
@@ -71,9 +71,9 @@ describe("SessionsService", () => {
         sFindMany as unknown as typeof realPrisma.session.findMany,
       );
     jest
-      .spyOn(realPrisma.session, "findUnique")
+      .spyOn(realPrisma.session, "findFirst")
       .mockImplementation(
-        sFindUnique as unknown as typeof realPrisma.session.findUnique,
+        sFindFirst as unknown as typeof realPrisma.session.findFirst,
       );
     jest
       .spyOn(realPrisma.session, "create")
@@ -106,11 +106,11 @@ describe("SessionsService", () => {
     it("returns sessions (optionally filtered)", async () => {
       sFindMany.mockResolvedValue([base]);
 
-      const resAll = await svc.list();
+      const resAll = await svc.list({ tenantId: ids.tenant });
       expect(Array.isArray(resAll)).toBe(true);
       expect(resAll[0].id).toBe(base.id);
       expect(sFindMany).toHaveBeenLastCalledWith({
-        where: {},
+        where: { tenantId: ids.tenant },
         orderBy: { startsAt: "asc" },
       });
     });
@@ -118,15 +118,17 @@ describe("SessionsService", () => {
 
   describe("getById", () => {
     it("returns a session when found", async () => {
-      sFindUnique.mockResolvedValue(base);
-      const res = await svc.getById(base.id);
+      sFindFirst.mockResolvedValue(base);
+      const res = await svc.getById(base.id, ids.tenant);
       expect(res.id).toBe(base.id);
-      expect(sFindUnique).toHaveBeenCalledWith({ where: { id: base.id } });
+      expect(sFindFirst).toHaveBeenCalledWith({
+        where: { id: base.id, tenantId: ids.tenant },
+      });
     });
 
     it("throws NotFound when missing", async () => {
-      sFindUnique.mockResolvedValue(null);
-      await expect(svc.getById("missing")).rejects.toBeInstanceOf(
+      sFindFirst.mockResolvedValue(null);
+      await expect(svc.getById("missing", ids.tenant)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
@@ -138,13 +140,16 @@ describe("SessionsService", () => {
       gFindUnique.mockResolvedValue({ id: ids.group, tenantId: ids.tenant });
       sCreate.mockResolvedValue(base);
 
-      const res = await svc.create({
-        tenantId: ids.tenant,
-        groupId: ids.group,
-        startsAt: now,
-        endsAt: later,
-        title: "Sunday 11am",
-      });
+      const res = await svc.create(
+        {
+          tenantId: ids.tenant,
+          groupId: ids.group,
+          startsAt: now,
+          endsAt: later,
+          title: "Sunday 11am",
+        },
+        ids.tenant,
+      );
 
       expect(res.id).toBe(base.id);
       expect(sCreate).toHaveBeenCalledWith({
@@ -160,18 +165,24 @@ describe("SessionsService", () => {
 
     it("rejects when startsAt >= endsAt", async () => {
       await expect(
-        svc.create({ tenantId: ids.tenant, startsAt: later, endsAt: later }),
+        svc.create(
+          { tenantId: ids.tenant, startsAt: later, endsAt: later },
+          ids.tenant,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it("rejects when tenant missing", async () => {
       tFindUnique.mockResolvedValue(null);
       await expect(
-        svc.create({
-          tenantId: "99999999-9999-9999-9999-999999999999",
-          startsAt: now,
-          endsAt: later,
-        }),
+        svc.create(
+          {
+            tenantId: "99999999-9999-9999-9999-999999999999",
+            startsAt: now,
+            endsAt: later,
+          },
+          "99999999-9999-9999-9999-999999999999",
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -179,19 +190,22 @@ describe("SessionsService", () => {
       tFindUnique.mockResolvedValue({ id: ids.tenant });
       gFindUnique.mockResolvedValue({ id: ids.group, tenantId: "other" });
       await expect(
-        svc.create({
-          tenantId: ids.tenant,
-          groupId: ids.group,
-          startsAt: now,
-          endsAt: later,
-        }),
+        svc.create(
+          {
+            tenantId: ids.tenant,
+            groupId: ids.group,
+            startsAt: now,
+            endsAt: later,
+          },
+          ids.tenant,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
   describe("update", () => {
     it("updates fields and validates times and group tenant", async () => {
-      sFindUnique.mockResolvedValue(base);
+      sFindFirst.mockResolvedValue(base);
       gFindUnique.mockResolvedValue({ id: ids.group, tenantId: ids.tenant });
       const updated: SessionRow = {
         ...base,
@@ -200,7 +214,7 @@ describe("SessionsService", () => {
       };
       sUpdate.mockResolvedValue(updated);
 
-      const res = await svc.update(base.id, { title: "Updated" });
+      const res = await svc.update(base.id, { title: "Updated" }, ids.tenant);
       expect(res.title).toBe("Updated");
       expect(sUpdate).toHaveBeenCalledWith({
         where: { id: base.id },
@@ -209,24 +223,24 @@ describe("SessionsService", () => {
     });
 
     it("throws NotFound when session missing", async () => {
-      sFindUnique.mockResolvedValue(null);
+      sFindFirst.mockResolvedValue(null);
       await expect(
-        svc.update("missing", { title: "x" }),
+        svc.update("missing", { title: "x" }, ids.tenant),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("rejects when new times are invalid", async () => {
-      sFindUnique.mockResolvedValue(base);
+      sFindFirst.mockResolvedValue(base);
       await expect(
-        svc.update(base.id, { startsAt: later, endsAt: now }),
+        svc.update(base.id, { startsAt: later, endsAt: now }, ids.tenant),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it("rejects when new group is cross-tenant", async () => {
-      sFindUnique.mockResolvedValue(base);
+      sFindFirst.mockResolvedValue(base);
       gFindUnique.mockResolvedValue({ id: "g2", tenantId: "other" });
       await expect(
-        svc.update(base.id, { groupId: "g2" }),
+        svc.update(base.id, { groupId: "g2" }, ids.tenant),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

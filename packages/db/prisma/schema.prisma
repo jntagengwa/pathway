@@ -45,12 +45,69 @@ enum AnnouncementAudience {
   STAFF
 }
 
+// NEW: Org-level roles (optional, for suites/billing admins)
+enum OrgRole {
+  ORG_ADMIN
+  ORG_BILLING
+  ORG_MEMBER
+}
+
+// NEW: Billing provider and subscription status
+enum BillingProvider {
+  STRIPE
+  GOCARDLESS
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum AuditAction {
+  CREATED
+  UPDATED
+  DELETED
+  VIEWED
+}
+
+enum AuditEntityType {
+  CONCERN
+  CHILD_NOTE
+}
+
 // --- Models ---
+
+// NEW: Org (Suite) — business/billing owner; may contain multiple Tenants (sites)
+model Org {
+  id               String   @id @default(uuid())
+  name             String
+  slug             String   @unique
+  planCode         String   // e.g., trial|starter|standard|pro|suite_*
+  isSuite          Boolean  @default(false)
+  stripeCustomerId String?  @unique
+  tenants          Tenant[]
+  subscriptions    Subscription[]
+  entitlements     OrgEntitlementSnapshot[]
+  usageCounters    UsageCounters[]
+  billingEvents    BillingEvent[]
+  userOrgRoles     UserOrgRole[]
+  auditEvents      AuditEvent[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
 
 model Tenant {
   id        String   @id @default(uuid())
   name      String
   slug      String   @unique
+
+  // NEW: link tenant (site) to its owning Org
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id])
+
   users     User[]
   groups    Group[]
   children  Child[]
@@ -59,8 +116,11 @@ model Tenant {
   lessons       Lesson[]
   announcements Announcement[]
   preferences   VolunteerPreference[]
+  auditEvents   AuditEvent[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([orgId])
 }
 
 model UserTenantRole {
@@ -75,12 +135,29 @@ model UserTenantRole {
   @@unique([userId, tenantId, role])
 }
 
+// NEW: User ↔ Org roles (optional, for suite-level administration)
+model UserOrgRole {
+  id     String  @id @default(uuid())
+  userId String
+  orgId  String
+  role   OrgRole
+
+  user User @relation(fields: [userId], references: [id])
+  org  Org  @relation(fields: [orgId], references: [id])
+
+  @@unique([userId, orgId, role])
+  @@index([orgId])
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String?
+
+  // NOTE: kept for backward compatibility (single-tenant user). For suites, prefer UserTenantRole.
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
   children  Child[]  @relation("ParentChildren")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -89,9 +166,12 @@ model User {
   roles    UserTenantRole[]
   assignments Assignment[]
   preferences VolunteerPreference[]
-  notes       ChildNote[]
+  notes       ChildNote[] @relation("ChildNoteAuthor")
+  approvedNotes ChildNote[] @relation("ChildNoteApprovedBy")
+  auditEvents AuditEvent[] @relation("AuditActor")
   swapRequestsFrom SwapRequest[] @relation("SwapFromUser")
   swapRequestsTo   SwapRequest[] @relation("SwapToUser")
+  orgRoles  UserOrgRole[]
 }
 
 model Child {
@@ -108,10 +188,12 @@ model Child {
   group      Group?      @relation(fields: [groupId], references: [id])
   disabilities String[]  @default([])
   concerns     Concern[]
-  attendance Attendance[]
-  childNotes ChildNote[]
+  attendance   Attendance[]
+  childNotes   ChildNote[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+
+  @@index([tenantId])
 }
 
 model Group {
@@ -125,6 +207,8 @@ model Group {
   attendances Attendance[]
   sessions    Session[]
   lessons     Lesson[]
+
+  @@index([tenantId])
 }
 
 model Attendance {
@@ -140,6 +224,7 @@ model Attendance {
 
   @@index([childId])
   @@index([sessionId])
+  @@index([groupId])
 }
 
 model Concern {
@@ -148,6 +233,7 @@ model Concern {
   child     Child    @relation(fields: [childId], references: [id])
   summary   String
   details   String?
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -260,11 +346,96 @@ model ChildNote {
   childId    String
   child      Child    @relation(fields: [childId], references: [id])
   authorId   String
-  author     User     @relation(fields: [authorId], references: [id])
+  author     User     @relation("ChildNoteAuthor", fields: [authorId], references: [id])
   text       String
+  visibleToParents Boolean @default(false)
+  approvedByUserId String?
+  approvedBy User? @relation("ChildNoteApprovedBy", fields: [approvedByUserId], references: [id])
+  approvedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([childId])
   @@index([authorId])
+}
+
+model AuditEvent {
+  id           String          @id @default(uuid())
+  createdAt    DateTime        @default(now())
+  tenantId     String
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  orgId        String
+  org          Org             @relation(fields: [orgId], references: [id])
+  actorUserId  String
+  actor        User            @relation("AuditActor", fields: [actorUserId], references: [id])
+  entityType   AuditEntityType
+  entityId     String?
+  action       AuditAction
+  metadata     Json?
+
+  @@index([tenantId, createdAt])
+  @@index([orgId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
+}
+
+// --- Billing & Entitlements ---
+
+model Subscription {
+  id               String   @id @default(uuid())
+  orgId            String
+  org              Org      @relation(fields: [orgId], references: [id])
+  provider         BillingProvider
+  providerSubId    String   @unique
+  planCode         String
+  status           SubscriptionStatus
+  periodStart      DateTime
+  periodEnd        DateTime
+  cancelAtPeriodEnd Boolean  @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([orgId])
+  @@index([status])
+  @@index([planCode])
+}
+
+model OrgEntitlementSnapshot {
+  id                  String   @id @default(uuid())
+  orgId               String
+  org                 Org      @relation(fields: [orgId], references: [id])
+  maxSites            Int
+  av30Included        Int
+  leaderSeatsIncluded Int
+  storageGbIncluded   Int
+  flagsJson           Json?
+  source              String   // e.g., trial, subscription(pro), manual_override
+  createdAt           DateTime @default(now())
+
+  @@index([orgId, createdAt])
+}
+
+model UsageCounters {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Org      @relation(fields: [orgId], references: [id])
+  av30            Int      @default(0)
+  storageGb       Int      @default(0)
+  smsMonth        Int      @default(0)
+  exportsMonth    Int      @default(0)
+  calculatedAt    DateTime @default(now())
+
+  @@index([orgId, calculatedAt])
+}
+
+model BillingEvent {
+  id        String   @id @default(uuid())
+  orgId     String?
+  org       Org?     @relation(fields: [orgId], references: [id])
+  provider  BillingProvider
+  type      String
+  payloadJson Json
+  createdAt DateTime @default(now())
+
+  @@index([orgId, createdAt])
 }

@@ -1,271 +1,2804 @@
 
 > @pathway/api@0.1.0 test /Users/JeanFidele/Projects/pathway/apps/api
-> jest
+> jest -c jest.projects.config.ts
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+● Validation Warning:
 
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+  Unknown option "testTimeout" with value 30000 was found.
+  This is probably a typing mistake. Fixing it will remove this message.
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+  Configuration Documentation:
+  https://jestjs.io/docs/configuration
 
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+PASS e2e src/users/tests/users.e2e-spec.ts
+  ● Console
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/preferences/tests/preferences.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  enable debug logging with { debug: true }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/groups/tests/groups.e2e-spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-PASS src/attendance/tests/attendance.service.spec.ts
-  AttendanceService
-    list
-      ✓ returns attendance ordered by timestamp desc (3 ms)
-    getById
-      ✓ returns a record when found (1 ms)
-      ✓ throws NotFound when missing
-    create
-      ✓ throws when child not found
-      ✓ throws when group not found (1 ms)
-      ✓ throws when child and group are in different tenants
-      ✓ creates with default timestamp when not provided
-      ✓ creates with provided timestamp (1 ms)
-    update
-      ✓ throws NotFound if attendance missing
-      ✓ updates present only
-      ✓ throws when changing group across tenants
-      ✓ connects new group when same tenant
-
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  override existing env vars with { override: true }
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/lessons/tests/lessons.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  override existing env vars with { override: true }
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/notes/tests/notes.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-PASS src/children/tests/children.controller.spec.ts
-  ChildrenController
-    ✓ should be defined (8 ms)
-    ✓ list should return array (1 ms)
-    ✓ getById should return a child (1 ms)
-    ✓ create should validate and call service (1 ms)
-    ✓ create should 400 on invalid body (missing allergies) (2 ms)
-    ✓ update should validate and call service (1 ms)
-    ✓ update should 400 on invalid uuid for groupId (1 ms)
-
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-PASS src/groups/tests/groups.controller.spec.ts
-  GroupsController
-    ✓ should be defined (1 ms)
-    ✓ list should return array (1 ms)
-    ✓ getById should return a group when found (1 ms)
-    ✓ getById should throw NotFound when missing
-    ✓ create should call service and return group (1 ms)
-    ✓ update should call service and return updated group (8 ms)
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+      at logDbUrl (test.setup.e2e.ts:40:13)
 
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
 
-PASS src/users/tests/users.controller.spec.ts
-  UsersController
-    ✓ should be defined (6 ms)
-    ✓ list should return array (11 ms)
-    ✓ getById should return a user when found (1 ms)
-    ✓ getById should throw NotFound when missing (1 ms)
-    ✓ create should call service and return user (1 ms)
+      at logDbUrl (test.setup.e2e.ts:40:13)
 
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/sessions/tests/sessions.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-PASS src/tenants/tests/tenants.service.spec.ts
-  TenantsService
-    list
-      ✓ returns tenants
-    getBySlug
-      ✓ returns a tenant when found (1 ms)
-      ✓ throws NotFound when missing
-    create
-      ✓ lowercases slug and creates tenant
-      ✓ creates tenant and connects optional relations when provided (4 ms)
-      ✓ throws BadRequest when slug already exists (pre-check)
-      ✓ throws BadRequest when unique constraint race occurs (P2002)
-
-  console.log
-    [dotenv@17.2.2] injecting env (0) from ../../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-PASS src/users/tests/users.service.spec.ts
-  UsersService
-    list
-      ✓ returns users (1 ms)
-    getById
-      ✓ returns a user when found
-      ✓ throws NotFound when missing
-    create
-      ✓ normalizes email and creates user (with tenant connect) (1 ms)
-      ✓ connects children when provided (and all exist in same tenant)
-      ✓ 400 when any child id is missing
-      ✓ 400 when any child is cross-tenant
-      ✓ throws BadRequest when duplicate email (pre-check)
-      ✓ throws BadRequest when unique constraint race (P2002)
-      ✓ throws BadRequest for invalid email (ZodError mapping) (1 ms)
-    update
-      ✓ updates user fields and returns selection
-      ✓ lowercases email on update when provided
-      ✓ replaces children set when provided (same tenant)
-      ✓ 404 when user not found before validation
-      ✓ 400 when updating children with missing ids
-      ✓ 400 when updating children cross-tenant (target tenant is current) (1 ms)
-      ✓ throws BadRequest on unique email conflict (P2002)
-      ✓ throws NotFound on missing user (P2025) when update bubbles
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
 
-PASS src/groups/tests/groups.service.spec.ts
-  GroupsService
-    list
-      ✓ returns groups
-    getById
-      ✓ returns a group when found (1 ms)
-      ✓ throws NotFound when missing
-    create
-      ✓ validates & creates with tenant connect
-      ✓ throws BadRequest when duplicate (pre-check)
-      ✓ throws BadRequest when unique constraint race (P2002)
-      ✓ throws BadRequest for invalid ages (min>max)
-    update
-      ✓ updates name and ages (1 ms)
-      ✓ throws BadRequest when unique name conflict (P2002)
-      ✓ throws NotFound when group missing (P2025)
-      ✓ throws BadRequest when invalid ages provided (1 ms)
+      at logDbUrl (test.setup.e2e.ts:40:13)
 
-PASS src/children/tests/children.e2e.spec.ts
-  Children (e2e)
-    ✓ GET /children should return array (33 ms)
-    ✓ POST /children should create a child (minimal) (32 ms)
-    ✓ GET /children/:id should return the created child (7 ms)
-    ✓ PATCH /children/:id should update group and guardians (32 ms)
-    ✓ POST /children invalid body should 400 (missing allergies) (3 ms)
-    ✓ POST /children group from another tenant should 400 (10 ms)
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
 
-PASS src/children/tests/children.service.spec.ts
-  ChildrenService
-    list
-      ✓ returns children (optionally by tenant) (6 ms)
-    getById
-      ✓ returns a child when found
-      ✓ throws NotFound when missing (1 ms)
-    create
-      ✓ creates child with tenant only
-      ✓ validates group belongs to same tenant (1 ms)
-      ✓ validates guardians belong to tenant and exist
-      ✓ throws when tenant not found
-    update
-      ✓ updates standard fields (1 ms)
-      ✓ validates group tenant on update
-      ✓ replaces guardians set when provided
-      ✓ throws NotFound if child missing on update
+      at logDbUrl (test.setup.e2e.ts:40:13)
 
-PASS src/tenants/tests/tenants.controller.spec.ts
-  TenantsController
-    ✓ should be defined (6 ms)
-    ✓ list should return array (1 ms)
-    ✓ bySlug should return a tenant (4 ms)
-    ✓ create should call service and return tenant (2 ms)
-    ✓ create should accept optional relation arrays and pass them to service (2 ms)
-    ✓ create should 400 on invalid slug (fails DTO validation) (1 ms)
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
 
-PASS src/tenants/tests/tenants.e2e-spec.ts
-  Tenants (e2e)
-    ✓ GET /tenants should return array (14 ms)
-    ✓ POST /tenants should create a tenant (11 ms)
-    ✓ GET /tenants/:slug should return the created tenant (3 ms)
-    ✓ POST /tenants duplicate slug should 400 (3 ms)
-    ✓ POST /tenants invalid slug should 400 (controller DTO validation) (3 ms)
-    ✓ GET /tenants/unknown should 404 (2 ms)
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
 
-PASS src/health/tests/health.e2e-spec.ts
-  HealthController (e2e)
-    ✓ /health (GET) (28 ms)
+PASS e2e src/announcements/tests/announcements.e2e.spec.ts
+  ● Console
 
-PASS src/users/tests/users.e2e-spec.ts
-  Users (e2e)
-    ✓ GET /users should return array (14 ms)
-    ✓ POST /users should create a user (14 ms)
-    ✓ GET /users/:id should return the created user (4 ms)
-    ✓ POST /users duplicate email should 400 (3 ms)
-    ✓ POST /users invalid email should 400 (2 ms)
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
 
-PASS src/groups/tests/groups.e2e-spec.ts
-  Groups (e2e)
-    ✓ GET /groups should return array (14 ms)
-    ✓ POST /groups should create a group (12 ms)
-    ✓ GET /groups/:id should return the created group (5 ms)
-    ✓ PATCH /groups/:id should update group (3 ms)
-    ✓ POST /groups duplicate name for same tenant should 400 (7 ms)
-    ✓ POST /groups invalid ages should 400 (2 ms)
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-PASS src/attendance/tests/attendance.e2e.spec.ts
-  Groups (e2e)
-    ✓ POST /groups should create a group for tenant (18 ms)
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
 
-PASS src/attendance/tests/attendance.controller.spec.ts
-  AttendanceController
-    ✓ should be defined (6 ms)
-    ✓ list should return array (1 ms)
-    ✓ getById should return a record
-    ✓ create should validate and call service (2 ms)
-    ✓ create should 400 on invalid body (missing present) (2 ms)
-    ✓ update should validate and call service (1 ms)
-    ✓ update should 400 on invalid uuid in groupId (1 ms)
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-Test Suites: 16 passed, 16 total
-Tests:       115 passed, 115 total
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/attendance/tests/attendance.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/assignments/tests/assignments.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/concerns/tests/concerns.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/billing/tests/billing.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/tenants/tests/tenants.e2e-spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/health/tests/health.e2e-spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/orgs/tests/orgs.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+    console.log
+      [OrgsController] Incoming params: { slug: 'e2e-org' }
+
+      at OrgsController.getBySlug (src/orgs/orgs.controller.ts:75:13)
+
+    console.log
+      [OrgsController] Incoming params: { slug: 'unknown-1765508547217' }
+
+      at OrgsController.getBySlug (src/orgs/orgs.controller.ts:75:13)
+
+PASS e2e src/swaps/tests/swaps.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+PASS e2e src/tests/rls/pathway-rls.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Error: ERROR: no schema has been selected to create in
+   0: sql_schema_connector::sql_migration_persistence::initialize
+           with namespaces=None
+             at schema-engine/connectors/sql-schema-connector/src/sql_migration_persistence.rs:14
+   1: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Applying migration `20250909134602_init`
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+Applying migration `20250909134602_init`
+PASS unit src/notes/tests/notes.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64029,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/assignments/tests/assignments.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64030,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/notes/tests/notes.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64036,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+Applying migration `20250913180105_add_child_concerns_allergies_disabilities`
+Applying migration `20250913232320_link_swaprequest_to_assignment`
+Applying migration `20250917174707_add_announcement_audience`
+Applying migration `20250918201718_suites_billing_orgs`
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Environment variables loaded from prisma/.env
+Environment variables loaded from prisma/.env
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Prisma schema loaded from prisma/schema.prisma
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Applying migration `20251201121500_safeguarding_audit`
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Applying migration `20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts`
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+Applying migration `20251201173000_core_tenant_rls`
+
+Applying migration `20251202110000_enforce_rls_flags`
+
+
+Database reset successful
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20250909134602_init/
+    └─ migration.sql
+  └─ 20250913180105_add_child_concerns_allergies_disabilities/
+    └─ migration.sql
+  └─ 20250913232320_link_swaprequest_to_assignment/
+    └─ migration.sql
+  └─ 20250917174707_add_announcement_audience/
+    └─ migration.sql
+  └─ 20250918201718_suites_billing_orgs/
+    └─ migration.sql
+  └─ 20251201121500_safeguarding_audit/
+    └─ migration.sql
+  └─ 20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts/
+    └─ migration.sql
+  └─ 20251201173000_core_tenant_rls/
+    └─ migration.sql
+  └─ 20251202110000_enforce_rls_flags/
+    └─ migration.sql
+
+Error: Invariant violation: migration persistence is not initialized.
+   0: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+Error: ERROR: no schema has been selected to create in
+   0: sql_schema_connector::sql_migration_persistence::initialize
+           with namespaces=None
+             at schema-engine/connectors/sql-schema-connector/src/sql_migration_persistence.rs:14
+   1: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+PASS unit src/preferences/tests/preference.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Error: P3005
+
+The database schema is not empty. Read more about how to baseline an existing production database: https://pris.ly/d/migrate-baseline
+
+Error: P3005
+
+The database schema is not empty. Read more about how to baseline an existing production database: https://pris.ly/d/migrate-baseline
+
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+Applying migration `20250909134602_init`
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+Error: P3005
+
+The database schema is not empty. Read more about how to baseline an existing production database: https://pris.ly/d/migrate-baseline
+
+PASS unit src/users/tests/users.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64038,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/attendance/tests/attendance.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64028,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+Error: P3005
+
+The database schema is not empty. Read more about how to baseline an existing production database: https://pris.ly/d/migrate-baseline
+
+PASS unit src/sessions/tests/sessions.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64071,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/lessons/tests/lessons.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64037,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/preferences/tests/preferences.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64066,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+PASS unit src/concerns/tests/concerns.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64073,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/lessons/tests/lessons.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64062,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+FAIL e2e src/children/tests/children.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=e2e_w1
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:96:11)
+
+    console.error
+      [test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail. PrismaClientKnownRequestError: 
+      Invalid `prisma.$queryRaw()` invocation:
+      
+      
+      Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+          at $n.handleRequestError (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+          at $n.handleAndLogRequestError (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+          at $n.request (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+          at l (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.e2e.ts:114:5) {
+        code: 'P2010',
+        clientVersion: '5.22.0',
+        meta: {
+          code: '42P01',
+          message: 'relation "_prisma_migrations" does not exist'
+        }
+      }
+
+      114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+      115 |   } catch (error) {
+    > 116 |     console.error(
+          |             ^
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+      118 |       error,
+      119 |     );
+
+      at Object.<anonymous> (test.setup.e2e.ts:116:13)
+
+  ● Children (e2e) › GET /children should return array
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › GET /children should return array
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › POST /children should create a child (minimal)
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › POST /children should create a child (minimal)
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › GET /children/:id should return the created child
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › GET /children/:id should return the created child
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › PATCH /children/:id should update group and guardians
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › PATCH /children/:id should update group and guardians
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › POST /children invalid body should 400 (missing allergies)
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › POST /children invalid body should 400 (missing allergies)
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › POST /children group from another tenant should 400
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › POST /children group from another tenant should 400
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+
+Applying migration `20250909134602_init`
+Applying migration `20250913180105_add_child_concerns_allergies_disabilities`
+Applying migration `20250913232320_link_swaprequest_to_assignment`
+Applying migration `20250917174707_add_announcement_audience`
+Applying migration `20250918201718_suites_billing_orgs`
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Prisma schema loaded from prisma/schema.prisma
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Applying migration `20251201121500_safeguarding_audit`
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Error: ERROR: no schema has been selected to create in
+   0: sql_schema_connector::sql_migration_persistence::initialize
+           with namespaces=None
+             at schema-engine/connectors/sql-schema-connector/src/sql_migration_persistence.rs:14
+   1: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+Error: Invariant violation: migration persistence is not initialized.
+   0: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+Applying migration `20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts`
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+
+
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+Applying migration `20250909134602_init`
+
+PASS unit src/children/tests/children.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64179,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/users/tests/users.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64186,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/tenants/tests/tenants.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64180,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+Applying migration `20250913180105_add_child_concerns_allergies_disabilities`
+Applying migration `20250913232320_link_swaprequest_to_assignment`
+Applying migration `20250917174707_add_announcement_audience`
+Applying migration `20250918201718_suites_billing_orgs`
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Error: ERROR: no schema has been selected to create in
+   0: sql_schema_connector::sql_migration_persistence::initialize
+           with namespaces=None
+             at schema-engine/connectors/sql-schema-connector/src/sql_migration_persistence.rs:14
+   1: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+PASS unit src/children/tests/children.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64301,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/attendance/tests/attendance.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64299,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/tenants/tests/tenants.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64300,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+Applying migration `20250909134602_init`
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+Applying migration `20250909134602_init`
+Applying migration `20250913180105_add_child_concerns_allergies_disabilities`
+Applying migration `20250913232320_link_swaprequest_to_assignment`
+Applying migration `20250917174707_add_announcement_audience`
+Applying migration `20250918201718_suites_billing_orgs`
+Applying migration `20251201121500_safeguarding_audit`
+Applying migration `20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts`
+Applying migration `20251201173000_core_tenant_rls`
+Applying migration `20251202110000_enforce_rls_flags`
+
+Database reset successful
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20250909134602_init/
+    └─ migration.sql
+  └─ 20250913180105_add_child_concerns_allergies_disabilities/
+    └─ migration.sql
+  └─ 20250913232320_link_swaprequest_to_assignment/
+    └─ migration.sql
+  └─ 20250917174707_add_announcement_audience/
+    └─ migration.sql
+  └─ 20250918201718_suites_billing_orgs/
+    └─ migration.sql
+  └─ 20251201121500_safeguarding_audit/
+    └─ migration.sql
+  └─ 20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts/
+    └─ migration.sql
+  └─ 20251201173000_core_tenant_rls/
+    └─ migration.sql
+  └─ 20251202110000_enforce_rls_flags/
+    └─ migration.sql
+
+Database reset successful
+
+
+Database reset successful
+
+
+Database reset successful
+
+
+PASS unit src/concerns/tests/concerns.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS unit src/orgs/tests/orgs.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [OrgsService] Raw input to register: {
+        org: { name: 'Acme Church', slug: 'acme-church' },
+        admin: { email: 'admin@acme.test', fullName: 'Admin User' },
+        initialTenant: { create: true, name: 'Kids', slug: 'kids' }
+      }
+
+      at OrgsService.register (src/orgs/orgs.service.ts:49:13)
+
+    console.log
+      [OrgsService] Parsed DTO: {
+        org: {
+          name: 'Acme Church',
+          slug: 'acme-church',
+          planCode: 'trial',
+          isSuite: true
+        },
+        admin: { email: 'admin@acme.test', fullName: 'Admin User' },
+        initialTenant: { create: true, name: 'Kids', slug: 'kids' }
+      }
+
+      at OrgsService.register (src/orgs/orgs.service.ts:51:13)
+
+    console.log
+      [OrgsService] Final result: {
+        org: { id: 'org_1', name: 'Acme Church', slug: 'acme-church' },
+        initialTenant: undefined,
+        admin: { invite: { email: 'admin@acme.test', fullName: 'Admin User' } },
+        billing: undefined
+      }
+
+      at src/orgs/orgs.service.ts:166:17
+
+PASS unit src/announcements/tests/announcements.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+Database reset successful
+
+
+PASS unit src/groups/tests/groups.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS unit src/groups/tests/groups.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Error: P3016
+
+The fallback method for database resets failed, meaning Migrate could not clean up the database entirely. Original error: Error code: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Error: P1014
+
+The underlying table for model `_prisma_migrations` does not exist.
+
+Error: P3005
+
+The database schema is not empty. Read more about how to baseline an existing production database: https://pris.ly/d/migrate-baseline
+
+Error: Invariant violation: migration persistence is not initialized.
+   0: schema_core::state::ApplyMigrations
+             at schema-engine/core/src/state.rs:226
+
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+
+
+Applying migration `20250909134602_init`
+
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+undefined
+/Users/JeanFidele/Projects/pathway/packages/db:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: prisma migrate reset --force --skip-generate --skip-seed
+PASS unit src/common/safeguarding/safeguarding.guard.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64445,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/sessions/tests/sessions.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64446,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+PASS unit src/billing/tests/billing.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64486,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+Applying migration `20250909134602_init`
+Applying migration `20250913180105_add_child_concerns_allergies_disabilities`
+Applying migration `20250913232320_link_swaprequest_to_assignment`
+Applying migration `20250917174707_add_announcement_audience`
+PASS unit src/swaps/tests/swaps.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.warn
+      [test.setup.unit] migrate reset failed (continuing): Error: Command failed: pnpm --filter @pathway/db exec prisma migrate reset --force --skip-generate --skip-seed
+          at genericNodeError (node:internal/errors:983:15)
+          at wrappedFn (node:internal/errors:537:14)
+          at checkExecSyncError (node:child_process:890:11)
+          at execSync (node:child_process:962:15)
+          at run (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:22:15)
+          at Object.<anonymous> (/Users/JeanFidele/Projects/pathway/apps/api/test.setup.unit.ts:37:24)
+          at Promise.then.completed (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusHook (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:281:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTestsForDescribeBlock (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:95:7)
+          at run (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/Users/JeanFidele/Projects/pathway/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12) {
+        status: 1,
+        signal: null,
+        output: [ null, null, null ],
+        pid: 64444,
+        stdout: null,
+        stderr: null
+      }
+
+      61 |     } else {
+      62 |       // eslint-disable-next-line no-console
+    > 63 |       console.warn(
+         |               ^
+      64 |         "[test.setup.unit] migrate reset failed (continuing):",
+      65 |         firstAttempt,
+      66 |       );
+
+      at Object.<anonymous> (test.setup.unit.ts:63:15)
+
+┌─────────────────────────────────────────────────────────┐
+│  Update available 5.22.0 -> 7.1.0                       │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Update available 5.22.0 -> 7.1.0                       │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+PASS unit src/announcements/tests/announcements.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+Applying migration `20250918201718_suites_billing_orgs`
+Applying migration `20251201121500_safeguarding_audit`
+Applying migration `20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts`
+Applying migration `20251201173000_core_tenant_rls`
+Applying migration `20251202110000_enforce_rls_flags`
+
+Database reset successful
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20250909134602_init/
+    └─ migration.sql
+  └─ 20250913180105_add_child_concerns_allergies_disabilities/
+    └─ migration.sql
+  └─ 20250913232320_link_swaprequest_to_assignment/
+    └─ migration.sql
+  └─ 20250917174707_add_announcement_audience/
+    └─ migration.sql
+  └─ 20250918201718_suites_billing_orgs/
+    └─ migration.sql
+  └─ 20251201121500_safeguarding_audit/
+    └─ migration.sql
+  └─ 20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts/
+    └─ migration.sql
+  └─ 20251201173000_core_tenant_rls/
+    └─ migration.sql
+  └─ 20251202110000_enforce_rls_flags/
+    └─ migration.sql
+
+Database reset successful
+
+
+Environment variables loaded from prisma/.env
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Environment variables loaded from prisma/.env
+Prisma schema loaded from prisma/schema.prisma
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+Datasource "db": PostgreSQL database "pathway_test_e2e", schema "e2e_w1" at "localhost:5433"
+PASS unit src/swaps/tests/swaps.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+
+
+
+Applying migration `20250909134602_init`
+Applying migration `20250913180105_add_child_concerns_allergies_disabilities`
+Applying migration `20250913232320_link_swaprequest_to_assignment`
+PASS unit src/assignments/tests/assignments.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS unit src/orgs/tests/orgs.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+PASS unit src/billing/tests/billing.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (15) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+Applying migration `20250917174707_add_announcement_audience`
+Applying migration `20250918201718_suites_billing_orgs`
+Applying migration `20251201121500_safeguarding_audit`
+Applying migration `20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts`
+Applying migration `20251201173000_core_tenant_rls`
+Applying migration `20251202110000_enforce_rls_flags`
+
+Database reset successful
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20250909134602_init/
+    └─ migration.sql
+  └─ 20250913180105_add_child_concerns_allergies_disabilities/
+    └─ migration.sql
+  └─ 20250913232320_link_swaprequest_to_assignment/
+    └─ migration.sql
+  └─ 20250917174707_add_announcement_audience/
+    └─ migration.sql
+  └─ 20250918201718_suites_billing_orgs/
+    └─ migration.sql
+  └─ 20251201121500_safeguarding_audit/
+    └─ migration.sql
+  └─ 20251201144610_pnpm_filter_pathway_api_test_unit_run_tests_by_path_src_common_safeguarding_safeguarding_guard_spec_ts_src_concerns_tests_concerns_service_spec_ts_src_notes_tests_notes_service_spec_ts/
+    └─ migration.sql
+  └─ 20251201173000_core_tenant_rls/
+    └─ migration.sql
+  └─ 20251202110000_enforce_rls_flags/
+    └─ migration.sql
+
+Database reset successful
+
+
+Database reset successful
+
+
+
+Summary of all failing tests
+FAIL src/children/tests/children.e2e.spec.ts
+  ● Children (e2e) › GET /children should return array
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › GET /children should return array
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › POST /children should create a child (minimal)
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › POST /children should create a child (minimal)
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › GET /children/:id should return the created child
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › GET /children/:id should return the created child
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › PATCH /children/:id should update group and guardians
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › PATCH /children/:id should update group and guardians
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › POST /children invalid body should 400 (missing allergies)
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › POST /children invalid body should 400 (missing allergies)
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+  ● Children (e2e) › POST /children group from another tenant should 400
+
+    PrismaClientKnownRequestError: 
+    Invalid `prisma.$queryRaw()` invocation:
+
+
+    Raw query failed. Code: `42P01`. Message: `relation "_prisma_migrations" does not exist`
+
+      112 |   // Quick smoke check: ensure the test role can read migrations metadata.
+      113 |   try {
+    > 114 |     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+          |     ^
+      115 |   } catch (error) {
+      116 |     console.error(
+      117 |       "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (test.setup.e2e.ts:114:5)
+
+  ● Children (e2e) › POST /children group from another tenant should 400
+
+    PrismaClientKnownRequestError: 
+    Invalid `tx.group.create()` invocation in
+    /Users/JeanFidele/Projects/pathway/apps/api/src/children/tests/children.e2e.spec.ts:35:32
+
+      32 await app.init();
+      33 
+      34 await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    → 35   const g = await tx.group.create(
+    Foreign key constraint violated: `Group_tenantId_fkey (index)`
+
+      33 |
+      34 |     await withTenantRlsContext(tenantId, orgId, async (tx) => {
+    > 35 |       const g = await tx.group.create({
+         |                 ^
+      36 |         data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+      37 |         select: { id: true },
+      38 |       });
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at src/children/tests/children.e2e.spec.ts:35:17
+      at Proxy._transactionWithCallback (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)
+      at Object.<anonymous> (src/children/tests/children.e2e.spec.ts:34:5)
+
+
+Test Suites: 1 failed, 47 passed, 48 total
+Tests:       6 failed, 325 passed, 331 total
 Snapshots:   0 total
-Time:        4.972 s
-Ran all test suites.
+Time:        10.46 s, estimated 11 s
+Ran all test suites in 2 projects.
+ ELIFECYCLE  Test failed. See above for more details.

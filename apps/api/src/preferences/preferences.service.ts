@@ -7,7 +7,7 @@ import type {
 
 export interface PreferenceListQuery {
   userId?: string;
-  tenantId?: string;
+  tenantId: string;
   weekday?: Weekday;
   /** Return preferences that start at or after this minute (0-1439) */
   startMinuteGte?: number;
@@ -18,11 +18,13 @@ export interface PreferenceListQuery {
 @Injectable()
 export class PreferencesService {
   /** Create a volunteer preference window */
-  async create(dto: CreateVolunteerPreferenceDto) {
+  async create(dto: CreateVolunteerPreferenceDto, tenantId: string) {
+    const resolvedTenantId = tenantId ?? dto.tenantId;
+    if (!resolvedTenantId) throw new NotFoundException("tenant not found");
     return prisma.volunteerPreference.create({
       data: {
         userId: dto.userId,
-        tenantId: dto.tenantId,
+        tenantId: resolvedTenantId,
         weekday: dto.weekday as Weekday,
         startMinute: dto.startMinute,
         endMinute: dto.endMinute,
@@ -34,7 +36,7 @@ export class PreferencesService {
    * List preferences with optional filters. Results are newest-first for test stability
    * and predictable pagination.
    */
-  async findAll(filters: PreferenceListQuery = {}) {
+  async findAll(filters: PreferenceListQuery) {
     return prisma.volunteerPreference.findMany({
       where: {
         userId: filters.userId,
@@ -54,21 +56,28 @@ export class PreferencesService {
   }
 
   /** Get a single preference by id */
-  async findOne(id: string) {
-    const pref = await prisma.volunteerPreference.findUnique({ where: { id } });
+  async findOne(id: string, tenantId: string) {
+    const pref = await prisma.volunteerPreference.findFirst({
+      where: { id, tenantId },
+    });
     if (!pref) throw new NotFoundException(`Preference ${id} not found`);
     return pref;
   }
 
   /** Update an existing preference */
-  async update(id: string, dto: UpdateVolunteerPreferenceDto) {
+  async update(
+    id: string,
+    dto: UpdateVolunteerPreferenceDto,
+    tenantId: string,
+  ) {
+    const resolvedTenantId = tenantId ?? dto.tenantId;
     try {
       return await prisma.volunteerPreference.update({
         where: { id },
         data: {
           // Only pass fields that may be present on the partial DTO
           userId: dto.userId,
-          tenantId: dto.tenantId,
+          tenantId: resolvedTenantId,
           weekday: dto.weekday as Weekday | undefined,
           startMinute: dto.startMinute,
           endMinute: dto.endMinute,
@@ -85,13 +94,15 @@ export class PreferencesService {
   }
 
   /** Delete and return the deleted preference */
-  async remove(id: string) {
+  async remove(id: string, tenantId: string) {
     try {
-      return await prisma.volunteerPreference.delete({ where: { id } });
+      return await prisma.volunteerPreference.deleteMany({
+        where: { id, tenantId },
+      });
     } catch (e) {
       // Align error semantics with other modules
-      const existing = await prisma.volunteerPreference.findUnique({
-        where: { id },
+      const existing = await prisma.volunteerPreference.findFirst({
+        where: { id, tenantId },
       });
       if (!existing) throw new NotFoundException(`Preference ${id} not found`);
       throw e;

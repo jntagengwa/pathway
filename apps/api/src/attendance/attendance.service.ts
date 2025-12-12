@@ -18,36 +18,39 @@ const SELECT = {
 
 @Injectable()
 export class AttendanceService {
-  async list() {
+  async list(tenantId: string) {
     return prisma.attendance.findMany({
+      where: { child: { tenantId } },
       select: SELECT,
       orderBy: [{ timestamp: "desc" }],
     });
   }
 
-  async getById(id: string) {
-    const row = await prisma.attendance.findUnique({
-      where: { id },
+  async getById(id: string, tenantId: string) {
+    const row = await prisma.attendance.findFirst({
+      where: { id, child: { tenantId } },
       select: SELECT,
     });
     if (!row) throw new NotFoundException("Attendance not found");
     return row;
   }
 
-  async create(input: CreateAttendanceDto) {
+  async create(input: CreateAttendanceDto, tenantId: string) {
     // Validate child exists
     const child = await prisma.child.findUnique({
       where: { id: input.childId },
       select: { id: true, tenantId: true },
     });
-    if (!child) throw new BadRequestException("child not found");
+    if (!child || child.tenantId !== tenantId)
+      throw new NotFoundException("Attendance not found");
 
     // Validate group exists
     const group = await prisma.group.findUnique({
       where: { id: input.groupId },
       select: { id: true, tenantId: true },
     });
-    if (!group) throw new BadRequestException("group not found");
+    if (!group || group.tenantId !== tenantId)
+      throw new NotFoundException("Attendance not found");
 
     // Optional: validate session exists and is consistent
     if (input.sessionId) {
@@ -55,11 +58,8 @@ export class AttendanceService {
         where: { id: input.sessionId },
         select: { id: true, tenantId: true, groupId: true },
       });
-      if (!session) throw new BadRequestException("session not found");
-      if (session.tenantId !== child.tenantId) {
-        throw new BadRequestException(
-          "session does not belong to the child's tenant",
-        );
+      if (!session || session.tenantId !== tenantId) {
+        throw new NotFoundException("Attendance not found");
       }
       if (session.groupId && session.groupId !== input.groupId) {
         throw new BadRequestException("session is for a different group");
@@ -67,11 +67,10 @@ export class AttendanceService {
     }
 
     // Cross-tenant guard
-    if (child.tenantId !== group.tenantId) {
+    if (child.tenantId !== group.tenantId)
       throw new BadRequestException(
         "child and group must belong to same tenant",
       );
-    }
 
     const created = await prisma.attendance.create({
       data: {
@@ -88,10 +87,10 @@ export class AttendanceService {
     return created;
   }
 
-  async update(id: string, input: UpdateAttendanceDto) {
+  async update(id: string, input: UpdateAttendanceDto, tenantId: string) {
     // Ensure row exists (also used to infer tenant via relations if needed)
-    const current = await prisma.attendance.findUnique({
-      where: { id },
+    const current = await prisma.attendance.findFirst({
+      where: { id, child: { tenantId } },
       select: {
         id: true,
         groupId: true,
@@ -106,7 +105,9 @@ export class AttendanceService {
         where: { id: input.groupId },
         select: { id: true, tenantId: true },
       });
-      if (!group) throw new BadRequestException("group not found");
+      if (!group || group.tenantId !== tenantId) {
+        throw new NotFoundException("Attendance not found");
+      }
       if (group.tenantId !== current.child.tenantId) {
         throw new BadRequestException(
           "group does not belong to the child's tenant",
@@ -120,11 +121,8 @@ export class AttendanceService {
         where: { id: input.sessionId },
         select: { id: true, tenantId: true, groupId: true },
       });
-      if (!session) throw new BadRequestException("session not found");
-      if (session.tenantId !== current.child.tenantId) {
-        throw new BadRequestException(
-          "session does not belong to the child's tenant",
-        );
+      if (!session || session.tenantId !== tenantId) {
+        throw new NotFoundException("Attendance not found");
       }
       // If either the incoming groupId or the current groupId exists, ensure it matches the session's group (when session has one)
       const effectiveGroupId = input.groupId ?? current.groupId ?? undefined;

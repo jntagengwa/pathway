@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   BadRequestException,
+  UseGuards,
 } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import {
@@ -16,36 +17,48 @@ import {
   updateAttendanceDto,
   UpdateAttendanceDto,
 } from "./dto/update-attendance.dto";
+import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
 
+@UseGuards(PathwayAuthGuard)
 @Controller("attendance")
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   @Get()
-  async list() {
-    return this.attendanceService.list();
+  async list(@CurrentTenant("tenantId") tenantId: string) {
+    return this.attendanceService.list(tenantId);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    return this.attendanceService.getById(id);
+  async getById(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
+    return this.attendanceService.getById(id, tenantId);
   }
 
   @Post()
-  async create(@Body() body: CreateAttendanceDto) {
+  async create(
+    @Body() body: CreateAttendanceDto,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsed = createAttendanceDto.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }
-    return this.attendanceService.create(parsed.data);
+    return this.attendanceService.create(parsed.data, tenantId);
   }
 
   @Patch(":id")
-  async update(@Param("id") id: string, @Body() body: UpdateAttendanceDto) {
+  async update(
+    @Param("id") id: string,
+    @Body() body: UpdateAttendanceDto,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsed = updateAttendanceDto.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }
-    return this.attendanceService.update(id, parsed.data);
+    return this.attendanceService.update(id, parsed.data, tenantId);
   }
 }

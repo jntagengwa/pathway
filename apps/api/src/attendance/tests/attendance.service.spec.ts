@@ -1,10 +1,10 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { NotFoundException } from "@nestjs/common";
 import { AttendanceService } from "../attendance.service";
 import { prisma } from "@pathway/db";
 
 // --- Prisma mocks
 const aFindMany = jest.spyOn(prisma.attendance, "findMany");
-const aFindUnique = jest.spyOn(prisma.attendance, "findUnique");
+const aFindFirst = jest.spyOn(prisma.attendance, "findFirst");
 const aCreate = jest.spyOn(prisma.attendance, "create");
 const aUpdate = jest.spyOn(prisma.attendance, "update");
 
@@ -41,7 +41,7 @@ describe("AttendanceService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     aFindMany.mockReset();
-    aFindUnique.mockReset();
+    aFindFirst.mockReset();
     aCreate.mockReset();
     aUpdate.mockReset();
     cFindUnique.mockReset();
@@ -52,9 +52,10 @@ describe("AttendanceService", () => {
   describe("list", () => {
     it("returns attendance ordered by timestamp desc", async () => {
       aFindMany.mockResolvedValueOnce([]);
-      const res = await svc.list();
+      const res = await svc.list("t1");
       expect(res).toEqual([]);
       expect(aFindMany).toHaveBeenCalledWith({
+        where: { child: { tenantId: "t1" } },
         select: {
           id: true,
           childId: true,
@@ -78,11 +79,11 @@ describe("AttendanceService", () => {
         timestamp: new Date(),
         sessionId: null,
       };
-      aFindUnique.mockResolvedValueOnce(row);
-      const res = await svc.getById("att1");
+      aFindFirst.mockResolvedValueOnce(row);
+      const res = await svc.getById("att1", "t1");
       expect(res).toBe(row);
-      expect(aFindUnique).toHaveBeenCalledWith({
-        where: { id: "att1" },
+      expect(aFindFirst).toHaveBeenCalledWith({
+        where: { id: "att1", child: { tenantId: "t1" } },
         select: {
           id: true,
           childId: true,
@@ -95,8 +96,8 @@ describe("AttendanceService", () => {
     });
 
     it("throws NotFound when missing", async () => {
-      aFindUnique.mockResolvedValueOnce(null);
-      await expect(svc.getById("missing")).rejects.toBeInstanceOf(
+      aFindFirst.mockResolvedValueOnce(null);
+      await expect(svc.getById("missing", "t1")).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
@@ -110,8 +111,8 @@ describe("AttendanceService", () => {
     it("throws when child not found", async () => {
       cFindUnique.mockResolvedValueOnce(null);
       await expect(
-        svc.create({ childId, groupId: groupSame, present: true }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+        svc.create({ childId, groupId: groupSame, present: true }, "t1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("throws when group not found", async () => {
@@ -121,8 +122,8 @@ describe("AttendanceService", () => {
       } as Awaited<ReturnType<typeof prisma.child.findUnique>>);
       gFindUnique.mockResolvedValueOnce(null);
       await expect(
-        svc.create({ childId, groupId: groupSame, present: true }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+        svc.create({ childId, groupId: groupSame, present: true }, "t1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("throws when child and group are in different tenants", async () => {
@@ -135,10 +136,8 @@ describe("AttendanceService", () => {
         id: groupOther,
       } as Awaited<ReturnType<typeof prisma.group.findUnique>>);
       await expect(
-        svc.create({ childId, groupId: groupOther, present: true }),
-      ).rejects.toEqual(
-        new BadRequestException("child and group must belong to same tenant"),
-      );
+        svc.create({ childId, groupId: groupOther, present: true }, "t1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("creates with default timestamp when not provided", async () => {
@@ -159,11 +158,14 @@ describe("AttendanceService", () => {
         sessionId: null,
       });
 
-      const res = await svc.create({
-        childId,
-        groupId: groupSame,
-        present: true,
-      });
+      const res = await svc.create(
+        {
+          childId,
+          groupId: groupSame,
+          present: true,
+        },
+        "t1",
+      );
       expect(res).toMatchObject({
         id: "att1",
         childId,
@@ -207,12 +209,15 @@ describe("AttendanceService", () => {
         sessionId: null,
       });
 
-      const res = await svc.create({
-        childId,
-        groupId: groupSame,
-        present: false,
-        timestamp: ts,
-      });
+      const res = await svc.create(
+        {
+          childId,
+          groupId: groupSame,
+          present: false,
+          timestamp: ts,
+        },
+        "t1",
+      );
       expect(res.timestamp).toEqual(ts);
       expect(aCreate).toHaveBeenCalledWith({
         data: {
@@ -238,17 +243,17 @@ describe("AttendanceService", () => {
     const newGroup = "55555555-5555-5555-5555-555555555555";
 
     it("throws NotFound if attendance missing", async () => {
-      aFindUnique.mockResolvedValueOnce(null);
-      await expect(svc.update(id, { present: false })).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      aFindFirst.mockResolvedValueOnce(null);
+      await expect(
+        svc.update(id, { present: false }, "t1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("updates present only", async () => {
-      aFindUnique.mockResolvedValueOnce({
+      aFindFirst.mockResolvedValueOnce({
         id,
         child: { tenantId: "t1" },
-      } as unknown as Awaited<ReturnType<typeof prisma.attendance.findUnique>>);
+      } as unknown as Awaited<ReturnType<typeof prisma.attendance.findFirst>>);
       aUpdate.mockResolvedValueOnce({
         id,
         childId: "c1",
@@ -258,7 +263,7 @@ describe("AttendanceService", () => {
         sessionId: null,
       });
 
-      const res = await svc.update(id, { present: false });
+      const res = await svc.update(id, { present: false }, "t1");
       expect(res.present).toBe(false);
       expect(aUpdate).toHaveBeenCalledWith({
         where: { id },
@@ -275,25 +280,25 @@ describe("AttendanceService", () => {
     });
 
     it("throws when changing group across tenants", async () => {
-      aFindUnique.mockResolvedValueOnce({
+      aFindFirst.mockResolvedValueOnce({
         id,
         child: { tenantId: "t1" },
-      } as unknown as Awaited<ReturnType<typeof prisma.attendance.findUnique>>);
+      } as unknown as Awaited<ReturnType<typeof prisma.attendance.findFirst>>);
       gFindUnique.mockResolvedValueOnce({
         ...makeGroup("t2"),
         id: newGroup,
       } as Awaited<ReturnType<typeof prisma.group.findUnique>>);
 
-      await expect(svc.update(id, { groupId: newGroup })).rejects.toEqual(
-        new BadRequestException("group does not belong to the child's tenant"),
-      );
+      await expect(
+        svc.update(id, { groupId: newGroup }, "t1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("connects new group when same tenant", async () => {
-      aFindUnique.mockResolvedValueOnce({
+      aFindFirst.mockResolvedValueOnce({
         id,
         child: { tenantId: "t1" },
-      } as unknown as Awaited<ReturnType<typeof prisma.attendance.findUnique>>);
+      } as unknown as Awaited<ReturnType<typeof prisma.attendance.findFirst>>);
       gFindUnique.mockResolvedValueOnce({
         ...makeGroup("t1"),
         id: newGroup,
@@ -307,7 +312,7 @@ describe("AttendanceService", () => {
         sessionId: null,
       });
 
-      await svc.update(id, { groupId: newGroup });
+      await svc.update(id, { groupId: newGroup }, "t1");
       expect(aUpdate).toHaveBeenCalledWith({
         where: { id },
         data: {

@@ -47,23 +47,26 @@ describe("UsersService", () => {
   describe("list", () => {
     it("returns users", async () => {
       uFindMany.mockResolvedValue([baseUser]);
-      await expect(svc.list()).resolves.toEqual([baseUser]);
-      expect(uFindMany).toHaveBeenCalled();
+      await expect(svc.list("t1")).resolves.toEqual([baseUser]);
+      expect(uFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { tenantId: "t1" } }),
+      );
     });
   });
 
   describe("getById", () => {
     it("returns a user when found", async () => {
-      uFindUnique.mockResolvedValue(baseUser);
-      await expect(svc.getById("u1")).resolves.toEqual(baseUser);
-      expect(uFindUnique).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: "u1" } }),
-      );
+      uFindFirst.mockResolvedValue(baseUser);
+      await expect(svc.getById("u1", "t1")).resolves.toEqual(baseUser);
+      expect(uFindFirst).toHaveBeenCalledWith({
+        where: { id: "u1", tenantId: "t1" },
+        select: expect.any(Object),
+      });
     });
 
     it("throws NotFound when missing", async () => {
-      uFindUnique.mockResolvedValue(null);
-      await expect(svc.getById("missing")).rejects.toBeInstanceOf(
+      uFindFirst.mockResolvedValue(null);
+      await expect(svc.getById("missing", "t1")).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });

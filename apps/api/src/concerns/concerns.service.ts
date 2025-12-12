@@ -3,69 +3,196 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { prisma } from "@pathway/db";
-import type { Prisma } from "@pathway/db";
-import { createConcernDto, updateConcernDto } from "./dto";
+import { withTenantRlsContext } from "@pathway/db";
+import type { Prisma } from "@prisma/client";
+import type { CreateConcernDto, UpdateConcernDto } from "./dto";
+import { AuditService } from "../audit/audit.service";
+import type { SafeguardingContextIds } from "../common/safeguarding/safeguarding.types";
+import { AuditAction, AuditEntityType } from "../audit/audit.types";
+
+// Simple filters for list queries
+// - childId optional to scope to a specific child
+// Other filters can be added as needed
+
+type ConcernFilters = {
+  childId?: string;
+};
 
 @Injectable()
 export class ConcernsService {
-  async create(raw: unknown) {
-    const dto = await createConcernDto.parseAsync(raw);
+  constructor(private readonly audit: AuditService) {}
 
-    // Validate FK: child must exist
-    const child = await prisma.child.findUnique({
-      where: { id: dto.childId },
-      select: { id: true },
+  async create(dto: CreateConcernDto, context: SafeguardingContextIds) {
+    return this.withContext(context, async (tx) => {
+      // Validate FK: child must exist for this tenant
+      const child = await tx.child.findFirst({
+        where: {
+          id: dto.childId,
+          tenantId: context.tenantId,
+        },
+        select: { id: true },
+      });
+      if (!child) throw new NotFoundException("Child not found");
+
+      try {
+        const concern = await tx.concern.create({
+          data: {
+            childId: dto.childId,
+            summary: dto.summary,
+            details: dto.details ?? undefined,
+          },
+        });
+        await this.audit.recordEvent({
+          actorUserId: context.actorUserId,
+          tenantId: context.tenantId,
+          orgId: context.orgId,
+          entityType: AuditEntityType.CONCERN,
+          entityId: concern.id,
+          action: AuditAction.CREATED,
+          metadata: { childId: dto.childId },
+        });
+        return concern;
+      } catch (e: unknown) {
+        this.handlePrismaError(e, "create");
+      }
     });
-    if (!child) throw new NotFoundException("Child not found");
+  }
 
-    try {
-      return await prisma.concern.create({
-        data: {
-          childId: dto.childId,
-          summary: dto.summary,
-          details: dto.details ?? undefined,
+  async findAll(filters: ConcernFilters = {}, context: SafeguardingContextIds) {
+    return this.withContext(context, async (tx) => {
+      const where: Prisma.ConcernWhereInput = {
+        child: { tenantId: context.tenantId },
+        ...(filters.childId ? { childId: filters.childId } : {}),
+        deletedAt: null,
+      };
+      const records = await tx.concern.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
+      await this.audit.recordEvent({
+        actorUserId: context.actorUserId,
+        tenantId: context.tenantId,
+        orgId: context.orgId,
+        entityType: AuditEntityType.CONCERN,
+        entityId: null,
+        action: AuditAction.VIEWED,
+        metadata: {
+          filterChildId: filters.childId ?? null,
+          resultCount: records.length,
         },
       });
-    } catch (e: unknown) {
-      this.handlePrismaError(e, "create");
-    }
+      return records;
+    });
   }
 
-  async findAll(filters: { childId?: string } = {}) {
-    const where: Prisma.ConcernWhereInput = {
-      ...(filters.childId ? { childId: filters.childId } : {}),
-    };
-    return prisma.concern.findMany({ where, orderBy: { createdAt: "desc" } });
-  }
-
-  async findOne(id: string) {
-    const c = await prisma.concern.findUnique({ where: { id } });
-    if (!c) throw new NotFoundException("Concern not found");
-    return c;
-  }
-
-  async update(id: string, raw: unknown) {
-    const dto = await updateConcernDto.parseAsync(raw);
-    try {
-      return await prisma.concern.update({
-        where: { id },
-        data: {
-          summary: dto.summary ?? undefined,
-          details: dto.details ?? undefined,
-        },
+  async findOne(id: string, context: SafeguardingContextIds) {
+    return this.withContext(context, async (tx) => {
+      const concern = await this.requireConcernForTenant(
+        id,
+        context.tenantId,
+        tx,
+      );
+      await this.audit.recordEvent({
+        actorUserId: context.actorUserId,
+        tenantId: context.tenantId,
+        orgId: context.orgId,
+        entityType: AuditEntityType.CONCERN,
+        entityId: id,
+        action: AuditAction.VIEWED,
+        metadata: { childId: concern.childId },
       });
-    } catch (e: unknown) {
-      this.handlePrismaError(e, "update", id);
-    }
+      return concern;
+    });
   }
 
-  async remove(id: string) {
-    try {
-      return await prisma.concern.delete({ where: { id } });
-    } catch (e: unknown) {
-      this.handlePrismaError(e, "delete", id);
-    }
+  async update(
+    id: string,
+    dto: UpdateConcernDto,
+    context: SafeguardingContextIds,
+  ) {
+    return this.withContext(context, async (tx) => {
+      await this.requireConcernForTenant(id, context.tenantId, tx);
+      try {
+        const concern = await tx.concern.update({
+          where: { id },
+          data: {
+            summary: dto.summary ?? undefined,
+            details: dto.details ?? undefined,
+          },
+        });
+        await this.audit.recordEvent({
+          actorUserId: context.actorUserId,
+          tenantId: context.tenantId,
+          orgId: context.orgId,
+          entityType: AuditEntityType.CONCERN,
+          entityId: id,
+          action: AuditAction.UPDATED,
+          metadata: {
+            updatedFields: Object.keys(dto ?? {}),
+          },
+        });
+        return concern;
+      } catch (e: unknown) {
+        this.handlePrismaError(e, "update", id);
+      }
+    });
+  }
+
+  async remove(id: string, context: SafeguardingContextIds) {
+    return this.withContext(context, async (tx) => {
+      const concern = await this.requireConcernForTenant(
+        id,
+        context.tenantId,
+        tx,
+      );
+      try {
+        const deleted = await tx.concern.update({
+          where: { id },
+          data: { deletedAt: new Date() },
+        });
+        await this.audit.recordEvent({
+          actorUserId: context.actorUserId,
+          tenantId: context.tenantId,
+          orgId: context.orgId,
+          entityType: AuditEntityType.CONCERN,
+          entityId: id,
+          action: AuditAction.DELETED,
+          metadata: { childId: concern.childId },
+        });
+        return { id: deleted.id, deletedAt: deleted.deletedAt };
+      } catch (e: unknown) {
+        this.handlePrismaError(e, "delete", id);
+      }
+    });
+  }
+
+  private async requireConcernForTenant(
+    id: string,
+    tenantId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    const concern = await tx.concern.findFirst({
+      where: {
+        id,
+        child: { tenantId },
+        deletedAt: null,
+      },
+    });
+    if (!concern) throw new NotFoundException("Concern not found");
+    return concern;
+  }
+
+  private withContext<T>(
+    context: SafeguardingContextIds,
+    callback: (tx: Prisma.TransactionClient) => Promise<T>,
+  ) {
+    return withTenantRlsContext(context.tenantId, context.orgId, async (tx) => {
+      await tx.$executeRawUnsafe(
+        `SELECT set_config('app.user_id', $1, true)`,
+        context.actorUserId ?? "",
+      );
+      return callback(tx);
+    });
   }
 
   private handlePrismaError(

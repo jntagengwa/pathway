@@ -1,15 +1,26 @@
 import { INestApplication } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
+import { prisma, withTenantRlsContext } from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 describe("Lessons (e2e)", () => {
   let app: INestApplication;
+  let authHeader: string;
+  let otherLessonId: string | undefined;
+
+  const TENANT_A_ID = process.env.E2E_TENANT_ID as string;
+  const TENANT_B_ID = process.env.E2E_TENANT2_ID as string;
+  const ORG_ID = process.env.E2E_ORG_ID as string;
+  if (!TENANT_A_ID || !TENANT_B_ID || !ORG_ID) {
+    throw new Error("E2E_TENANT_ID / E2E_TENANT2_ID / E2E_ORG_ID missing");
+  }
 
   const ids = {
-    tenant: "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
-    group: "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",
+    tenant: TENANT_A_ID,
+    group: randomUUID(), // avoid cross-run uniqueness collisions
   };
 
   const base = {
@@ -27,23 +38,66 @@ describe("Lessons (e2e)", () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    // Seed minimal graph
-    await prisma.tenant.create({
-      data: { id: ids.tenant, name: "Lessons Tenant", slug: "lessons-tenant" },
+    // Seed minimal graph within RLS context using seeded org/tenants
+    await withTenantRlsContext(ids.tenant, ORG_ID, async (tx) => {
+      await tx.group.create({
+        data: {
+          id: ids.group,
+          name: "Bluebirds",
+          tenantId: ids.tenant,
+          minAge: 5,
+          maxAge: 7,
+        },
+      });
     });
 
-    await prisma.group.create({
-      data: {
-        id: ids.group,
-        name: "Bluebirds",
-        tenantId: ids.tenant,
-        minAge: 5,
-        maxAge: 7,
+    authHeader = ((claims: PathwayAuthClaims) => {
+      const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+      return `Bearer test.${payload}.sig`;
+    })({
+      sub: "lessons-e2e",
+      "https://pathway.app/user": { id: "lessons-e2e" },
+      "https://pathway.app/org": {
+        orgId: ORG_ID,
+        slug: "e2e-org",
+        name: "E2E Org",
       },
+      "https://pathway.app/tenant": {
+        tenantId: ids.tenant,
+        orgId: ORG_ID,
+        slug: "lessons-tenant",
+      },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
+    });
+
+    // Seed another tenant/lesson to verify isolation (no cleanup needed; use unique records)
+    await withTenantRlsContext(TENANT_B_ID, ORG_ID, async (tx) => {
+      const otherGroup = await tx.group.create({
+        data: {
+          name: "Robins",
+          tenantId: TENANT_B_ID,
+          minAge: 8,
+          maxAge: 9,
+        },
+      });
+      const otherLesson = await tx.lesson.create({
+        data: {
+          tenantId: TENANT_B_ID,
+          groupId: otherGroup.id,
+          title: "Other Lesson",
+          weekOf: new Date("2025-01-06"),
+        },
+      });
+      otherLessonId = otherLesson.id;
     });
   });
 
   afterAll(async () => {
+    if (otherLessonId) {
+      await prisma.lesson.deleteMany({ where: { id: otherLessonId } });
+    }
+    // Avoid deleting seeded tenants/org; only clean per-entity rows if needed
     await app.close();
   });
 
@@ -61,7 +115,8 @@ describe("Lessons (e2e)", () => {
           fileKey: base.fileKey,
           weekOf: base.weekOfISO,
         })
-        .set("content-type", "application/json");
+        .set("content-type", "application/json")
+        .set("Authorization", authHeader);
 
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({
@@ -79,9 +134,9 @@ describe("Lessons (e2e)", () => {
     });
 
     it("GET /lessons/:id should return the created lesson", async () => {
-      const res = await request(app.getHttpServer()).get(
-        `/lessons/${createdId}`,
-      );
+      const res = await request(app.getHttpServer())
+        .get(`/lessons/${createdId}`)
+        .set("Authorization", authHeader);
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
         id: createdId,
@@ -92,9 +147,9 @@ describe("Lessons (e2e)", () => {
     });
 
     it("GET /lessons should filter by tenantId/groupId/weekOf", async () => {
-      const res = await request(app.getHttpServer()).get(
-        `/lessons?tenantId=${ids.tenant}&groupId=${ids.group}&weekOf=${base.weekOfISO}`,
-      );
+      const res = await request(app.getHttpServer())
+        .get(`/lessons?groupId=${ids.group}&weekOf=${base.weekOfISO}`)
+        .set("Authorization", authHeader);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
@@ -109,6 +164,20 @@ describe("Lessons (e2e)", () => {
       ).toBe(true);
     });
 
+    it("GET /lessons should not leak other tenant lessons", async () => {
+      const res = await request(app.getHttpServer())
+        .get("/lessons")
+        .set("Authorization", authHeader);
+
+      expect(res.status).toBe(200);
+      expect(
+        res.body.every((l: { tenantId: string }) => l.tenantId === ids.tenant),
+      ).toBe(true);
+      expect(res.body.some((l: { id: string }) => l.id === otherLessonId)).toBe(
+        false,
+      );
+    });
+
     it("PATCH /lessons/:id should update fields", async () => {
       const res = await request(app.getHttpServer())
         .patch(`/lessons/${createdId}`)
@@ -117,7 +186,8 @@ describe("Lessons (e2e)", () => {
           description: "Updated desc",
           weekOf: "2025-01-13", // next week
         })
-        .set("content-type", "application/json");
+        .set("content-type", "application/json")
+        .set("Authorization", authHeader);
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
@@ -129,10 +199,18 @@ describe("Lessons (e2e)", () => {
       expect((res.body.weekOf as string).startsWith("2025-01-13")).toBe(true);
     });
 
+    it("GET /lessons/:id should 404 for other tenant lesson", async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/lessons/${otherLessonId}`)
+        .set("Authorization", authHeader);
+
+      expect(res.status).toBe(404);
+    });
+
     it("DELETE /lessons/:id should delete and return the lesson", async () => {
-      const res = await request(app.getHttpServer()).delete(
-        `/lessons/${createdId}`,
-      );
+      const res = await request(app.getHttpServer())
+        .delete(`/lessons/${createdId}`)
+        .set("Authorization", authHeader);
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("id", createdId);
 
@@ -150,7 +228,8 @@ describe("Lessons (e2e)", () => {
           title: "Bad",
           weekOf: base.weekOfISO,
         })
-        .set("content-type", "application/json");
+        .set("content-type", "application/json")
+        .set("Authorization", authHeader);
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty("message");
@@ -164,7 +243,8 @@ describe("Lessons (e2e)", () => {
           title: "Bad Date",
           weekOf: "not-a-date",
         })
-        .set("content-type", "application/json");
+        .set("content-type", "application/json")
+        .set("Authorization", authHeader);
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty("message");
@@ -174,7 +254,8 @@ describe("Lessons (e2e)", () => {
       const res = await request(app.getHttpServer())
         .patch("/lessons/not-a-uuid")
         .send({ title: "won't matter" })
-        .set("content-type", "application/json");
+        .set("content-type", "application/json")
+        .set("Authorization", authHeader);
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty("message");

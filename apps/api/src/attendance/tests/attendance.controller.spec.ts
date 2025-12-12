@@ -4,6 +4,7 @@ import { AttendanceController } from "../attendance.controller";
 import { AttendanceService } from "../attendance.service";
 import { CreateAttendanceDto } from "../dto/create-attendance.dto";
 import { UpdateAttendanceDto } from "../dto/update-attendance.dto";
+import { PathwayAuthGuard } from "@pathway/auth";
 
 // Shared row type for clear expectations
 interface AttendanceRow {
@@ -16,15 +17,18 @@ interface AttendanceRow {
 }
 
 // Strongly-typed Jest mocks
-const listMock: jest.Mock<Promise<AttendanceRow[]>, []> = jest.fn();
-const getByIdMock: jest.Mock<Promise<AttendanceRow>, [string]> = jest.fn();
+const listMock: jest.Mock<Promise<AttendanceRow[]>, [string]> = jest.fn();
+const getByIdMock: jest.Mock<
+  Promise<AttendanceRow>,
+  [string, string]
+> = jest.fn();
 const createMock: jest.Mock<
   Promise<AttendanceRow>,
-  [CreateAttendanceDto]
+  [CreateAttendanceDto, string]
 > = jest.fn();
 const updateMock: jest.Mock<
   Promise<AttendanceRow>,
-  [string, UpdateAttendanceDto]
+  [string, UpdateAttendanceDto, string]
 > = jest.fn();
 
 const mockService: AttendanceService = {
@@ -36,6 +40,7 @@ const mockService: AttendanceService = {
 
 describe("AttendanceController", () => {
   let controller: AttendanceController;
+  const tenantId = "t-tenant";
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -43,7 +48,10 @@ describe("AttendanceController", () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AttendanceController],
       providers: [{ provide: AttendanceService, useValue: mockService }],
-    }).compile();
+    })
+      .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AttendanceController>(AttendanceController);
   });
@@ -63,10 +71,10 @@ describe("AttendanceController", () => {
     };
     listMock.mockResolvedValueOnce([row]);
 
-    const res = await controller.list();
+    const res = await controller.list(tenantId);
     expect(Array.isArray(res)).toBe(true);
     expect(res).toEqual([row]);
-    expect(listMock).toHaveBeenCalledWith();
+    expect(listMock).toHaveBeenCalledWith(tenantId);
   });
 
   it("getById should return a record", async () => {
@@ -80,9 +88,9 @@ describe("AttendanceController", () => {
     };
     getByIdMock.mockResolvedValueOnce(row);
 
-    const res = await controller.getById("att-2");
+    const res = await controller.getById("att-2", tenantId);
     expect(res).toBe(row);
-    expect(getByIdMock).toHaveBeenCalledWith("att-2");
+    expect(getByIdMock).toHaveBeenCalledWith("att-2", tenantId);
   });
 
   it("create should validate and call service", async () => {
@@ -101,9 +109,9 @@ describe("AttendanceController", () => {
     };
     createMock.mockResolvedValueOnce(created);
 
-    const res = await controller.create(dto);
+    const res = await controller.create(dto, tenantId);
     expect(res).toEqual(created);
-    expect(createMock).toHaveBeenCalledWith(dto);
+    expect(createMock).toHaveBeenCalledWith(dto, tenantId);
   });
 
   it("create should 400 on invalid body (missing present)", async () => {
@@ -112,7 +120,7 @@ describe("AttendanceController", () => {
       groupId: "22222222-2222-2222-2222-222222222222",
     } as unknown as CreateAttendanceDto; // intentionally invalid
 
-    await expect(controller.create(bad)).rejects.toBeInstanceOf(
+    await expect(controller.create(bad, tenantId)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(createMock).not.toHaveBeenCalled();
@@ -129,17 +137,25 @@ describe("AttendanceController", () => {
     };
     updateMock.mockResolvedValueOnce(updated);
 
-    const res = await controller.update("att-4", { present: false });
+    const res = await controller.update("att-4", { present: false }, tenantId);
     expect(res).toEqual(updated);
-    expect(updateMock).toHaveBeenCalledWith("att-4", { present: false });
+    expect(updateMock).toHaveBeenCalledWith(
+      "att-4",
+      { present: false },
+      tenantId,
+    );
   });
 
   it("update should 400 on invalid uuid in groupId", async () => {
     await expect(
       // invalid uuid
-      controller.update("att-5", {
-        groupId: "not-a-uuid" as unknown as string,
-      }),
+      controller.update(
+        "att-5",
+        {
+          groupId: "not-a-uuid" as unknown as string,
+        },
+        tenantId,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(updateMock).not.toHaveBeenCalled();
   });

@@ -2,24 +2,25 @@ import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
-
-/**
- * E2E tests for Users module
- * - Ensures a dedicated tenant exists for isolation
- * - GET /users returns array
- * - POST /users creates (with tenantId), duplicate email -> 400
- * - GET /users/:id returns the created user
- * - POST invalid payload -> 400
- */
+import { withTenantRlsContext } from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 describe("Users (e2e)", () => {
   let app: INestApplication;
-  let tenantId: string;
+  const orgId = process.env.E2E_ORG_ID as string;
+  const tenantId = process.env.E2E_TENANT_ID as string;
+  const otherTenantId = process.env.E2E_TENANT2_ID as string;
   const unique = Date.now();
   const email = `user${unique}@example.com`;
   const name = "Test User";
-  const tenantSlug = `e2e-tenant-${unique}`;
+  const tenantSlug = "e2e-tenant-a";
+  let authHeader: string;
+  let otherTenantUserId: string | undefined;
+
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
+  };
 
   beforeAll(async () => {
     // Spin up app first
@@ -30,21 +31,65 @@ describe("Users (e2e)", () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    // Prepare isolated tenant for this test run
-    const tenant = await prisma.tenant.create({
-      data: { name: `E2E Tenant ${unique}`, slug: tenantSlug },
+    if (!orgId || !tenantId || !otherTenantId) {
+      throw new Error("E2E_ORG_ID / E2E_TENANT_ID / E2E_TENANT2_ID missing");
+    }
+
+    authHeader = buildAuthHeader({
+      sub: "users-e2e",
+      "https://pathway.app/user": {
+        id: "users-e2e",
+        email: "users.e2e@pathway.app",
+      },
+      "https://pathway.app/org": {
+        orgId,
+        slug: "e2e-org",
+        name: "E2E Org",
+      },
+      "https://pathway.app/tenant": {
+        tenantId,
+        orgId,
+        slug: tenantSlug,
+      },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
     });
-    tenantId = tenant.id;
+
+    // Seed a user in another tenant to validate cross-tenant isolation
+    const otherUser = await withTenantRlsContext(
+      otherTenantId,
+      orgId,
+      async (tx) =>
+        tx.user.create({
+          data: {
+            email: `other-${unique}@example.com`,
+            name: "Other Tenant User",
+            tenantId: otherTenantId,
+          } as Parameters<typeof tx.user.create>[0]["data"],
+          select: { id: true },
+        }),
+    );
+    otherTenantUserId = otherUser.id;
   });
 
   afterAll(async () => {
+    if (otherTenantUserId) {
+      await withTenantRlsContext(otherTenantId, orgId, async (tx) => {
+        await tx.user.deleteMany({ where: { id: otherTenantUserId } });
+      }).catch(() => undefined);
+    }
     await app.close();
   });
 
   it("GET /users should return array", async () => {
-    const res = await request(app.getHttpServer()).get("/users");
+    const res = await request(app.getHttpServer())
+      .get("/users")
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
+    expect(
+      res.body.every((u: { tenantId?: string }) => u.tenantId === tenantId),
+    ).toBe(true);
   });
 
   it("POST /users should create a user", async () => {
@@ -57,7 +102,8 @@ describe("Users (e2e)", () => {
         hasServeAccess: false,
         hasFamilyAccess: false,
       })
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({ email: email.toLowerCase(), name });
@@ -66,9 +112,13 @@ describe("Users (e2e)", () => {
 
   it("GET /users/:id should return the created user", async () => {
     // Find the created user to get its id
-    const created = await prisma.user.findUnique({ where: { email } });
+    const created = await withTenantRlsContext(tenantId, orgId, (tx) =>
+      tx.user.findFirst({ where: { email } }),
+    );
     expect(created).toBeTruthy();
-    const res = await request(app.getHttpServer()).get(`/users/${created!.id}`);
+    const res = await request(app.getHttpServer())
+      .get(`/users/${created!.id}`)
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: created!.id,
@@ -87,7 +137,8 @@ describe("Users (e2e)", () => {
         hasServeAccess: false,
         hasFamilyAccess: false,
       })
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("message");
@@ -103,8 +154,33 @@ describe("Users (e2e)", () => {
         hasServeAccess: false,
         hasFamilyAccess: false,
       })
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(400);
+  });
+
+  it("GET /users should not leak other tenants", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/users")
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(200);
+    expect(
+      res.body.every((u: { tenantId: string }) => u.tenantId === tenantId),
+    ).toBe(true);
+    expect(
+      res.body.some(
+        (u: { id: string }) => u.id === (otherTenantUserId as string),
+      ),
+    ).toBe(false);
+  });
+
+  it("GET /users/:id should 404 for another tenant", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/users/${otherTenantUserId}`)
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(404);
   });
 });

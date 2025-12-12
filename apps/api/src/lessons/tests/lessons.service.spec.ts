@@ -7,7 +7,7 @@ const groupFindUnique = jest.fn();
 const lessonCreate = jest.fn();
 const lessonUpdate = jest.fn();
 const lessonDelete = jest.fn();
-const lessonFindUnique = jest.fn();
+const lessonFindFirst = jest.fn();
 const lessonFindMany = jest.fn();
 
 jest.mock("@pathway/db", () => ({
@@ -18,7 +18,7 @@ jest.mock("@pathway/db", () => ({
       create: (...args: unknown[]) => lessonCreate(...args),
       update: (...args: unknown[]) => lessonUpdate(...args),
       delete: (...args: unknown[]) => lessonDelete(...args),
-      findUnique: (...args: unknown[]) => lessonFindUnique(...args),
+      findFirst: (...args: unknown[]) => lessonFindFirst(...args),
       findMany: (...args: unknown[]) => lessonFindMany(...args),
     },
   },
@@ -49,13 +49,19 @@ describe("LessonsService", () => {
         weekOf: baseDate,
       });
 
-      const res = await service.create({
+      const res = await service.create(
+        {
+          tenantId,
+          title: "A",
+          weekOf: baseDate,
+        },
         tenantId,
-        title: "A",
-        weekOf: baseDate,
-      });
+      );
 
-      expect(tenantFindUnique).toHaveBeenCalled();
+      expect(tenantFindUnique).toHaveBeenCalledWith({
+        where: { id: tenantId },
+        select: { id: true },
+      });
       expect(lessonCreate).toHaveBeenCalledWith({
         data: {
           tenantId,
@@ -74,17 +80,25 @@ describe("LessonsService", () => {
       groupFindUnique.mockResolvedValue({ id: groupId, tenantId });
       lessonCreate.mockResolvedValue({ id: lessonId });
 
-      await service.create({
+      await service.create(
+        {
+          tenantId,
+          groupId,
+          title: "A",
+          weekOf: baseDate,
+        },
         tenantId,
-        groupId,
-        title: "A",
-        weekOf: baseDate,
-      });
+      );
 
       expect(groupFindUnique).toHaveBeenCalledWith({
         where: { id: groupId },
         select: { id: true, tenantId: true },
       });
+      expect(lessonCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ groupId }),
+        }),
+      );
       expect(lessonCreate).toHaveBeenCalled();
     });
 
@@ -92,7 +106,7 @@ describe("LessonsService", () => {
       tenantFindUnique.mockResolvedValue(null);
 
       await expect(
-        service.create({ tenantId, title: "A", weekOf: baseDate }),
+        service.create({ tenantId, title: "A", weekOf: baseDate }, tenantId),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(lessonCreate).not.toHaveBeenCalled();
     });
@@ -105,7 +119,10 @@ describe("LessonsService", () => {
       });
 
       await expect(
-        service.create({ tenantId, groupId, title: "A", weekOf: baseDate }),
+        service.create(
+          { tenantId, groupId, title: "A", weekOf: baseDate },
+          tenantId,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(lessonCreate).not.toHaveBeenCalled();
     });
@@ -115,24 +132,31 @@ describe("LessonsService", () => {
       lessonCreate.mockRejectedValue({ code: "P2003", message: "FK failed" });
 
       await expect(
-        service.create({ tenantId, title: "A", weekOf: baseDate }),
+        service.create({ tenantId, title: "A", weekOf: baseDate }, tenantId),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
   describe("update", () => {
     it("updates a lesson", async () => {
-      lessonFindUnique.mockResolvedValue({ id: lessonId, tenantId, groupId });
+      lessonFindFirst.mockResolvedValue({ id: lessonId, tenantId, groupId });
       groupFindUnique.mockResolvedValue({ id: groupId, tenantId });
       const newDate = new Date("2025-01-13T00:00:00.000Z");
       lessonUpdate.mockResolvedValue({ id: lessonId, weekOf: newDate });
 
-      const res = await service.update(lessonId, {
-        title: "B",
-        weekOf: newDate,
-        groupId,
-      });
+      const res = await service.update(
+        lessonId,
+        {
+          title: "B",
+          weekOf: newDate,
+          groupId,
+        },
+        tenantId,
+      );
 
+      expect(lessonFindFirst).toHaveBeenCalledWith({
+        where: { id: lessonId, tenantId },
+      });
       expect(lessonUpdate).toHaveBeenCalledWith({
         where: { id: lessonId },
         data: expect.objectContaining({ title: "B", weekOf: newDate }),
@@ -141,56 +165,65 @@ describe("LessonsService", () => {
     });
 
     it("rejects if lesson not found", async () => {
-      lessonFindUnique.mockResolvedValue(null);
+      lessonFindFirst.mockResolvedValue(null);
       await expect(
-        service.update(lessonId, { title: "B" }),
+        service.update(lessonId, { title: "B" }, tenantId),
       ).rejects.toBeInstanceOf(NotFoundException);
+      expect(lessonFindFirst).toHaveBeenCalledWith({
+        where: { id: lessonId, tenantId },
+      });
     });
 
     it("rejects if new group belongs to another tenant", async () => {
-      lessonFindUnique.mockResolvedValue({ id: lessonId, tenantId });
+      lessonFindFirst.mockResolvedValue({ id: lessonId, tenantId });
       groupFindUnique.mockResolvedValue({
         id: groupId,
         tenantId: "other-tenant",
       });
 
       await expect(
-        service.update(lessonId, { groupId }),
+        service.update(lessonId, { groupId }, tenantId),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(lessonUpdate).not.toHaveBeenCalled();
     });
 
     it("maps Prisma not found to NotFound", async () => {
-      lessonFindUnique.mockResolvedValue({ id: lessonId, tenantId });
+      lessonFindFirst.mockResolvedValue({ id: lessonId, tenantId });
       lessonUpdate.mockRejectedValue({
         code: "P2025",
         message: "Record not found",
       });
 
       await expect(
-        service.update(lessonId, { title: "B" }),
+        service.update(lessonId, { title: "B" }, tenantId),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
   describe("remove", () => {
     it("deletes a lesson", async () => {
+      lessonFindFirst.mockResolvedValue({ id: lessonId, tenantId });
       lessonDelete.mockResolvedValue({ id: lessonId });
-      const res = await service.remove(lessonId);
+      const res = await service.remove(lessonId, tenantId);
       expect(res).toEqual({ id: lessonId });
+      expect(lessonFindFirst).toHaveBeenCalledWith({
+        where: { id: lessonId, tenantId },
+      });
       expect(lessonDelete).toHaveBeenCalledWith({ where: { id: lessonId } });
     });
 
     it("maps Prisma P2025 to NotFound", async () => {
+      lessonFindFirst.mockResolvedValue({ id: lessonId, tenantId });
       lessonDelete.mockRejectedValue({ code: "P2025", message: "not found" });
-      await expect(service.remove(lessonId)).rejects.toBeInstanceOf(
+      await expect(service.remove(lessonId, tenantId)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
 
     it("maps Prisma P2003 to BadRequest", async () => {
+      lessonFindFirst.mockResolvedValue({ id: lessonId, tenantId });
       lessonDelete.mockRejectedValue({ code: "P2003", message: "fk" });
-      await expect(service.remove(lessonId)).rejects.toBeInstanceOf(
+      await expect(service.remove(lessonId, tenantId)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });

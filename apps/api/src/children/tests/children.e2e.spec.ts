@@ -2,56 +2,65 @@ import request from "supertest";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
+import { withTenantRlsContext } from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 describe("Children (e2e)", () => {
   let app: INestApplication;
   let tenantId: string;
   let groupId: string;
-  let guardianId: string;
   let childId: string;
+  let authHeader: string;
   const nonce = Date.now();
 
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
+  };
+
   beforeAll(async () => {
+    const orgId = process.env.E2E_ORG_ID as string;
+    tenantId = process.env.E2E_TENANT_ID as string;
+    if (!orgId || !tenantId) {
+      throw new Error("E2E_ORG_ID / E2E_TENANT_ID missing");
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();
 
-    // Ensure a fresh tenant for isolation
-    const t = await prisma.tenant.create({
-      data: { name: "ChildTest Tenant", slug: `childtest-${nonce}` },
-      select: { id: true },
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      const g = await tx.group.create({
+        data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
+        select: { id: true },
+      });
+      groupId = g.id;
     });
-    tenantId = t.id;
 
-    // A group in the same tenant
-    const g = await prisma.group.create({
-      data: { name: `Sparks-${nonce}`, minAge: 5, maxAge: 7, tenantId },
-      select: { id: true },
-    });
-    groupId = g.id;
-
-    // A guardian user in the same tenant
-    const u = await prisma.user.create({
-      data: {
-        email: `guardian_${nonce}@example.com`,
-        name: "Guardian One",
+    authHeader = buildAuthHeader({
+      sub: "children-e2e",
+      "https://pathway.app/user": { id: "children-e2e" },
+      "https://pathway.app/org": { orgId, slug: "e2e-org", name: "E2E Org" },
+      "https://pathway.app/tenant": {
         tenantId,
+        orgId,
+        slug: "e2e-tenant-a",
       },
-      select: { id: true },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
     });
-    guardianId = u.id;
   });
 
   afterAll(async () => {
     await app.close();
-    // Do not call prisma.$disconnect() here to avoid interfering with parallel e2e suites.
   });
 
   it("GET /children should return array", async () => {
-    const res = await request(app.getHttpServer()).get("/children");
+    const res = await request(app.getHttpServer())
+      .get("/children")
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
@@ -67,7 +76,8 @@ describe("Children (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/children")
       .send(payload)
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -81,7 +91,9 @@ describe("Children (e2e)", () => {
   });
 
   it("GET /children/:id should return the created child", async () => {
-    const res = await request(app.getHttpServer()).get(`/children/${childId}`);
+    const res = await request(app.getHttpServer())
+      .get(`/children/${childId}`)
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("id", childId);
     expect(res.body).toHaveProperty("tenantId", tenantId);
@@ -90,8 +102,9 @@ describe("Children (e2e)", () => {
   it("PATCH /children/:id should update group and guardians", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/children/${childId}`)
-      .send({ groupId, guardianIds: [guardianId] })
-      .set("content-type", "application/json");
+      .send({ groupId })
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("groupId", groupId);
@@ -103,28 +116,32 @@ describe("Children (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/children")
       .send(bad)
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(400);
   });
 
   it("POST /children group from another tenant should 400", async () => {
-    // Create another tenant with a nested group (single transaction to avoid FK races)
-    const created = await prisma.tenant.create({
-      data: {
-        name: "Other",
-        slug: `other-${nonce}`,
-        groups: {
-          create: {
+    const otherTenantId = process.env.E2E_TENANT2_ID as string;
+    const orgId = process.env.E2E_ORG_ID as string;
+    if (!otherTenantId || !orgId) {
+      throw new Error("E2E_TENANT2_ID / E2E_ORG_ID missing");
+    }
+    const otherGroup = await withTenantRlsContext(
+      otherTenantId,
+      orgId,
+      async (tx) =>
+        tx.group.create({
+          data: {
             name: "Older",
             minAge: 8,
             maxAge: 10,
+            tenantId: otherTenantId,
           },
-        },
-      },
-      include: { groups: { select: { id: true } } },
-    });
-    const otherGroup = { id: created.groups[0].id };
+          select: { id: true },
+        }),
+    );
 
     const res = await request(app.getHttpServer())
       .post("/children")
@@ -136,7 +153,8 @@ describe("Children (e2e)", () => {
         disabilities: [],
         groupId: otherGroup.id, // mismatched tenant
       })
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(400);
   });

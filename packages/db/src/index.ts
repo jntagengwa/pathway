@@ -1,38 +1,111 @@
-// ESM/CJS/Jest-safe Prisma bootstrap that won't break existing tests
-import type { PrismaClient as PrismaClientType } from "@prisma/client";
-import * as PrismaNS from "@prisma/client";
+// Canonical Prisma bootstrap (ESM/CJS/Jest-safe)
+import { PrismaClient, Prisma } from "@prisma/client";
+import { AsyncLocalStorage } from "node:async_hooks";
 
-// Extract ctor via namespace import to avoid "PrismaClient is not a constructor" in some runtimes
-const PrismaClientCtor = (
-  PrismaNS as unknown as { PrismaClient: new () => PrismaClientType }
-).PrismaClient;
+// Keep a single PrismaClient instance across hot-reloads in dev/test
+const globalForPrisma = globalThis as unknown as { __prisma?: PrismaClient };
+const prismaContext = new AsyncLocalStorage<Prisma.TransactionClient>();
 
-// Keep a single PrismaClient instance across hot-reloads in dev/test.
-// We attach it to globalThis to avoid creating multiple connections.
-const globalForPrisma = globalThis as unknown as {
-  __prisma?: PrismaClientType;
-};
+const basePrismaClient: PrismaClient =
+  globalForPrisma.__prisma ?? new PrismaClient();
 
-export const prisma: PrismaClientType =
-  globalForPrisma.__prisma ?? new PrismaClientCtor();
+const prismaProxy = new Proxy(basePrismaClient, {
+  get(target, prop, receiver) {
+    const activeClient = prismaContext.getStore();
+    const resolved = activeClient ?? target;
+    const value = Reflect.get(resolved, prop, receiver);
+    if (typeof value === "function") {
+      return value.bind(resolved);
+    }
+    return value;
+  },
+});
+
+export const prisma = prismaProxy as PrismaClient;
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.__prisma = prisma;
+  globalForPrisma.__prisma = basePrismaClient;
 }
 
 // Small helper so test teardown (or scripts) can cleanly disconnect
 export async function closePrisma() {
-  await prisma.$disconnect();
+  await basePrismaClient.$disconnect();
 }
 
-// Utility for unit tests: truncate all tables and reset identity sequences.
-// Adjust table names as needed for your schema.
+/**
+ * Utility for e2e/unit tests: truncate all tables and reset identity sequences.
+ * Uses CASCADE, so order is resilient to FK graphs.
+ * IMPORTANT: keep this in sync with Prisma schema when new tables are added.
+ */
 export async function resetDatabase() {
-  await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "Attendance","Assignment","Session","ChildNote","Concern","Child","Group","UserTenantRole","User","Tenant" RESTART IDENTITY CASCADE',
-  );
+  // Note: double-quote names to preserve case; include new suite/billing tables.
+  // Postgres TRUNCATE with CASCADE clears dependents (junctions) safely.
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "BillingEvent",
+      "UsageCounters",
+      "OrgEntitlementSnapshot",
+      "Subscription",
+      "Announcement",
+      "Lesson",
+      "VolunteerPreference",
+      "SwapRequest",
+      "Assignment",
+      "Attendance",
+      "Session",
+      "ChildNote",
+      "Concern",
+      "Child",
+      "Group",
+      "UserTenantRole",
+      "UserOrgRole",
+      "User",
+      "Tenant",
+      "Org"
+    RESTART IDENTITY CASCADE
+  `);
 }
 
-// Re-export types & enums only (public API unchanged)
-export type { Prisma, PrismaClient } from "@prisma/client";
-export { AssignmentStatus, Role, Weekday, SwapStatus } from "@prisma/client";
+// Re-export types & enums (public API unchanged)
+export type { PrismaClient as PrismaClientType } from "@prisma/client";
+export {
+  AssignmentStatus,
+  Role,
+  Weekday,
+  SwapStatus,
+  SubscriptionStatus,
+  BillingProvider,
+} from "@prisma/client";
+export { Prisma };
+
+async function applyTenantContext(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  orgId?: string | null,
+) {
+  await tx.$executeRawUnsafe(
+    `SELECT set_config('app.tenant_id', $1, true)`,
+    tenantId,
+  );
+  const orgValue = orgId ?? "";
+  await tx.$executeRawUnsafe(
+    `SELECT set_config('app.org_id', $1, true)`,
+    orgValue,
+  );
+  await tx.$executeRawUnsafe(`SET LOCAL row_security = on`);
+}
+
+export async function withTenantRlsContext<T>(
+  tenantId: string,
+  orgId: string | null,
+  callback: (client: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  if (!tenantId) {
+    throw new Error("withTenantRlsContext requires a tenantId");
+  }
+
+  return basePrismaClient.$transaction(async (tx) => {
+    await applyTenantContext(tx, tenantId, orgId);
+    return prismaContext.run(tx, () => callback(tx));
+  });
+}

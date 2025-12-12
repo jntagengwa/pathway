@@ -4,6 +4,8 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { TenantsController } from "../tenants.controller";
 import { TenantsService } from "../tenants.service";
 
+const ORG_ID = "11111111-1111-1111-1111-111111111111";
+
 describe("TenantsController", () => {
   let controller: TenantsController;
   let service: TenantsService;
@@ -47,7 +49,7 @@ describe("TenantsController", () => {
   });
 
   it("create should call service and return tenant", async () => {
-    const dto = { name: "Test Tenant", slug: "test-tenant" };
+    const dto = { name: "Test Tenant", slug: "test-tenant", orgId: ORG_ID };
     await expect(controller.create(dto)).resolves.toEqual(mockTenant);
     expect(service.create).toHaveBeenCalledWith(dto);
   });
@@ -56,6 +58,7 @@ describe("TenantsController", () => {
     const dto = {
       name: "Tenant With Links",
       slug: "tenant-links",
+      orgId: ORG_ID,
       users: ["11111111-1111-1111-1111-111111111111"],
       groups: ["22222222-2222-2222-2222-222222222222"],
       children: ["33333333-3333-3333-3333-333333333333"],

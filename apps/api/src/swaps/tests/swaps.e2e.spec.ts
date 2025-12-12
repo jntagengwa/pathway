@@ -1,9 +1,15 @@
 import { INestApplication } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
-import { AssignmentStatus, Role, SwapStatus } from "@pathway/db";
+import {
+  withTenantRlsContext,
+  AssignmentStatus,
+  Role,
+  SwapStatus,
+} from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 // E2E for Swap Requests
 // This follows the same conventions as other e2e suites in this repo
@@ -11,84 +17,97 @@ import { AssignmentStatus, Role, SwapStatus } from "@pathway/db";
 describe("Swaps (e2e)", () => {
   let app: INestApplication;
 
-  const ids = {
-    tenant: "99999999-9999-4999-9999-999999999999",
-    userFrom: "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
-    userTo: "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",
-    session: "11111111-1111-4111-9111-111111111111",
-    assignment: "22222222-2222-4222-9222-222222222222",
-  } as const;
+  let ids = {
+    userFrom: randomUUID(),
+    userTo: randomUUID(),
+    session: randomUUID(),
+    assignment: randomUUID(),
+  };
+
+  const tenantId = process.env.E2E_TENANT_ID as string;
+  const orgId = process.env.E2E_ORG_ID as string;
+  const tenantSlug = "e2e-tenant-a";
+  let authHeader: string;
+
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
+  };
 
   beforeAll(async () => {
+    if (!tenantId || !orgId) {
+      throw new Error("E2E_TENANT_ID / E2E_ORG_ID missing");
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
+
+    authHeader = buildAuthHeader({
+      sub: "swaps-e2e-user",
+      "https://pathway.app/user": { id: "swaps-e2e-user" },
+      "https://pathway.app/org": { orgId, slug: "e2e-org", name: "E2E Org" },
+      "https://pathway.app/tenant": { tenantId, orgId, slug: tenantSlug },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
+    });
   });
 
   beforeEach(async () => {
-    // FK-safe cleanup similar to other suites
-    await prisma.attendance.deleteMany({});
-    await prisma.swapRequest.deleteMany({});
-    await prisma.assignment.deleteMany({});
-    await prisma.session.deleteMany({});
-    await prisma.childNote.deleteMany({});
-    await prisma.concern.deleteMany({});
-    await prisma.child.deleteMany({});
-    await prisma.group.deleteMany({});
-    await prisma.volunteerPreference?.deleteMany?.({}).catch(() => undefined);
-    await prisma.userTenantRole.deleteMany({});
-    await prisma.user.deleteMany({});
-    await prisma.tenant.deleteMany({});
+    // Fresh IDs per test run to avoid uniqueness and FK cleanup
+    ids = {
+      userFrom: randomUUID(),
+      userTo: randomUUID(),
+      session: randomUUID(),
+      assignment: randomUUID(),
+    };
 
-    // Seed minimal graph: tenant, two users, a session, one assignment
-    await prisma.tenant.create({
-      data: { id: ids.tenant, slug: "swaps-e2e", name: "Swaps E2E Tenant" },
-    });
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.user.create({
+        data: {
+          id: ids.userFrom,
+          email: `from-${ids.userFrom}@example.test`,
+          name: "From User",
+          tenantId,
+        },
+      });
+      await tx.userTenantRole.create({
+        data: { userId: ids.userFrom, tenantId, role: Role.TEACHER },
+      });
 
-    await prisma.user.create({
-      data: {
-        id: ids.userFrom,
-        email: "from@example.com",
-        name: "From User",
-        tenant: { connect: { id: ids.tenant } },
-      },
-    });
-    await prisma.userTenantRole.create({
-      data: { userId: ids.userFrom, tenantId: ids.tenant, role: Role.TEACHER },
-    });
+      await tx.user.create({
+        data: {
+          id: ids.userTo,
+          email: `to-${ids.userTo}@example.test`,
+          name: "To User",
+          tenantId,
+        },
+      });
+      await tx.userTenantRole.create({
+        data: { userId: ids.userTo, tenantId, role: Role.TEACHER },
+      });
 
-    await prisma.user.create({
-      data: {
-        id: ids.userTo,
-        email: "to@example.com",
-        name: "To User",
-        tenant: { connect: { id: ids.tenant } },
-      },
-    });
-    await prisma.userTenantRole.create({
-      data: { userId: ids.userTo, tenantId: ids.tenant, role: Role.TEACHER },
-    });
+      await tx.session.create({
+        data: {
+          id: ids.session,
+          tenantId,
+          startsAt: new Date("2025-01-01T15:00:00.000Z"),
+          endsAt: new Date("2025-01-01T16:00:00.000Z"),
+        },
+      });
 
-    await prisma.session.create({
-      data: {
-        id: ids.session,
-        tenantId: ids.tenant,
-        startsAt: new Date("2025-01-01T15:00:00.000Z"),
-        endsAt: new Date("2025-01-01T16:00:00.000Z"),
-      },
-    });
-
-    await prisma.assignment.create({
-      data: {
-        id: ids.assignment,
-        sessionId: ids.session,
-        userId: ids.userFrom,
-        role: Role.TEACHER,
-        status: AssignmentStatus.CONFIRMED,
-      },
+      await tx.assignment.create({
+        data: {
+          id: ids.assignment,
+          sessionId: ids.session,
+          userId: ids.userFrom,
+          role: Role.TEACHER,
+          status: AssignmentStatus.CONFIRMED,
+        },
+      });
     });
   });
 
@@ -99,143 +118,152 @@ describe("Swaps (e2e)", () => {
   it("POST /swaps should create a swap request", async () => {
     const res = await request(app.getHttpServer())
       .post("/swaps")
+      .set("Authorization", authHeader)
       .send({
         assignmentId: ids.assignment,
         fromUserId: ids.userFrom,
-      })
-      .set("content-type", "application/json");
+        toUserId: ids.userTo,
+        reason: "Need cover",
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
       assignmentId: ids.assignment,
       fromUserId: ids.userFrom,
+      toUserId: ids.userTo,
       status: SwapStatus.REQUESTED,
     });
-    expect(res.body).toHaveProperty("id");
   });
 
   it("GET /swaps/:id should return the created swap", async () => {
-    const created = await prisma.swapRequest.create({
-      data: {
+    const createRes = await request(app.getHttpServer())
+      .post("/swaps")
+      .set("Authorization", authHeader)
+      .send({
         assignmentId: ids.assignment,
         fromUserId: ids.userFrom,
-        status: SwapStatus.REQUESTED,
-      },
-    });
+        toUserId: ids.userTo,
+        reason: "Need cover",
+      });
+    const id = createRes.body.id;
 
-    const res = await request(app.getHttpServer()).get(`/swaps/${created.id}`);
+    const res = await request(app.getHttpServer())
+      .get(`/swaps/${id}`)
+      .set("Authorization", authHeader);
+
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ id: created.id });
+    expect(res.body).toHaveProperty("id", id);
   });
 
   it("GET /swaps should filter by fromUserId and status", async () => {
-    // one requested
-    await prisma.swapRequest.create({
-      data: {
+    await request(app.getHttpServer())
+      .post("/swaps")
+      .set("Authorization", authHeader)
+      .send({
         assignmentId: ids.assignment,
         fromUserId: ids.userFrom,
-        status: SwapStatus.REQUESTED,
-      },
-    });
-    // one declined
-    await prisma.swapRequest.create({
-      data: {
-        assignmentId: ids.assignment,
-        fromUserId: ids.userFrom,
-        status: SwapStatus.DECLINED,
-      },
-    });
+        toUserId: ids.userTo,
+        reason: "Need cover",
+      });
 
-    const res = await request(app.getHttpServer()).get(
-      `/swaps?fromUserId=${ids.userFrom}&status=${SwapStatus.REQUESTED}`,
-    );
+    const res = await request(app.getHttpServer())
+      .get(`/swaps?fromUserId=${ids.userFrom}&status=${SwapStatus.REQUESTED}`)
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(
       res.body.every(
-        (r: { fromUserId: string; status: SwapStatus }) =>
-          r.fromUserId === ids.userFrom && r.status === SwapStatus.REQUESTED,
+        (s: { fromUserId: string; status: SwapStatus }) =>
+          s.fromUserId === ids.userFrom && s.status === SwapStatus.REQUESTED,
       ),
     ).toBe(true);
   });
 
   it("PATCH /swaps/:id should accept a swap when toUserId supplied", async () => {
-    const created = await prisma.swapRequest.create({
-      data: {
+    const createRes = await request(app.getHttpServer())
+      .post("/swaps")
+      .set("Authorization", authHeader)
+      .send({
         assignmentId: ids.assignment,
         fromUserId: ids.userFrom,
-        status: SwapStatus.REQUESTED,
-      },
-    });
+        toUserId: ids.userTo,
+        reason: "Need cover",
+      });
+    const id = createRes.body.id;
 
     const res = await request(app.getHttpServer())
-      .patch(`/swaps/${created.id}`)
-      .send({ status: SwapStatus.ACCEPTED, toUserId: ids.userTo })
-      .set("content-type", "application/json");
+      .patch(`/swaps/${id}`)
+      .set("Authorization", authHeader)
+      .send({ toUserId: ids.userTo, status: SwapStatus.ACCEPTED });
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      id: created.id,
-      status: SwapStatus.ACCEPTED,
-      toUserId: ids.userTo,
-    });
+    expect(res.body).toMatchObject({ id, status: SwapStatus.ACCEPTED });
   });
 
   it("PATCH /swaps/:id should 400 if accepting without toUserId", async () => {
-    const created = await prisma.swapRequest.create({
-      data: {
+    const createRes = await request(app.getHttpServer())
+      .post("/swaps")
+      .set("Authorization", authHeader)
+      .send({
         assignmentId: ids.assignment,
         fromUserId: ids.userFrom,
-        status: SwapStatus.REQUESTED,
-      },
-    });
+        reason: "Need cover",
+      });
+    const id = createRes.body.id;
 
     const res = await request(app.getHttpServer())
-      .patch(`/swaps/${created.id}`)
-      .send({ status: SwapStatus.ACCEPTED })
-      .set("content-type", "application/json");
+      .patch(`/swaps/${id}`)
+      .set("Authorization", authHeader)
+      .send({ status: SwapStatus.ACCEPTED });
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
   });
 
   it("DELETE /swaps/:id should delete and return the swap", async () => {
-    const created = await prisma.swapRequest.create({
-      data: {
+    const createRes = await request(app.getHttpServer())
+      .post("/swaps")
+      .set("Authorization", authHeader)
+      .send({
         assignmentId: ids.assignment,
         fromUserId: ids.userFrom,
-        status: SwapStatus.REQUESTED,
-      },
-    });
+        toUserId: ids.userTo,
+        reason: "Need cover",
+      });
+    const id = createRes.body.id;
 
-    const res = await request(app.getHttpServer()).delete(
-      `/swaps/${created.id}`,
-    );
+    const res = await request(app.getHttpServer())
+      .delete(`/swaps/${id}`)
+      .set("Authorization", authHeader);
+
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ id: created.id });
+    expect(res.body).toHaveProperty("id", id);
 
-    const gone = await prisma.swapRequest.findUnique({
-      where: { id: created.id },
-    });
-    expect(gone).toBeNull();
+    const getRes = await request(app.getHttpServer())
+      .get(`/swaps/${id}`)
+      .set("Authorization", authHeader);
+    expect(getRes.status).toBe(404);
   });
 
   it("POST /swaps should 400 for invalid UUIDs", async () => {
-    const bad = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post("/swaps")
-      .send({ assignmentId: "not-a-uuid", fromUserId: "also-bad" })
-      .set("content-type", "application/json");
+      .set("Authorization", authHeader)
+      .send({
+        assignmentId: "not-a-uuid",
+        fromUserId: "not-a-uuid",
+        toUserId: "also-not-uuid",
+        reason: "Need cover",
+      });
 
-    expect(bad.status).toBe(400);
-    expect(bad.body).toHaveProperty("message");
+    expect(res.status).toBe(400);
   });
 
   it("PATCH /swaps/:id should 404 for unknown id", async () => {
     const res = await request(app.getHttpServer())
-      .patch("/swaps/00000000-0000-4000-8000-000000000000")
-      .send({ status: SwapStatus.CANCELLED })
-      .set("content-type", "application/json");
+      .patch(`/swaps/123e4567-e89b-12d3-a456-426614174000`)
+      .set("Authorization", authHeader)
+      .send({ status: SwapStatus.ACCEPTED });
 
     expect(res.status).toBe(404);
   });

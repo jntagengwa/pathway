@@ -1,4 +1,7 @@
+import { OrgsModule } from "./orgs/orgs.module";
+import { BillingModule } from "./billing/billing.module";
 import { Module } from "@nestjs/common";
+import { CommonModule } from "./common/common.module";
 
 // Core modules
 import { HealthModule } from "./health/health.module";
@@ -22,6 +25,7 @@ import { ConcernsModule } from "./concerns/concerns.module";
 
 @Module({
   imports: [
+    CommonModule,
     HealthModule,
     TenantsModule,
     UsersModule,
@@ -36,6 +40,8 @@ import { ConcernsModule } from "./concerns/concerns.module";
     AnnouncementsModule,
     NotesModule,
     ConcernsModule,
+    OrgsModule,
+    BillingModule,
   ],
 })
 export class AppModule {}

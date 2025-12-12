@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ConflictException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import {
@@ -14,7 +15,7 @@ import {
 } from "./dto/update-session.dto";
 
 export interface SessionListFilters {
-  tenantId?: string;
+  tenantId: string;
   groupId?: string;
   /** overlap window start */
   from?: Date;
@@ -24,14 +25,45 @@ export interface SessionListFilters {
 
 @Injectable()
 export class SessionsService {
-  async list(filters: SessionListFilters = {}) {
+  private handlePrismaError(
+    e: unknown,
+    action: "create" | "update" | "delete",
+  ): never {
+    const code =
+      typeof e === "object" && e !== null && "code" in e
+        ? String((e as { code?: unknown }).code)
+        : undefined;
+    const message =
+      typeof e === "object" &&
+      e !== null &&
+      "message" in e &&
+      typeof (e as { message?: unknown }).message === "string"
+        ? (e as { message: string }).message
+        : "Unknown error";
+
+    if (code === "P2025") {
+      throw new NotFoundException("Session not found");
+    }
+    if (code === "P2002") {
+      throw new ConflictException(
+        "Duplicate session violates a unique constraint",
+      );
+    }
+    if (code === "P2003") {
+      throw new BadRequestException(
+        `Invalid reference on ${action}: ${message}`,
+      );
+    }
+    throw new BadRequestException(`Failed to ${action} session: ${message}`);
+  }
+
+  async list(filters: SessionListFilters) {
     const where: {
-      tenantId?: string;
+      tenantId: string;
       groupId?: string | null;
       AND?: Array<Record<string, unknown>>;
-    } = {};
+    } = { tenantId: filters.tenantId };
 
-    if (filters.tenantId) where.tenantId = filters.tenantId;
     if (filters.groupId) where.groupId = filters.groupId;
 
     const andClauses: Array<Record<string, unknown>> = [];
@@ -53,13 +85,13 @@ export class SessionsService {
     });
   }
 
-  async getById(id: string) {
-    const s = await prisma.session.findUnique({ where: { id } });
+  async getById(id: string, tenantId: string) {
+    const s = await prisma.session.findFirst({ where: { id, tenantId } });
     if (!s) throw new NotFoundException("Session not found");
     return s;
   }
 
-  async create(input: CreateSessionDto) {
+  async create(input: CreateSessionDto, tenantId: string) {
     // Normalize & validate (map Zod errors to HTTP 400)
     let parsed: CreateSessionDto;
     try {
@@ -67,13 +99,16 @@ export class SessionsService {
     } catch {
       throw new BadRequestException("invalid body");
     }
+    if (parsed.tenantId !== tenantId) {
+      throw new BadRequestException("tenantId must match current tenant");
+    }
     if (parsed.endsAt.getTime() <= parsed.startsAt.getTime()) {
       throw new BadRequestException("endsAt must be after startsAt");
     }
 
     // ensure tenant exists for clearer error than FK violation
     const tenant = await prisma.tenant.findUnique({
-      where: { id: parsed.tenantId },
+      where: { id: tenantId },
       select: { id: true },
     });
     if (!tenant) throw new BadRequestException("tenant not found");
@@ -85,7 +120,7 @@ export class SessionsService {
         select: { tenantId: true },
       });
       if (!grp) throw new BadRequestException("group not found");
-      if (grp.tenantId !== parsed.tenantId)
+      if (grp.tenantId !== tenantId)
         throw new BadRequestException("group/tenant mismatch");
     }
 
@@ -93,7 +128,7 @@ export class SessionsService {
     try {
       const created = await prisma.session.create({
         data: {
-          tenantId: parsed.tenantId,
+          tenantId,
           groupId: parsed.groupId ?? null,
           startsAt: parsed.startsAt,
           endsAt: parsed.endsAt,
@@ -101,21 +136,25 @@ export class SessionsService {
         },
       });
       return created;
-    } catch {
-      // surface as 400 for now; can expand specific Prisma error handling later
-      throw new BadRequestException("failed to create session");
+    } catch (e) {
+      this.handlePrismaError(e, "create");
     }
   }
 
-  async update(id: string, input: UpdateSessionDto) {
+  async update(id: string, input: UpdateSessionDto, tenantId: string) {
     const changes = updateSessionSchema.parse(input);
 
     // Fetch current for cross-field validation when only one date is provided
-    const current = await prisma.session.findUnique({
-      where: { id },
+    const current = await prisma.session.findFirst({
+      where: { id, tenantId },
       select: { tenantId: true, groupId: true, startsAt: true, endsAt: true },
     });
     if (!current) throw new NotFoundException("Session not found");
+
+    // Prevent cross-tenant changes
+    if (changes.tenantId && changes.tenantId !== tenantId) {
+      throw new BadRequestException("tenantId must match current tenant");
+    }
 
     // If groupId provided, validate tenant match
     if (typeof changes.groupId !== "undefined" && changes.groupId !== null) {
@@ -124,9 +163,32 @@ export class SessionsService {
         select: { tenantId: true },
       });
       if (!grp) throw new BadRequestException("group not found");
-      const targetTenantId = changes.tenantId ?? current.tenantId;
+      const targetTenantId = tenantId;
       if (grp.tenantId !== targetTenantId)
         throw new BadRequestException("group/tenant mismatch");
+    }
+
+    // If tenantId provided, ensure it exists
+    if (typeof changes.tenantId !== "undefined") {
+      const t = await prisma.tenant.findUnique({
+        where: { id: changes.tenantId },
+        select: { id: true },
+      });
+      if (!t) throw new BadRequestException("tenant not found");
+      // If current or incoming group is set, re-validate group/tenant consistency
+      const candidateGroupId =
+        typeof changes.groupId === "undefined"
+          ? current.groupId
+          : changes.groupId;
+      if (candidateGroupId) {
+        const grp = await prisma.group.findUnique({
+          where: { id: candidateGroupId },
+          select: { tenantId: true },
+        });
+        if (!grp) throw new BadRequestException("group not found");
+        if (grp.tenantId !== tenantId)
+          throw new BadRequestException("group/tenant mismatch");
+      }
     }
 
     // Validate date ordering if only one boundary provided
@@ -135,32 +197,40 @@ export class SessionsService {
     if (nextEnds <= nextStarts)
       throw new BadRequestException("endsAt must be after startsAt");
 
-    const updated = await prisma.session.update({
-      where: { id },
-      data: {
-        tenantId: changes.tenantId ?? current.tenantId,
-        groupId:
-          typeof changes.groupId === "undefined"
-            ? current.groupId
-            : (changes.groupId ?? null),
-        startsAt: nextStarts,
-        endsAt: nextEnds,
-        title:
-          typeof changes.title === "undefined"
-            ? undefined
-            : (changes.title?.trim() ?? null),
-      },
-    });
-    return updated;
+    try {
+      const updated = await prisma.session.update({
+        where: { id },
+        data: {
+          tenantId: current.tenantId,
+          groupId:
+            typeof changes.groupId === "undefined"
+              ? current.groupId
+              : (changes.groupId ?? null),
+          startsAt: nextStarts,
+          endsAt: nextEnds,
+          title:
+            typeof changes.title === "undefined"
+              ? undefined
+              : (changes.title?.trim() ?? null),
+        },
+      });
+      return updated;
+    } catch (e) {
+      this.handlePrismaError(e, "update");
+    }
   }
 
-  async delete(id: string) {
+  async delete(id: string, tenantId: string) {
     try {
+      const existing = await prisma.session.findFirst({
+        where: { id, tenantId },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException("Session not found");
       await prisma.session.delete({ where: { id } });
       return { id };
-    } catch {
-      // Prisma P2025 (record not found) -> 404
-      throw new NotFoundException("Session not found");
+    } catch (e) {
+      this.handlePrismaError(e, "delete");
     }
   }
 }

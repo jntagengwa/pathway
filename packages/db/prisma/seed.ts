@@ -1,22 +1,35 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, OrgRole } from "@prisma/client";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { config } from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-config({ path: path.resolve(__dirname, "../../../.env") }); // prisma/ → db → packages → repo root
+// prisma/ → db → packages → repo root
+config({ path: path.resolve(__dirname, "../../../.env") });
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding PathWay demo data…");
+  console.log("Seeding PathWay suite demo data…");
 
-  // 1) Tenant
+  // 0) Org (billing owner / suite)
+  const org = await prisma.org.upsert({
+    where: { slug: "demo-org" },
+    update: {},
+    create: {
+      name: "Demo Organisation",
+      slug: "demo-org",
+      planCode: "trial",
+      isSuite: false,
+    },
+  });
+
+  // 1) First Tenant (site) under the Org
   const tenant = await prisma.tenant.upsert({
     where: { slug: "demo-church" },
     update: {},
-    create: { name: "Demo Church", slug: "demo-church" },
+    create: { name: "Demo Church", slug: "demo-church", orgId: org.id },
   });
 
   // 2) Age Groups (Group)
@@ -41,10 +54,23 @@ async function main() {
     create: {
       email: "admin@demo.church",
       name: "Demo Admin",
-      tenantId: tenant.id,
+      tenantId: tenant.id, // default tenant for backward compatibility
       hasFamilyAccess: true,
       hasServeAccess: true,
     },
+  });
+
+  // Org-level role for suite administration
+  await prisma.userOrgRole.upsert({
+    where: {
+      userId_orgId_role: {
+        userId: admin.id,
+        orgId: org.id,
+        role: OrgRole.ORG_ADMIN,
+      },
+    },
+    update: {},
+    create: { userId: admin.id, orgId: org.id, role: OrgRole.ORG_ADMIN },
   });
 
   const parentOnly = await prisma.user.upsert({
@@ -83,7 +109,7 @@ async function main() {
     },
   });
 
-  // 4) Roles per tenant
+  // 4) Roles per tenant (site-level roles)
   await prisma.userTenantRole.createMany({
     data: [
       { userId: admin.id, tenantId: tenant.id, role: Role.ADMIN },
@@ -104,6 +130,8 @@ async function main() {
       guardians: {
         connect: [{ id: parentOnly.id }, { id: bothSpaces.id }],
       },
+      allergies: "none",
+      disabilities: [],
     },
   });
 
@@ -116,7 +144,17 @@ async function main() {
     },
   });
 
-  console.log("✅ Seed complete.");
+  // 7) Example Concern
+  await prisma.concern.create({
+    data: {
+      childId: child.id,
+      summary: "Safety gate left open",
+      details:
+        "Volunteer reported the side safety gate was left open after session.",
+    },
+  });
+
+  console.log("✅ Suite seed complete.");
 }
 
 main()
