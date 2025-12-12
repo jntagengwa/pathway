@@ -1,17 +1,22 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
+import { PathwayAuthGuard } from "@pathway/auth";
 import { ChildrenController } from "../../children/children.controller";
 import { ChildrenService } from "../../children/children.service";
 import { CreateChildDto } from "../../children/dto/create-child.dto";
 import { UpdateChildDto } from "../../children/dto/update-child.dto";
 
-// Strongly-typed Jest mocks
-const listMock: jest.Mock<Promise<unknown[]>, [tenantId?: string]> = jest.fn();
-const getByIdMock: jest.Mock<Promise<unknown>, [id: string]> = jest.fn();
-const createMock: jest.Mock<Promise<unknown>, [CreateChildDto]> = jest.fn();
+const tenantId = "t1";
+
+const listMock: jest.Mock<Promise<unknown[]>, [string]> = jest.fn();
+const getByIdMock: jest.Mock<Promise<unknown>, [string, string]> = jest.fn();
+const createMock: jest.Mock<
+  Promise<unknown>,
+  [CreateChildDto, string]
+> = jest.fn();
 const updateMock: jest.Mock<
   Promise<unknown>,
-  [id: string, dto: UpdateChildDto]
+  [string, UpdateChildDto, string]
 > = jest.fn();
 
 const mockService: ChildrenService = {
@@ -30,32 +35,31 @@ describe("ChildrenController", () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChildrenController],
       providers: [{ provide: ChildrenService, useValue: mockService }],
-    }).compile();
+    })
+      .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ChildrenController>(ChildrenController);
-  });
-
-  it("should be defined", () => {
-    expect(controller).toBeDefined();
   });
 
   it("list should return array", async () => {
     const row = { id: "c1", firstName: "Jess", lastName: "Doe" };
     listMock.mockResolvedValueOnce([row]);
 
-    const res = await controller.list();
+    const res = await controller.list(tenantId);
     expect(Array.isArray(res)).toBe(true);
     expect(res).toEqual([row]);
-    expect(listMock).toHaveBeenCalledWith();
+    expect(listMock).toHaveBeenCalledWith(tenantId);
   });
 
   it("getById should return a child", async () => {
     const child = { id: "c1", firstName: "Jess", lastName: "Doe" };
     getByIdMock.mockResolvedValueOnce(child);
 
-    const res = await controller.getById("c1");
+    const res = await controller.getById("c1", tenantId);
     expect(res).toBe(child);
-    expect(getByIdMock).toHaveBeenCalledWith("c1");
+    expect(getByIdMock).toHaveBeenCalledWith("c1", tenantId);
   });
 
   it("create should validate and call service", async () => {
@@ -63,24 +67,22 @@ describe("ChildrenController", () => {
       firstName: "Jess",
       lastName: "Doe",
       allergies: "peanuts",
-      tenantId: "11111111-1111-1111-1111-111111111111",
     };
     const created = { id: "c1", ...dto };
     createMock.mockResolvedValueOnce(created);
 
-    const res = await controller.create(dto);
+    const res = await controller.create(dto, tenantId);
     expect(res).toEqual(created);
-    expect(createMock).toHaveBeenCalledWith(dto);
+    expect(createMock).toHaveBeenCalledWith(dto, tenantId);
   });
 
   it("create should 400 on invalid body (missing allergies)", async () => {
     const bad = {
       firstName: "Jess",
       lastName: "Doe",
-      tenantId: "11111111-1111-1111-1111-111111111111",
-    };
+    } as unknown as CreateChildDto;
 
-    await expect(controller.create(bad)).rejects.toBeInstanceOf(
+    await expect(controller.create(bad, tenantId)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(createMock).not.toHaveBeenCalled();
@@ -90,20 +92,28 @@ describe("ChildrenController", () => {
     const updated = { id: "c1", firstName: "New", lastName: "Name" };
     updateMock.mockResolvedValueOnce(updated);
 
-    const res = await controller.update("c1", {
-      firstName: "New",
-      lastName: "Name",
-    });
+    const res = await controller.update(
+      "c1",
+      {
+        firstName: "New",
+        lastName: "Name",
+      },
+      tenantId,
+    );
     expect(res).toEqual(updated);
-    expect(updateMock).toHaveBeenCalledWith("c1", {
-      firstName: "New",
-      lastName: "Name",
-    });
+    expect(updateMock).toHaveBeenCalledWith(
+      "c1",
+      {
+        firstName: "New",
+        lastName: "Name",
+      },
+      tenantId,
+    );
   });
 
   it("update should 400 on invalid uuid for groupId", async () => {
     await expect(
-      controller.update("c1", { groupId: "not-a-uuid" }),
+      controller.update("c1", { groupId: "not-a-uuid" }, tenantId),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(updateMock).not.toHaveBeenCalled();
   });

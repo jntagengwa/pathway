@@ -49,15 +49,34 @@ export default async function globalSetup(): Promise<void> {
     // Seed two tenants after migrations
     const { prisma } = await import("@pathway/db");
     try {
+      const org = await prisma.org.upsert({
+        where: { slug: "e2e-org" },
+        update: { name: "E2E Org" },
+        create: {
+          slug: "e2e-org",
+          name: "E2E Org",
+          planCode: "trial",
+          isSuite: false,
+        },
+      });
+      process.env.E2E_ORG_ID = org.id;
       const tenantA = await prisma.tenant.upsert({
         where: { slug: "tenant-a-e2e" },
         update: { name: "Tenant A (e2e)" },
-        create: { slug: "tenant-a-e2e", name: "Tenant A (e2e)" },
+        create: {
+          slug: "tenant-a-e2e",
+          name: "Tenant A (e2e)",
+          org: { connect: { id: org.id } },
+        },
       });
       const tenantB = await prisma.tenant.upsert({
         where: { slug: "tenant-b-e2e" },
         update: { name: "Tenant B (e2e)" },
-        create: { slug: "tenant-b-e2e", name: "Tenant B (e2e)" },
+        create: {
+          slug: "tenant-b-e2e",
+          name: "Tenant B (e2e)",
+          org: { connect: { id: org.id } },
+        },
       });
       process.env.E2E_TENANT_ID = tenantA.id;
       process.env.E2E_TENANT2_ID = tenantB.id;

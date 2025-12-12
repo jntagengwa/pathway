@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
 import { AnnouncementsController } from "../announcements.controller";
 import { AnnouncementsService } from "../announcements.service";
+import { PathwayAuthGuard } from "@pathway/auth";
 
 // Types used for strong typing in tests
 type Audience = "ALL" | "PARENTS" | "STAFF";
@@ -30,21 +31,20 @@ type UpdateAnnouncementBody = {
 };
 
 type ListQuery = {
-  tenantId?: string;
   audience?: Audience;
   publishedOnly?: string | boolean; // comes from query string; controller coerces boolean
 };
 
 // Typed mock factory for the service
 const mockService = () => ({
-  create: jest.fn<Promise<Announcement>, [unknown]>(),
+  create: jest.fn<Promise<Announcement>, [unknown, string]>(),
   findAll: jest.fn<
     Promise<Announcement[]>,
-    [{ tenantId?: string; audience?: Audience; publishedOnly?: boolean }]
+    [{ tenantId: string; audience?: Audience; publishedOnly?: boolean }]
   >(),
-  findOne: jest.fn<Promise<Announcement>, [string]>(),
-  update: jest.fn<Promise<Announcement>, [string, unknown]>(),
-  remove: jest.fn<Promise<{ id: string }>, [string]>(),
+  findOne: jest.fn<Promise<Announcement>, [string, string]>(),
+  update: jest.fn<Promise<Announcement>, [string, unknown, string]>(),
+  remove: jest.fn<Promise<{ id: string }>, [string, string]>(),
 });
 
 describe("AnnouncementsController", () => {
@@ -58,7 +58,10 @@ describe("AnnouncementsController", () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [AnnouncementsController],
       providers: [{ provide: AnnouncementsService, useFactory: mockService }],
-    }).compile();
+    })
+      .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = moduleRef.get(AnnouncementsController);
     service = moduleRef.get(AnnouncementsService);
@@ -84,19 +87,23 @@ describe("AnnouncementsController", () => {
 
       service.create.mockResolvedValue(created);
 
-      const res = await controller.create(body as unknown);
+      const res = await controller.create(body as unknown, tenantId);
       expect(service.create).toHaveBeenCalledTimes(1);
-      const arg = service.create.mock.calls[0][0] as {
-        tenantId: string;
-        title: string;
-        body: string;
-        audience: Audience;
-        publishedAt: Date | null;
-      };
+      const [arg, argTenant] = service.create.mock.calls[0] as [
+        {
+          tenantId: string;
+          title: string;
+          body: string;
+          audience: Audience;
+          publishedAt: Date | null;
+        },
+        string,
+      ];
       expect(arg.tenantId).toBe(tenantId);
       expect(arg.publishedAt instanceof Date || arg.publishedAt === null).toBe(
         true,
       );
+      expect(argTenant).toBe(tenantId);
       expect(res).toEqual(created);
     });
   });
@@ -104,7 +111,6 @@ describe("AnnouncementsController", () => {
   describe("findAll", () => {
     it("parses query and forwards filters", async () => {
       const query: ListQuery = {
-        tenantId,
         audience: "PARENTS",
         publishedOnly: "true",
       };
@@ -120,7 +126,7 @@ describe("AnnouncementsController", () => {
       ];
       service.findAll.mockResolvedValue(items);
 
-      const res = await controller.findAll(query as unknown);
+      const res = await controller.findAll(query as unknown, tenantId);
       expect(service.findAll).toHaveBeenCalledTimes(1);
       const filters = service.findAll.mock.calls[0][0];
       expect(filters).toEqual({
@@ -143,8 +149,8 @@ describe("AnnouncementsController", () => {
         publishedAt: null,
       };
       service.findOne.mockResolvedValue(item);
-      const res = await controller.findOne({ id } as unknown);
-      expect(service.findOne).toHaveBeenCalledWith(id);
+      const res = await controller.findOne({ id } as unknown, tenantId);
+      expect(service.findOne).toHaveBeenCalledWith(id, tenantId);
       expect(res).toEqual(item);
     });
   });
@@ -166,15 +172,18 @@ describe("AnnouncementsController", () => {
       };
       service.update.mockResolvedValue(updated);
 
-      const res = await controller.update({ id } as unknown, patch as unknown);
+      const res = await controller.update(
+        { id } as unknown,
+        patch as unknown,
+        tenantId,
+      );
       expect(service.update).toHaveBeenCalledTimes(1);
-      const arg = service.update.mock.calls[0][1] as {
-        title?: string;
-        audience?: Audience;
-        publishedAt?: Date;
-      };
-      expect(arg.audience).toBe("STAFF");
-      expect(arg.publishedAt instanceof Date).toBe(true);
+      const [, argDto, argTenant] = service.update.mock.calls[0];
+      expect((argDto as { audience?: Audience }).audience).toBe("STAFF");
+      expect(
+        (argDto as { publishedAt?: Date }).publishedAt instanceof Date,
+      ).toBe(true);
+      expect(argTenant).toBe(tenantId);
       expect(res).toEqual(updated);
     });
   });
@@ -183,8 +192,8 @@ describe("AnnouncementsController", () => {
     it("validates id and calls service.remove", async () => {
       const deleted: { id: string } = { id };
       service.remove.mockResolvedValue(deleted);
-      const res = await controller.remove({ id } as unknown);
-      expect(service.remove).toHaveBeenCalledWith(id);
+      const res = await controller.remove({ id } as unknown, tenantId);
+      expect(service.remove).toHaveBeenCalledWith(id, tenantId);
       expect(res).toEqual(deleted);
     });
   });

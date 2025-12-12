@@ -8,10 +8,21 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
+import {
+  CurrentOrg,
+  CurrentTenant,
+  CurrentUser,
+  PathwayAuthGuard,
+  UserOrgRole,
+  UserTenantRole,
+} from "@pathway/auth";
 import { z } from "zod";
 import { ConcernsService } from "./concerns.service";
 import { createConcernDto, updateConcernDto } from "./dto";
+import { SafeguardingGuard } from "../common/safeguarding/safeguarding.guard";
+import { AllowedSafeguardingRoles } from "../common/safeguarding/safeguarding.decorator";
 
 const idParam = z.object({ id: z.string().uuid("id must be a valid UUID") });
 
@@ -35,39 +46,82 @@ const parseOrBadRequest = async <T>(
   }
 };
 
+@UseGuards(PathwayAuthGuard, SafeguardingGuard)
 @Controller("concerns")
 export class ConcernsController {
   constructor(private readonly service: ConcernsService) {}
 
+  private buildContext(tenantId: string, orgId: string, actorUserId: string) {
+    return { tenantId, orgId, actorUserId };
+  }
+
+  private static readonly safeguardingAdmins = {
+    tenantRoles: [UserTenantRole.ADMIN],
+    orgRoles: [UserOrgRole.SAFEGUARDING_LEAD, UserOrgRole.ORG_ADMIN],
+  };
+
+  private static readonly safeguardingDelete = {
+    tenantRoles: [UserTenantRole.ADMIN],
+    orgRoles: [UserOrgRole.ORG_ADMIN],
+  };
+
   @Post()
-  async create(@Body() body: unknown) {
+  @AllowedSafeguardingRoles(ConcernsController.safeguardingAdmins)
+  async create(
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @CurrentUser("userId") userId: string,
+  ) {
     const dto = await parseOrBadRequest<typeof createConcernDto._output>(
       createConcernDto,
       body,
     );
-    return this.service.create(dto);
+    return this.service.create(dto, this.buildContext(tenantId, orgId, userId));
   }
 
   @Get()
-  async findAll(@Query() query: unknown) {
+  @AllowedSafeguardingRoles(ConcernsController.safeguardingAdmins)
+  async findAll(
+    @Query() query: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @CurrentUser("userId") userId: string,
+  ) {
     const q = await parseOrBadRequest<typeof listQuery._output>(
       listQuery,
       query,
     );
-    return this.service.findAll({ childId: q.childId });
+    return this.service.findAll(
+      { childId: q.childId },
+      this.buildContext(tenantId, orgId, userId),
+    );
   }
 
   @Get(":id")
-  async findOne(@Param() params: unknown) {
+  @AllowedSafeguardingRoles(ConcernsController.safeguardingAdmins)
+  async findOne(
+    @Param() params: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @CurrentUser("userId") userId: string,
+  ) {
     const { id } = await parseOrBadRequest<typeof idParam._output>(
       idParam,
       params,
     );
-    return this.service.findOne(id);
+    return this.service.findOne(id, this.buildContext(tenantId, orgId, userId));
   }
 
   @Patch(":id")
-  async update(@Param() params: unknown, @Body() body: unknown) {
+  @AllowedSafeguardingRoles(ConcernsController.safeguardingAdmins)
+  async update(
+    @Param() params: unknown,
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @CurrentUser("userId") userId: string,
+  ) {
     const { id } = await parseOrBadRequest<typeof idParam._output>(
       idParam,
       params,
@@ -76,15 +130,25 @@ export class ConcernsController {
       updateConcernDto,
       body,
     );
-    return this.service.update(id, dto);
+    return this.service.update(
+      id,
+      dto,
+      this.buildContext(tenantId, orgId, userId),
+    );
   }
 
   @Delete(":id")
-  async remove(@Param() params: unknown) {
+  @AllowedSafeguardingRoles(ConcernsController.safeguardingDelete)
+  async remove(
+    @Param() params: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @CurrentUser("userId") userId: string,
+  ) {
     const { id } = await parseOrBadRequest<typeof idParam._output>(
       idParam,
       params,
     );
-    return this.service.remove(id);
+    return this.service.remove(id, this.buildContext(tenantId, orgId, userId));
   }
 }

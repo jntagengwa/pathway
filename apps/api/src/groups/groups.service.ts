@@ -19,16 +19,17 @@ function isPrismaError(err: unknown): err is { code: string } {
 
 @Injectable()
 export class GroupsService {
-  async list() {
+  async list(tenantId: string) {
     return prisma.group.findMany({
+      where: { tenantId },
       select: { id: true, name: true, tenantId: true },
       orderBy: { name: "asc" },
     });
   }
 
-  async getById(id: string) {
-    const group = await prisma.group.findUnique({
-      where: { id },
+  async getById(id: string, tenantId: string) {
+    const group = await prisma.group.findFirst({
+      where: { id, tenantId },
       select: {
         id: true,
         name: true,
@@ -41,10 +42,11 @@ export class GroupsService {
     return group;
   }
 
-  async create(input: CreateGroupDto) {
+  async create(input: CreateGroupDto, tenantId: string) {
     // Normalize then validate
     const normalized: CreateGroupDto = {
       ...input,
+      tenantId,
       name: String(input.name).trim(),
       minAge: input.minAge,
       maxAge: input.maxAge,
@@ -102,7 +104,7 @@ export class GroupsService {
     }
   }
 
-  async update(id: string, input: UpdateGroupDto) {
+  async update(id: string, input: UpdateGroupDto, tenantId: string) {
     const normalized = {
       ...input,
       name: input.name ? String(input.name).trim() : undefined,
@@ -110,6 +112,12 @@ export class GroupsService {
 
     try {
       const parsed = updateGroupDto.parse(normalized);
+
+      const existing = await prisma.group.findFirst({
+        where: { id, tenantId },
+        select: { id: true, tenantId: true },
+      });
+      if (!existing) throw new NotFoundException("Group not found");
 
       // if both ages provided, ensure logical order
       if (

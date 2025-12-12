@@ -23,17 +23,17 @@ const childSelect = {
 
 @Injectable()
 export class ChildrenService {
-  async list(tenantId?: string) {
+  async list(tenantId: string) {
     return prisma.child.findMany({
-      where: tenantId ? { tenantId } : undefined,
+      where: { tenantId },
       select: childSelect,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     });
   }
 
-  async getById(id: string) {
-    const child = await prisma.child.findUnique({
-      where: { id },
+  async getById(id: string, tenantId: string) {
+    const child = await prisma.child.findFirst({
+      where: { id, tenantId },
       select: childSelect,
     });
     if (!child) throw new NotFoundException("Child not found");
@@ -47,14 +47,17 @@ export class ChildrenService {
    *  - if groupId provided, it must belong to the same tenant
    *  - all guardianIds must belong to the same tenant
    */
-  async create(input: CreateChildDto) {
+  async create(input: CreateChildDto, tenantId: string) {
+    const resolvedTenantId = tenantId ?? input.tenantId;
+    if (!resolvedTenantId) throw new BadRequestException("tenantId required");
+
     // Basic normalization (trim names)
     const firstName = input.firstName.trim();
     const lastName = input.lastName.trim();
 
     // 1) Ensure tenant exists
     const tenant = await prisma.tenant.findUnique({
-      where: { id: input.tenantId },
+      where: { id: resolvedTenantId },
       select: { id: true },
     });
     if (!tenant) throw new BadRequestException("tenant not found");
@@ -66,7 +69,7 @@ export class ChildrenService {
         select: { id: true, tenantId: true },
       });
       if (!group) throw new BadRequestException("group not found");
-      if (group.tenantId !== input.tenantId)
+      if (group.tenantId !== resolvedTenantId)
         throw new BadRequestException("group does not belong to tenant");
     }
 
@@ -80,7 +83,7 @@ export class ChildrenService {
       if (guardians.length !== input.guardianIds.length) {
         throw new BadRequestException("one or more guardians not found");
       }
-      const invalid = guardians.find((g) => g.tenantId !== input.tenantId);
+      const invalid = guardians.find((g) => g.tenantId !== resolvedTenantId);
       if (invalid)
         throw new BadRequestException("guardian does not belong to tenant");
       guardiansConnect = guardians.map((g) => ({ id: g.id }));
@@ -94,7 +97,7 @@ export class ChildrenService {
         photoKey: input.photoKey ?? null,
         allergies: input.allergies,
         disabilities: input.disabilities ?? [],
-        tenant: { connect: { id: input.tenantId } },
+        tenant: { connect: { id: resolvedTenantId } },
         ...(input.groupId ? { group: { connect: { id: input.groupId } } } : {}),
         ...(guardiansConnect
           ? { guardians: { connect: guardiansConnect } }
@@ -107,10 +110,10 @@ export class ChildrenService {
   /**
    * Update fields; if guardianIds provided, replace the set (idempotent) after validations.
    */
-  async update(id: string, input: UpdateChildDto) {
+  async update(id: string, input: UpdateChildDto, tenantId: string) {
     // Ensure child exists and capture its tenant for checks
-    const current = await prisma.child.findUnique({
-      where: { id },
+    const current = await prisma.child.findFirst({
+      where: { id, tenantId },
       select: { id: true, tenantId: true },
     });
     if (!current) throw new NotFoundException("Child not found");

@@ -8,15 +8,16 @@ import {
   Body,
   Query,
   BadRequestException,
+  UseGuards,
 } from "@nestjs/common";
 import { SessionsService, SessionListFilters } from "./sessions.service";
 import { CreateSessionDto } from "./dto/create-session.dto";
 import { UpdateSessionDto } from "./dto/update-session.dto";
+import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
 
 type IsoDateString = string; // ISO 8601 expected
 
 interface SessionsQuery {
-  tenantId?: string;
   groupId?: string;
   from?: IsoDateString;
   to?: IsoDateString;
@@ -36,9 +37,13 @@ export class SessionsController {
   constructor(private readonly svc: SessionsService) {}
 
   @Get()
-  async list(@Query() q: SessionsQuery) {
+  @UseGuards(PathwayAuthGuard)
+  async list(
+    @Query() q: SessionsQuery,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const filters: SessionListFilters = {
-      tenantId: q.tenantId,
+      tenantId,
       groupId: q.groupId,
       from: parseDateOrThrow("from", q.from),
       to: parseDateOrThrow("to", q.to),
@@ -47,12 +52,20 @@ export class SessionsController {
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    return this.svc.getById(id);
+  @UseGuards(PathwayAuthGuard)
+  async getById(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
+    return this.svc.getById(id, tenantId);
   }
 
   @Post()
-  async create(@Body() dto: CreateSessionDto) {
+  @UseGuards(PathwayAuthGuard)
+  async create(
+    @Body() dto: CreateSessionDto,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     if (
       dto.startsAt &&
       dto.endsAt &&
@@ -60,11 +73,19 @@ export class SessionsController {
     ) {
       throw new BadRequestException("endsAt must be after startsAt");
     }
-    return this.svc.create(dto);
+    if (dto.tenantId && dto.tenantId !== tenantId) {
+      throw new BadRequestException("tenantId must match current tenant");
+    }
+    return this.svc.create({ ...dto, tenantId }, tenantId);
   }
 
   @Patch(":id")
-  async update(@Param("id") id: string, @Body() dto: UpdateSessionDto) {
+  @UseGuards(PathwayAuthGuard)
+  async update(
+    @Param("id") id: string,
+    @Body() dto: UpdateSessionDto,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     if (
       dto.startsAt &&
       dto.endsAt &&
@@ -72,11 +93,18 @@ export class SessionsController {
     ) {
       throw new BadRequestException("endsAt must be after startsAt");
     }
-    return this.svc.update(id, dto);
+    if (dto.tenantId && dto.tenantId !== tenantId) {
+      throw new BadRequestException("tenantId must match current tenant");
+    }
+    return this.svc.update(id, dto, tenantId);
   }
 
   @Delete(":id")
-  async delete(@Param("id") id: string) {
-    return this.svc.delete(id);
+  @UseGuards(PathwayAuthGuard)
+  async delete(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
+    return this.svc.delete(id, tenantId);
   }
 }

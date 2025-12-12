@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
 import { LessonsController } from "../lessons.controller";
 import { LessonsService } from "../lessons.service";
+import { PathwayAuthGuard } from "@pathway/auth";
 
 type Lesson = {
   id: string;
@@ -28,7 +29,6 @@ type UpdateLessonBody = {
 };
 
 type ListQuery = {
-  tenantId?: string;
   groupId?: string;
   weekOf?: string;
 };
@@ -54,7 +54,10 @@ describe("LessonsController", () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [LessonsController],
       providers: [{ provide: LessonsService, useFactory: mockService }],
-    }).compile();
+    })
+      .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = moduleRef.get(LessonsController);
     service = moduleRef.get(LessonsService);
@@ -81,11 +84,12 @@ describe("LessonsController", () => {
 
       service.create.mockResolvedValue(created);
 
-      const res = await controller.create(body as unknown);
+      const res = await controller.create(body as unknown, tenantId);
 
       expect(service.create).toHaveBeenCalledTimes(1);
-      const arg = service.create.mock.calls[0][0];
-      expect(arg.weekOf instanceof Date).toBe(true);
+      const [argDto, argTenant] = service.create.mock.calls[0];
+      expect(argDto.weekOf instanceof Date).toBe(true);
+      expect(argTenant).toBe(tenantId);
       expect(res).toEqual(created);
     });
   });
@@ -93,7 +97,6 @@ describe("LessonsController", () => {
   describe("findAll", () => {
     it("coerces weekOf query and passes filters to service.findAll", async () => {
       const query: ListQuery = {
-        tenantId,
         groupId,
         weekOf: "2025-01-06",
       };
@@ -111,7 +114,7 @@ describe("LessonsController", () => {
       ];
       service.findAll.mockResolvedValue(items);
 
-      const res = await controller.findAll(query);
+      const res = await controller.findAll(query, tenantId);
 
       expect(service.findAll).toHaveBeenCalledTimes(1);
       const filters = service.findAll.mock.calls[0][0];
@@ -137,8 +140,10 @@ describe("LessonsController", () => {
         title: "A",
       };
       service.findOne.mockResolvedValue(item);
-      await expect(controller.findOne(lessonId)).resolves.toEqual(item);
-      expect(service.findOne).toHaveBeenCalledWith(lessonId);
+      await expect(controller.findOne(lessonId, tenantId)).resolves.toEqual(
+        item,
+      );
+      expect(service.findOne).toHaveBeenCalledWith(lessonId, tenantId);
     });
   });
 
@@ -155,11 +160,12 @@ describe("LessonsController", () => {
       };
       service.update.mockResolvedValue(updated);
 
-      const res = await controller.update(lessonId, patch);
+      const res = await controller.update(lessonId, patch, tenantId);
 
       expect(service.update).toHaveBeenCalledTimes(1);
-      const arg = service.update.mock.calls[0][1];
-      expect(arg.weekOf instanceof Date).toBe(true);
+      const [, argDto, argTenant] = service.update.mock.calls[0];
+      expect(argDto.weekOf instanceof Date).toBe(true);
+      expect(argTenant).toBe(tenantId);
       expect(res).toEqual(updated);
     });
   });
@@ -168,8 +174,8 @@ describe("LessonsController", () => {
     it("calls service.remove and returns result", async () => {
       const deleted: { id: string } = { id: lessonId };
       service.remove.mockResolvedValue(deleted);
-      const res = await controller.remove(lessonId);
-      expect(service.remove).toHaveBeenCalledWith(lessonId);
+      const res = await controller.remove(lessonId, tenantId);
+      expect(service.remove).toHaveBeenCalledWith(lessonId, tenantId);
       expect(res).toEqual(deleted);
     });
   });

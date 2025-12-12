@@ -10,9 +10,12 @@ import { CreateLessonDto, UpdateLessonDto } from "./dto";
 @Injectable()
 export class LessonsService {
   /** Create a lesson. Validates tenant and (optional) group ownership. */
-  async create(dto: CreateLessonDto) {
+  async create(dto: CreateLessonDto, tenantId: string) {
+    if (dto.tenantId !== tenantId) {
+      throw new BadRequestException("tenantId must match current tenant");
+    }
     const tenant = await prisma.tenant.findUnique({
-      where: { id: dto.tenantId },
+      where: { id: tenantId },
       select: { id: true },
     });
     if (!tenant) throw new NotFoundException("Tenant not found");
@@ -23,7 +26,7 @@ export class LessonsService {
         select: { id: true, tenantId: true },
       });
       if (!group) throw new NotFoundException("Group not found");
-      if (group.tenantId !== dto.tenantId) {
+      if (group.tenantId !== tenantId) {
         throw new BadRequestException("Group must belong to the same tenant");
       }
     }
@@ -31,7 +34,7 @@ export class LessonsService {
     try {
       return await prisma.lesson.create({
         data: {
-          tenantId: dto.tenantId,
+          tenantId,
           groupId: dto.groupId ?? null,
           title: dto.title,
           description: dto.description ?? null,
@@ -45,16 +48,15 @@ export class LessonsService {
   }
 
   /** List lessons with optional filters. */
-  async findAll(
-    filters: {
-      tenantId?: string;
-      groupId?: string;
-      weekOfFrom?: Date;
-      weekOfTo?: Date;
-    } = {},
-  ) {
+  async findAll(filters: {
+    tenantId: string;
+    groupId?: string;
+    weekOfFrom?: Date;
+    weekOfTo?: Date;
+  }) {
+    // tenantId is required; caller must supply from context
     const where: Prisma.LessonWhereInput = {
-      ...(filters.tenantId ? { tenantId: filters.tenantId } : {}),
+      tenantId: filters.tenantId,
       ...(filters.groupId ? { groupId: filters.groupId } : {}),
       ...(filters.weekOfFrom || filters.weekOfTo
         ? {
@@ -69,15 +71,15 @@ export class LessonsService {
     return prisma.lesson.findMany({ where, orderBy: { weekOf: "desc" } });
   }
 
-  async findOne(id: string) {
-    const lesson = await prisma.lesson.findUnique({ where: { id } });
+  async findOne(id: string, tenantId: string) {
+    const lesson = await prisma.lesson.findFirst({ where: { id, tenantId } });
     if (!lesson) throw new NotFoundException("Lesson not found");
     return lesson;
   }
 
   /** Update a lesson. Tenant is immutable; optionally validate new group. */
-  async update(id: string, dto: UpdateLessonDto) {
-    const existing = await prisma.lesson.findUnique({ where: { id } });
+  async update(id: string, dto: UpdateLessonDto, tenantId: string) {
+    const existing = await prisma.lesson.findFirst({ where: { id, tenantId } });
     if (!existing) throw new NotFoundException("Lesson not found");
 
     // Validate group tenant ownership if groupId is provided (including explicit null to detach)
@@ -112,8 +114,12 @@ export class LessonsService {
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string, tenantId: string) {
     try {
+      const existing = await prisma.lesson.findFirst({
+        where: { id, tenantId },
+      });
+      if (!existing) throw new NotFoundException("Lesson not found");
       return await prisma.lesson.delete({ where: { id } });
     } catch (e: unknown) {
       this.handlePrismaError(e, "delete", id);

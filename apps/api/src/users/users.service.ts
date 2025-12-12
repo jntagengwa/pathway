@@ -19,8 +19,9 @@ function isPrismaError(err: unknown): err is { code: string } {
 
 @Injectable()
 export class UsersService {
-  async list() {
+  async list(tenantId: string) {
     return prisma.user.findMany({
+      where: { tenantId },
       select: {
         id: true,
         email: true,
@@ -34,9 +35,9 @@ export class UsersService {
     });
   }
 
-  async getById(id: string) {
-    const user = await prisma.user.findUnique({
-      where: { id },
+  async getById(id: string, tenantId: string) {
+    const user = await prisma.user.findFirst({
+      where: { id, tenantId },
       select: {
         id: true,
         email: true,
@@ -135,18 +136,20 @@ export class UsersService {
     try {
       const parsed = updateUserDto.parse(normalized);
 
+      const current = await prisma.user.findUnique({
+        where: { id },
+        select: { tenantId: true },
+      });
+      if (!current) throw new NotFoundException("User not found");
+
+      // Prevent cross-tenant updates
+      if (parsed.tenantId && parsed.tenantId !== current.tenantId) {
+        throw new NotFoundException("User not found");
+      }
+
       // Determine the target tenant for validation
       let targetTenantId: string | null = null;
-      if (parsed.tenantId) {
-        targetTenantId = parsed.tenantId;
-      } else {
-        const current = await prisma.user.findUnique({
-          where: { id },
-          select: { tenantId: true },
-        });
-        if (!current) throw new NotFoundException("User not found");
-        targetTenantId = current.tenantId;
-      }
+      targetTenantId = parsed.tenantId ?? current.tenantId;
 
       // Validate children existence and tenant consistency (if provided)
       if (parsed.children && parsed.children.length) {

@@ -8,12 +8,14 @@ import {
   Post,
   Query,
   BadRequestException,
+  UseGuards,
 } from "@nestjs/common";
 import { z } from "zod";
 
 import { SwapsService } from "./swaps.service";
 import { createSwapDto, updateSwapDto } from "./dto";
 import { SwapStatus } from "@pathway/db";
+import { PathwayAuthGuard, CurrentTenant } from "@pathway/auth";
 
 const idParamSchema = z
   .string({ required_error: "id is required" })
@@ -29,41 +31,55 @@ const listQueryDto = z.object({
 export type ListQueryDto = z.infer<typeof listQueryDto>;
 
 @Controller("swaps")
+@UseGuards(PathwayAuthGuard)
 export class SwapsController {
   constructor(private readonly swaps: SwapsService) {}
 
   @Post()
-  async create(@Body() body: unknown) {
+  async create(
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsed = createSwapDto.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues);
     }
     const dto = parsed.data;
-    return this.swaps.create(dto);
+    return this.swaps.create(dto, tenantId);
   }
 
   @Get()
-  async findAll(@Query() query: Record<string, unknown>) {
+  async findAll(
+    @Query() query: Record<string, unknown>,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsed = listQueryDto.safeParse(query);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues);
     }
     const filters = parsed.data;
-    return this.swaps.findAll(filters);
+    return this.swaps.findAll({ ...filters, tenantId });
   }
 
   @Get(":id")
-  async findOne(@Param("id") id: string) {
+  async findOne(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsed = idParamSchema.safeParse(id);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues);
     }
     const validId = parsed.data;
-    return this.swaps.findOne(validId);
+    return this.swaps.findOne(validId, tenantId);
   }
 
   @Patch(":id")
-  async update(@Param("id") id: string, @Body() body: unknown) {
+  async update(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsedId = idParamSchema.safeParse(id);
     if (!parsedId.success) {
       throw new BadRequestException(parsedId.error.issues);
@@ -74,22 +90,19 @@ export class SwapsController {
       throw new BadRequestException(parsedBody.error.issues);
     }
     const dto = parsedBody.data;
-    // Enforce: ACCEPTED requires a toUserId to be provided
-    if (dto.status === SwapStatus.ACCEPTED && !dto.toUserId) {
-      throw new BadRequestException(
-        "toUserId is required when accepting a swap",
-      );
-    }
-    return this.swaps.update(validId, dto);
+    return this.swaps.update(validId, dto, tenantId);
   }
 
   @Delete(":id")
-  async remove(@Param("id") id: string) {
+  async remove(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
     const parsed = idParamSchema.safeParse(id);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues);
     }
     const validId = parsed.data;
-    return this.swaps.remove(validId);
+    return this.swaps.remove(validId, tenantId);
   }
 }

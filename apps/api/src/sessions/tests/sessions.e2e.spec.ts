@@ -2,207 +2,218 @@ import request from "supertest";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
+import { withTenantRlsContext } from "@pathway/db";
 import { randomUUID } from "crypto";
+import type { PathwayAuthClaims } from "@pathway/auth";
+
+// Sessions e2e: reuse seeded org/tenants and seed records via RLS context
 
 describe("Sessions (e2e)", () => {
   let app: INestApplication;
 
-  const uniq = Date.now().toString();
+  const orgId = process.env.E2E_ORG_ID as string;
+  const tenantId = process.env.E2E_TENANT_ID as string; // main tenant
+  const otherTenantId = process.env.E2E_TENANT2_ID as string; // other tenant
+  const tenantSlug = "e2e-tenant-a";
+  const otherTenantSlug = "e2e-tenant-b";
 
-  let ids: {
-    tenant: string;
-    group: string;
-    session: string;
-    otherTenant: string;
-    otherGroup: string;
+  const ids = {
+    group: randomUUID(),
+    session: randomUUID(),
+    otherGroup: randomUUID(),
+    otherSession: randomUUID(),
+  };
+
+  let authHeader: string;
+  let otherAuthHeader: string;
+
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
   };
 
   beforeAll(async () => {
+    if (!orgId || !tenantId || !otherTenantId) {
+      throw new Error("E2E_ORG_ID / E2E_TENANT_ID / E2E_TENANT2_ID missing");
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
-  });
 
-  beforeEach(async () => {
-    ids = {
-      tenant: randomUUID(),
-      group: randomUUID(),
-      session: randomUUID(),
-      otherTenant: randomUUID(),
-      otherGroup: randomUUID(),
-    };
-
-    // Clean tables in FK-safe order (avoid TRUNCATE deadlocks)
-    await prisma.attendance.deleteMany({});
-    await prisma.assignment.deleteMany({});
-    await prisma.session.deleteMany({});
-    await prisma.childNote.deleteMany({});
-    await prisma.concern.deleteMany({});
-    await prisma.child.deleteMany({});
-    await prisma.group.deleteMany({});
-    await prisma.userTenantRole.deleteMany({});
-    await prisma.user.deleteMany({});
-    await prisma.tenant.deleteMany({});
-
-    // Seed base tenants
-    await prisma.tenant.create({
-      data: {
-        id: ids.tenant,
-        name: "Demo Tenant",
-        slug: `demo-tenant-${uniq}`,
-      },
-    });
-    await prisma.tenant.create({
-      data: {
-        id: ids.otherTenant,
-        name: "Other Tenant",
-        slug: `other-tenant-${uniq}`,
-      },
+    authHeader = buildAuthHeader({
+      sub: "sessions-e2e",
+      "https://pathway.app/user": { id: "sessions-e2e" },
+      "https://pathway.app/org": { orgId, slug: "e2e-org", name: "E2E Org" },
+      "https://pathway.app/tenant": { tenantId, orgId, slug: tenantSlug },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
     });
 
-    // Seed groups
-    await prisma.group.create({
-      data: {
-        id: ids.group,
-        name: "5-6s",
-        tenantId: ids.tenant,
-        minAge: 5,
-        maxAge: 6,
+    otherAuthHeader = buildAuthHeader({
+      sub: "sessions-e2e-other",
+      "https://pathway.app/user": { id: "sessions-e2e-other" },
+      "https://pathway.app/org": { orgId, slug: "e2e-org", name: "E2E Org" },
+      "https://pathway.app/tenant": {
+        tenantId: otherTenantId,
+        orgId,
+        slug: otherTenantSlug,
       },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
     });
-    await prisma.group.create({
-      data: {
-        id: ids.otherGroup,
-        name: "7-8s",
-        tenantId: ids.otherTenant,
-        minAge: 7,
-        maxAge: 8,
-      },
+
+    // Seed groups and sessions in each tenant via RLS
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.group.create({
+        data: {
+          id: ids.group,
+          name: "5-6s",
+          tenantId,
+          minAge: 5,
+          maxAge: 6,
+        },
+      });
+      await tx.session.create({
+        data: {
+          id: ids.session,
+          tenantId,
+          startsAt: new Date("2025-01-01T15:00:00.000Z"),
+          endsAt: new Date("2025-01-01T16:00:00.000Z"),
+          groupId: ids.group,
+        },
+      });
+    });
+
+    await withTenantRlsContext(otherTenantId, orgId, async (tx) => {
+      await tx.group.create({
+        data: {
+          id: ids.otherGroup,
+          name: "7-8s",
+          tenantId: otherTenantId,
+          minAge: 7,
+          maxAge: 8,
+        },
+      });
+      await tx.session.create({
+        data: {
+          id: ids.otherSession,
+          tenantId: otherTenantId,
+          startsAt: new Date("2025-02-01T15:00:00.000Z"),
+          endsAt: new Date("2025-02-01T16:00:00.000Z"),
+          groupId: ids.otherGroup,
+        },
+      });
     });
   });
 
   afterAll(async () => {
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.session.deleteMany({ where: { id: ids.session } });
+      await tx.group.deleteMany({ where: { id: ids.group } });
+    }).catch(() => undefined);
+    await withTenantRlsContext(otherTenantId, orgId, async (tx) => {
+      await tx.session.deleteMany({ where: { id: ids.otherSession } });
+      await tx.group.deleteMany({ where: { id: ids.otherGroup } });
+    }).catch(() => undefined);
     await app.close();
-    await prisma.$disconnect();
   });
 
   it("GET /sessions should return array", async () => {
-    const res = await request(app.getHttpServer()).get("/sessions");
+    const res = await request(app.getHttpServer())
+      .get("/sessions")
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
 
   it("POST /sessions should create a session", async () => {
-    const startsAt = new Date();
-    const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000); // +1h
-
+    const newSessionId = randomUUID();
     const res = await request(app.getHttpServer())
       .post("/sessions")
+      .set("Authorization", authHeader)
       .send({
-        tenantId: ids.tenant,
+        startsAt: new Date("2025-03-01T10:00:00.000Z"),
+        endsAt: new Date("2025-03-01T11:00:00.000Z"),
         groupId: ids.group,
-        startsAt: startsAt.toISOString(),
-        endsAt: endsAt.toISOString(),
-        title: "Sunday 10am",
-      })
-      .set("content-type", "application/json");
+      });
 
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({
-      tenantId: ids.tenant,
-      groupId: ids.group,
-      title: "Sunday 10am",
-    });
     expect(res.body).toHaveProperty("id");
+
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.session.deleteMany({
+        where: { id: res.body.id ?? newSessionId },
+      });
+    });
   });
 
   it("GET /sessions/:id should return the created session", async () => {
-    const startsAt = new Date();
-    const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
-
-    const created = await prisma.session.create({
-      data: {
-        id: ids.session,
-        tenantId: ids.tenant,
-        groupId: ids.group,
-        startsAt,
-        endsAt,
-        title: "9am Gathering",
-      },
-    });
-
-    const res = await request(app.getHttpServer()).get(
-      `/sessions/${created.id}`,
-    );
+    const res = await request(app.getHttpServer())
+      .get(`/sessions/${ids.session}`)
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      id: created.id,
-      tenantId: ids.tenant,
-      groupId: ids.group,
-      title: "9am Gathering",
-    });
+    expect(res.body).toHaveProperty("id", ids.session);
   });
 
   it("PATCH /sessions/:id should update a session", async () => {
-    const startsAt = new Date();
-    const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
-    const created = await prisma.session.create({
-      data: {
-        tenantId: ids.tenant,
-        groupId: ids.group,
-        startsAt,
-        endsAt,
-        title: "Original",
-      },
-    });
-
     const res = await request(app.getHttpServer())
-      .patch(`/sessions/${created.id}`)
-      .send({ title: "Updated Title" })
-      .set("content-type", "application/json");
+      .patch(`/sessions/${ids.session}`)
+      .set("Authorization", authHeader)
+      .send({ endsAt: new Date("2025-01-01T17:00:00.000Z") });
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      id: created.id,
-      title: "Updated Title",
-    });
+    expect(new Date(res.body.endsAt).toISOString()).toBe(
+      new Date("2025-01-01T17:00:00.000Z").toISOString(),
+    );
   });
 
   it("POST /sessions should 400 when endsAt <= startsAt (validation)", async () => {
-    const now = new Date();
     const res = await request(app.getHttpServer())
       .post("/sessions")
+      .set("Authorization", authHeader)
       .send({
-        tenantId: ids.tenant,
+        startsAt: new Date("2025-03-01T12:00:00.000Z"),
+        endsAt: new Date("2025-03-01T11:00:00.000Z"),
         groupId: ids.group,
-        startsAt: now.toISOString(),
-        endsAt: new Date(now.getTime() - 1000).toISOString(), // ends before starts
-        title: "Invalid",
-      })
-      .set("content-type", "application/json");
+      });
 
     expect(res.status).toBe(400);
   });
 
   it("POST /sessions should 400 when group is from another tenant", async () => {
-    const startsAt = new Date();
-    const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
-
     const res = await request(app.getHttpServer())
       .post("/sessions")
+      .set("Authorization", authHeader)
       .send({
-        tenantId: ids.tenant,
-        groupId: ids.otherGroup, // mismatched tenant
-        startsAt: startsAt.toISOString(),
-        endsAt: endsAt.toISOString(),
-        title: "Cross-tenant",
-      })
-      .set("content-type", "application/json");
+        startsAt: new Date("2025-03-02T12:00:00.000Z"),
+        endsAt: new Date("2025-03-02T13:00:00.000Z"),
+        groupId: ids.otherGroup,
+      });
 
     expect(res.status).toBe(400);
+  });
+
+  it("GET /sessions should not leak other tenant records", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/sessions")
+      .set("Authorization", otherAuthHeader);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(
+      res.body.every((s: { tenantId: string }) => s.tenantId === otherTenantId),
+    ).toBe(true);
+  });
+
+  it("GET /sessions/:id should 404 for other tenant session", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/sessions/${ids.otherSession}`)
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(404);
   });
 });

@@ -4,22 +4,29 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
-import type { Prisma } from "@pathway/db";
-import { createNoteDto, updateNoteDto } from "./dto";
+import type { Prisma } from "@prisma/client";
+import type { CreateNoteDto, UpdateNoteDto } from "./dto";
+import { AuditService } from "../audit/audit.service";
+import type { SafeguardingContextIds } from "../common/safeguarding/safeguarding.types";
+import { AuditAction, AuditEntityType } from "../audit/audit.types";
 
 @Injectable()
 export class NotesService {
-  async create(raw: unknown) {
-    const dto = await createNoteDto.parseAsync(raw);
+  constructor(private readonly audit: AuditService) {}
 
+  async create(
+    dto: CreateNoteDto,
+    authorId: string,
+    context: SafeguardingContextIds,
+  ) {
     // Validate foreign keys explicitly for clearer errors
     const [child, author] = await Promise.all([
-      prisma.child.findUnique({
-        where: { id: dto.childId },
+      prisma.child.findFirst({
+        where: { id: dto.childId, tenantId: context.tenantId },
         select: { id: true },
       }),
-      prisma.user.findUnique({
-        where: { id: dto.authorId },
+      prisma.user.findFirst({
+        where: { id: authorId, tenantId: context.tenantId },
         select: { id: true },
       }),
     ]);
@@ -27,52 +34,133 @@ export class NotesService {
     if (!author) throw new NotFoundException("Author not found");
 
     try {
-      return await prisma.childNote.create({
+      const note = await prisma.childNote.create({
         data: {
           childId: dto.childId,
-          authorId: dto.authorId,
+          authorId,
           text: dto.text,
+          visibleToParents: false,
         },
       });
+      await this.audit.recordEvent({
+        actorUserId: context.actorUserId,
+        tenantId: context.tenantId,
+        orgId: context.orgId,
+        entityType: AuditEntityType.CHILD_NOTE,
+        entityId: note.id,
+        action: AuditAction.CREATED,
+        metadata: { childId: dto.childId },
+      });
+      return note;
     } catch (e: unknown) {
       this.handlePrismaError(e, "create");
     }
   }
 
-  async findAll(filters: { childId?: string; authorId?: string } = {}) {
+  async findAll(
+    filters: { childId?: string; authorId?: string } = {},
+    context: SafeguardingContextIds,
+  ) {
     const where: Prisma.ChildNoteWhereInput = {
+      child: { tenantId: context.tenantId },
       ...(filters.childId ? { childId: filters.childId } : {}),
       ...(filters.authorId ? { authorId: filters.authorId } : {}),
     };
-    return prisma.childNote.findMany({ where, orderBy: { createdAt: "desc" } });
+    const notes = await prisma.childNote.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+    await this.audit.recordEvent({
+      actorUserId: context.actorUserId,
+      tenantId: context.tenantId,
+      orgId: context.orgId,
+      entityType: AuditEntityType.CHILD_NOTE,
+      entityId: null,
+      action: AuditAction.VIEWED,
+      metadata: {
+        filterChildId: filters.childId ?? null,
+        filterAuthorId: filters.authorId ?? null,
+        resultCount: notes.length,
+      },
+    });
+    return notes;
   }
 
-  async findOne(id: string) {
-    const note = await prisma.childNote.findUnique({ where: { id } });
-    if (!note) throw new NotFoundException("Note not found");
+  async findOne(id: string, context: SafeguardingContextIds) {
+    const note = await this.requireNoteForTenant(id, context.tenantId);
+    await this.audit.recordEvent({
+      actorUserId: context.actorUserId,
+      tenantId: context.tenantId,
+      orgId: context.orgId,
+      entityType: AuditEntityType.CHILD_NOTE,
+      entityId: id,
+      action: AuditAction.VIEWED,
+      metadata: { childId: note.childId },
+    });
     return note;
   }
 
-  async update(id: string, raw: unknown) {
-    const dto = await updateNoteDto.parseAsync(raw);
+  async update(
+    id: string,
+    dto: UpdateNoteDto,
+    context: SafeguardingContextIds,
+  ) {
+    await this.requireNoteForTenant(id, context.tenantId);
     try {
-      return await prisma.childNote.update({
+      const note = await prisma.childNote.update({
         where: { id },
         data: {
           text: dto.text ?? undefined,
+          // TODO(Epic2-Task2.4): include visibility + approval updates when parent flows are implemented.
         },
       });
+      await this.audit.recordEvent({
+        actorUserId: context.actorUserId,
+        tenantId: context.tenantId,
+        orgId: context.orgId,
+        entityType: AuditEntityType.CHILD_NOTE,
+        entityId: id,
+        action: AuditAction.UPDATED,
+        metadata: {
+          updatedFields: Object.keys(dto ?? {}),
+        },
+      });
+      return note;
     } catch (e: unknown) {
       this.handlePrismaError(e, "update", id);
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string, context: SafeguardingContextIds) {
+    const note = await this.requireNoteForTenant(id, context.tenantId);
     try {
-      return await prisma.childNote.delete({ where: { id } });
+      const deleted = await prisma.childNote.delete({ where: { id } });
+      await this.audit.recordEvent({
+        actorUserId: context.actorUserId,
+        tenantId: context.tenantId,
+        orgId: context.orgId,
+        entityType: AuditEntityType.CHILD_NOTE,
+        entityId: id,
+        action: AuditAction.DELETED,
+        metadata: { childId: note.childId },
+      });
+      return deleted;
     } catch (e: unknown) {
       this.handlePrismaError(e, "delete", id);
     }
+  }
+
+  private async requireNoteForTenant(id: string, tenantId: string) {
+    const note = await prisma.childNote.findFirst({
+      where: {
+        id,
+        child: { tenantId },
+      },
+    });
+    if (!note) {
+      throw new NotFoundException("Note not found");
+    }
+    return note;
   }
 
   private handlePrismaError(

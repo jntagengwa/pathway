@@ -16,7 +16,7 @@ const tenantFindUnique = jest.fn<Promise<{ id: string } | null>, [unknown]>();
 const announcementCreate = jest.fn<Promise<Announcement>, [unknown]>();
 const announcementUpdate = jest.fn<Promise<Announcement>, [unknown]>();
 const announcementDelete = jest.fn<Promise<{ id: string }>, [unknown]>();
-const announcementFindUnique = jest.fn<
+const announcementFindFirst = jest.fn<
   Promise<Announcement | null>,
   [unknown]
 >();
@@ -29,7 +29,7 @@ jest.mock("@pathway/db", () => ({
       create: (arg: unknown) => announcementCreate(arg),
       update: (arg: unknown) => announcementUpdate(arg),
       delete: (arg: unknown) => announcementDelete(arg),
-      findUnique: (arg: unknown) => announcementFindUnique(arg),
+      findFirst: (arg: unknown) => announcementFindFirst(arg),
       findMany: (arg: unknown) => announcementFindMany(arg),
     },
   },
@@ -39,6 +39,14 @@ describe("AnnouncementsService", () => {
   let service: AnnouncementsService;
   const tenantId = "11111111-1111-1111-1111-111111111111";
   const id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  const baseAnnouncement: Announcement = {
+    id,
+    tenantId,
+    title: "Welcome",
+    body: "We are live!",
+    audience: "ALL",
+    publishedAt: null,
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -48,35 +56,33 @@ describe("AnnouncementsService", () => {
   describe("create", () => {
     it("creates an announcement (valid tenant)", async () => {
       tenantFindUnique.mockResolvedValue({ id: tenantId });
-      const created: Announcement = {
-        id,
-        tenantId,
-        title: "Welcome",
-        body: "We are live!",
-        audience: "ALL",
-        publishedAt: null,
-      };
-      announcementCreate.mockResolvedValue(created);
+      announcementCreate.mockResolvedValue(baseAnnouncement);
 
-      const res = await service.create({
+      const res = await service.create(
+        {
+          tenantId,
+          title: "Welcome",
+          body: "We are live!",
+          audience: "ALL",
+        },
         tenantId,
-        title: "Welcome",
-        body: "We are live!",
-        audience: "ALL",
-      });
+      );
 
       expect(tenantFindUnique).toHaveBeenCalledWith({
         where: { id: tenantId },
         select: { id: true },
       });
       expect(announcementCreate).toHaveBeenCalled();
-      expect(res).toEqual(created);
+      expect(res).toEqual(baseAnnouncement);
     });
 
     it("throws NotFound when tenant missing", async () => {
       tenantFindUnique.mockResolvedValue(null);
       await expect(
-        service.create({ tenantId, title: "t", body: "b", audience: "ALL" }),
+        service.create(
+          { tenantId, title: "t", body: "b", audience: "ALL" },
+          tenantId,
+        ),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(announcementCreate).not.toHaveBeenCalled();
     });
@@ -85,7 +91,10 @@ describe("AnnouncementsService", () => {
       tenantFindUnique.mockResolvedValue({ id: tenantId });
       announcementCreate.mockRejectedValue({ code: "P2003", message: "fk" });
       await expect(
-        service.create({ tenantId, title: "t", body: "b", audience: "ALL" }),
+        service.create(
+          { tenantId, title: "t", body: "b", audience: "ALL" },
+          tenantId,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
@@ -109,7 +118,14 @@ describe("AnnouncementsService", () => {
         audience: "PARENTS",
         publishedOnly: true,
       });
-      expect(announcementFindMany).toHaveBeenCalled();
+      expect(announcementFindMany).toHaveBeenCalledWith({
+        where: {
+          tenantId,
+          audience: "PARENTS",
+          publishedAt: { not: null },
+        },
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      });
       expect(Array.isArray(res)).toBe(true);
       expect(res[0].audience).toBe("PARENTS");
     });
@@ -117,22 +133,17 @@ describe("AnnouncementsService", () => {
 
   describe("findOne", () => {
     it("returns item when found", async () => {
-      const item: Announcement = {
-        id,
-        tenantId,
-        title: "t",
-        body: "b",
-        audience: "ALL",
-        publishedAt: null,
-      };
-      announcementFindUnique.mockResolvedValue(item);
-      const res = await service.findOne(id);
-      expect(res).toEqual(item);
+      announcementFindFirst.mockResolvedValue(baseAnnouncement);
+      const res = await service.findOne(id, tenantId);
+      expect(res).toEqual(baseAnnouncement);
+      expect(announcementFindFirst).toHaveBeenCalledWith({
+        where: { id, tenantId },
+      });
     });
 
     it("throws NotFound when missing", async () => {
-      announcementFindUnique.mockResolvedValue(null);
-      await expect(service.findOne(id)).rejects.toBeInstanceOf(
+      announcementFindFirst.mockResolvedValue(null);
+      await expect(service.findOne(id, tenantId)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
@@ -140,30 +151,45 @@ describe("AnnouncementsService", () => {
 
   describe("update", () => {
     it("updates and returns announcement", async () => {
+      announcementFindFirst.mockResolvedValue(baseAnnouncement);
       const updated: Announcement = {
-        id,
-        tenantId,
+        ...baseAnnouncement,
         title: "Updated",
-        body: "b",
         audience: "STAFF",
-        publishedAt: null,
       };
       announcementUpdate.mockResolvedValue(updated);
-      const res = await service.update(id, {
-        title: "Updated",
-        audience: "STAFF",
+      const res = await service.update(
+        id,
+        {
+          title: "Updated",
+          audience: "STAFF",
+        },
+        tenantId,
+      );
+      expect(announcementFindFirst).toHaveBeenCalledWith({
+        where: { id, tenantId },
+        select: { id: true },
       });
-      expect(announcementUpdate).toHaveBeenCalled();
+      expect(announcementUpdate).toHaveBeenCalledWith({
+        where: { id },
+        data: {
+          title: "Updated",
+          audience: "STAFF",
+          body: undefined,
+          publishedAt: undefined,
+        },
+      });
       expect(res).toEqual(updated);
     });
 
     it("maps P2025 to NotFound", async () => {
+      announcementFindFirst.mockResolvedValue(baseAnnouncement);
       announcementUpdate.mockRejectedValue({
         code: "P2025",
         message: "not found",
       });
       await expect(
-        service.update(id, { title: "Updated" }),
+        service.update(id, { title: "Updated" }, tenantId),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
@@ -171,24 +197,31 @@ describe("AnnouncementsService", () => {
   describe("remove", () => {
     it("deletes by id and returns payload", async () => {
       const deleted: { id: string } = { id };
+      announcementFindFirst.mockResolvedValue(baseAnnouncement);
       announcementDelete.mockResolvedValue(deleted);
-      const res = await service.remove(id);
+      const res = await service.remove(id, tenantId);
+      expect(announcementFindFirst).toHaveBeenCalledWith({
+        where: { id, tenantId },
+        select: { id: true },
+      });
       expect(res).toEqual(deleted);
     });
 
     it("maps P2025 to NotFound on delete", async () => {
+      announcementFindFirst.mockResolvedValue(baseAnnouncement);
       announcementDelete.mockRejectedValue({
         code: "P2025",
         message: "not found",
       });
-      await expect(service.remove(id)).rejects.toBeInstanceOf(
+      await expect(service.remove(id, tenantId)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
 
     it("maps P2003 to BadRequest on delete", async () => {
+      announcementFindFirst.mockResolvedValue(baseAnnouncement);
       announcementDelete.mockRejectedValue({ code: "P2003", message: "fk" });
-      await expect(service.remove(id)).rejects.toBeInstanceOf(
+      await expect(service.remove(id, tenantId)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });

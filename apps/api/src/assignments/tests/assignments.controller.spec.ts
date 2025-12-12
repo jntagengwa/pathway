@@ -4,6 +4,7 @@ import { AssignmentsService } from "../assignments.service";
 import { Role, AssignmentStatus } from "@pathway/db";
 import { CreateAssignmentDto } from "../dto/create-assignment.dto";
 import { UpdateAssignmentDto } from "../dto/update-assignment.dto";
+import { PathwayAuthGuard } from "@pathway/auth";
 
 type AssignmentShape = {
   id: string;
@@ -28,19 +29,26 @@ describe("AssignmentsController", () => {
     updatedAt: now,
   };
 
-  type FindAllQuery = Partial<{
-    sessionId: string;
-    userId: string;
-    role: Role;
-    status: AssignmentStatus;
-  }>;
+  type FindAllQuery = {
+    tenantId: string;
+    sessionId?: string;
+    userId?: string;
+    role?: Role;
+    status?: AssignmentStatus;
+  };
 
   type ServiceMock = {
-    create: jest.Mock<Promise<AssignmentShape>, [CreateAssignmentDto]>;
+    create: jest.Mock<Promise<AssignmentShape>, [CreateAssignmentDto, string]>;
     findAll: jest.Mock<Promise<readonly AssignmentShape[]>, [FindAllQuery]>;
-    findOne: jest.Mock<Promise<AssignmentShape>, [string]>;
-    update: jest.Mock<Promise<AssignmentShape>, [string, UpdateAssignmentDto]>;
-    remove: jest.Mock<Promise<{ deleted: boolean; id: string }>, [string]>;
+    findOne: jest.Mock<Promise<AssignmentShape>, [string, string]>;
+    update: jest.Mock<
+      Promise<AssignmentShape>,
+      [string, UpdateAssignmentDto, string]
+    >;
+    remove: jest.Mock<
+      Promise<{ deleted: boolean; id: string }>,
+      [string, string]
+    >;
   };
 
   let service: ServiceMock;
@@ -58,7 +66,10 @@ describe("AssignmentsController", () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AssignmentsController],
       providers: [{ provide: AssignmentsService, useValue: mock }],
-    }).compile();
+    })
+      .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AssignmentsController>(AssignmentsController);
     service = module.get(AssignmentsService) as unknown as ServiceMock;
@@ -74,8 +85,8 @@ describe("AssignmentsController", () => {
         status: AssignmentStatus.CONFIRMED,
       };
 
-      const result = await controller.create(dto);
-      expect(service.create).toHaveBeenCalledWith(dto);
+      const result = await controller.create(dto, "tenant-1");
+      expect(service.create).toHaveBeenCalledWith(dto, "tenant-1");
       expect(result).toEqual(assignment);
     });
   });
@@ -83,13 +94,17 @@ describe("AssignmentsController", () => {
   describe("findAll", () => {
     it("should return an array of assignments (optionally filtered)", async () => {
       service.findAll.mockResolvedValue([assignment]);
-      const result = await controller.findAll({
-        sessionId: assignment.sessionId,
-        userId: assignment.userId,
-        role: assignment.role,
-        status: assignment.status,
-      });
+      const result = await controller.findAll(
+        {
+          sessionId: assignment.sessionId,
+          userId: assignment.userId,
+          role: assignment.role,
+          status: assignment.status,
+        },
+        "tenant-1",
+      );
       expect(service.findAll).toHaveBeenCalledWith({
+        tenantId: "tenant-1",
         sessionId: assignment.sessionId,
         userId: assignment.userId,
         role: assignment.role,
@@ -102,8 +117,8 @@ describe("AssignmentsController", () => {
   describe("findOne", () => {
     it("should return a single assignment", async () => {
       service.findOne.mockResolvedValue(assignment);
-      const result = await controller.findOne(assignment.id);
-      expect(service.findOne).toHaveBeenCalledWith(assignment.id);
+      const result = await controller.findOne(assignment.id, "tenant-1");
+      expect(service.findOne).toHaveBeenCalledWith(assignment.id, "tenant-1");
       expect(result).toEqual(assignment);
     });
   });
@@ -118,8 +133,12 @@ describe("AssignmentsController", () => {
       service.update.mockResolvedValue(updated);
       const dto: UpdateAssignmentDto = { status: AssignmentStatus.DECLINED };
 
-      const result = await controller.update(assignment.id, dto);
-      expect(service.update).toHaveBeenCalledWith(assignment.id, dto);
+      const result = await controller.update(assignment.id, dto, "tenant-1");
+      expect(service.update).toHaveBeenCalledWith(
+        assignment.id,
+        dto,
+        "tenant-1",
+      );
       expect(result).toEqual(updated);
     });
   });
@@ -129,8 +148,8 @@ describe("AssignmentsController", () => {
       const deletionResult = { deleted: true, id: assignment.id };
       service.remove.mockResolvedValue(deletionResult);
 
-      const result = await controller.remove(assignment.id);
-      expect(service.remove).toHaveBeenCalledWith(assignment.id);
+      const result = await controller.remove(assignment.id, "tenant-1");
+      expect(service.remove).toHaveBeenCalledWith(assignment.id, "tenant-1");
       expect(result).toEqual(deletionResult);
     });
   });

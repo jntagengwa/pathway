@@ -11,12 +11,15 @@ export type Audience = "ALL" | "PARENTS" | "STAFF";
 
 @Injectable()
 export class AnnouncementsService {
-  async create(raw: unknown) {
+  async create(raw: unknown, tenantId: string) {
     const dto = await createAnnouncementDto.parseAsync(raw);
+    if (dto.tenantId !== tenantId) {
+      throw new BadRequestException("tenantId must match current tenant");
+    }
 
     // Ensure tenant exists BEFORE attempting the create so 404 is not swallowed by catch
     const tenant = await prisma.tenant.findUnique({
-      where: { id: dto.tenantId },
+      where: { id: tenantId },
       select: { id: true },
     });
     if (!tenant) throw new NotFoundException("Tenant not found");
@@ -24,7 +27,7 @@ export class AnnouncementsService {
     try {
       return await prisma.announcement.create({
         data: {
-          tenantId: dto.tenantId,
+          tenantId,
           title: dto.title,
           body: dto.body,
           audience: dto.audience,
@@ -36,15 +39,13 @@ export class AnnouncementsService {
     }
   }
 
-  async findAll(
-    filters: {
-      tenantId?: string;
-      audience?: Audience;
-      publishedOnly?: boolean;
-    } = {},
-  ) {
+  async findAll(filters: {
+    tenantId: string;
+    audience?: Audience;
+    publishedOnly?: boolean;
+  }) {
     const where: Prisma.AnnouncementWhereInput = {
-      ...(filters.tenantId ? { tenantId: filters.tenantId } : {}),
+      tenantId: filters.tenantId,
       ...(filters.audience ? { audience: filters.audience } : {}),
       ...(filters.publishedOnly ? { publishedAt: { not: null } } : {}),
     };
@@ -55,14 +56,19 @@ export class AnnouncementsService {
     });
   }
 
-  async findOne(id: string) {
-    const a = await prisma.announcement.findUnique({ where: { id } });
+  async findOne(id: string, tenantId: string) {
+    const a = await prisma.announcement.findFirst({ where: { id, tenantId } });
     if (!a) throw new NotFoundException("Announcement not found");
     return a;
   }
 
-  async update(id: string, raw: unknown) {
+  async update(id: string, raw: unknown, tenantId: string) {
     const dto = await updateAnnouncementDto.parseAsync(raw);
+    const existing = await prisma.announcement.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException("Announcement not found");
     try {
       return await prisma.announcement.update({
         where: { id },
@@ -78,7 +84,12 @@ export class AnnouncementsService {
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string, tenantId: string) {
+    const existing = await prisma.announcement.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException("Announcement not found");
     try {
       return await prisma.announcement.delete({ where: { id } });
     } catch (e: unknown) {

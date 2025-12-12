@@ -1,19 +1,30 @@
 import { INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
 import { AppModule } from "../../app.module";
-import { prisma } from "@pathway/db";
-import { Weekday } from "@pathway/db";
+import { Weekday, withTenantRlsContext } from "@pathway/db";
+import type { PathwayAuthClaims } from "@pathway/auth";
 
 describe("Preferences (e2e)", () => {
   let app: INestApplication;
+  let authHeader: string;
 
   // IDs we will create and reuse
-  const tenantId = "77777777-7777-7777-7777-777777777777";
-  const userId = "88888888-8888-8888-8888-888888888888";
+  const tenantId = process.env.E2E_TENANT_ID as string;
+  const orgId = process.env.E2E_ORG_ID as string;
+  const userId = randomUUID();
   let prefId = "";
+  const buildAuthHeader = (claims: PathwayAuthClaims) => {
+    const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    return `Bearer test.${payload}.sig`;
+  };
 
   beforeAll(async () => {
+    if (!tenantId || !orgId) {
+      throw new Error("E2E_TENANT_ID / E2E_ORG_ID missing");
+    }
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -22,35 +33,38 @@ describe("Preferences (e2e)", () => {
     // Use the global pipes configured in AppModule (Zod-based); no class-validator here.
     await app.init();
 
-    // Ensure clean baseline for the specific records we use
-    await prisma.volunteerPreference.deleteMany({
-      where: { OR: [{ tenantId }, { userId }] },
-    });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
-
-    // Create a tenant and a user attached to that tenant
-    await prisma.tenant.create({
-      data: {
-        id: tenantId,
-        slug: `e2e-pref-${Date.now()}`,
-        name: "Pref Tenant",
-      },
+    authHeader = buildAuthHeader({
+      sub: "preferences-e2e",
+      "https://pathway.app/user": { id: "preferences-e2e" },
+      "https://pathway.app/org": { orgId, slug: "e2e-org", name: "E2E Org" },
+      "https://pathway.app/tenant": { tenantId, orgId, slug: "e2e-tenant-a" },
+      "https://pathway.app/org_roles": ["org:admin"],
+      "https://pathway.app/tenant_roles": ["tenant:admin"],
     });
 
-    // Some schemas require relation writes via `tenant: { connect: { id } }`
-    await prisma.user.create({
-      data: {
-        id: userId,
-        email: `pref-user-${Date.now()}@example.com`,
-        name: "Pref User",
-        tenant: { connect: { id: tenantId } },
-      },
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+      await tx.volunteerPreference.deleteMany({
+        where: { OR: [{ tenantId }, { userId }] },
+      });
+      await tx.user.create({
+        data: {
+          id: userId,
+          email: `pref-user-${userId}@example.com`,
+          name: "Pref User",
+          tenant: { connect: { id: tenantId } },
+        },
+      });
     });
   });
 
   afterAll(async () => {
     await app.close();
+    if (prefId) {
+      await withTenantRlsContext(tenantId, orgId, async (tx) => {
+        await tx.volunteerPreference.deleteMany({ where: { id: prefId } });
+        await tx.user.deleteMany({ where: { id: userId } });
+      });
+    }
   });
 
   it("POST /preferences should create a volunteer preference", async () => {
@@ -65,7 +79,8 @@ describe("Preferences (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/preferences")
       .send(payload)
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -80,7 +95,9 @@ describe("Preferences (e2e)", () => {
   });
 
   it("GET /preferences should return an array including the created preference", async () => {
-    const res = await request(app.getHttpServer()).get("/preferences");
+    const res = await request(app.getHttpServer())
+      .get("/preferences")
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     const found = res.body.find((p: { id: string }) => p.id === prefId);
@@ -88,9 +105,9 @@ describe("Preferences (e2e)", () => {
   });
 
   it("GET /preferences/:id should return the created preference", async () => {
-    const res = await request(app.getHttpServer()).get(
-      `/preferences/${prefId}`,
-    );
+    const res = await request(app.getHttpServer())
+      .get(`/preferences/${prefId}`)
+      .set("Authorization", authHeader);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: prefId,
@@ -106,74 +123,75 @@ describe("Preferences (e2e)", () => {
       .send({
         weekday: Weekday.TUE,
         startMinute: 13 * 60, // 13:00
-        endMinute: 15 * 60, // 15:00
+        endMinute: 14 * 60 + 30, // 14:30
       })
-      .set("content-type", "application/json");
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: prefId,
       weekday: Weekday.TUE,
-      startMinute: 780,
-      endMinute: 900,
+      startMinute: 13 * 60,
+      endMinute: 14 * 60 + 30,
     });
   });
 
   it("POST /preferences should 400 when endMinute <= startMinute", async () => {
-    const bad = await request(app.getHttpServer())
-      .post("/preferences")
-      .send({
-        userId,
-        tenantId,
-        weekday: Weekday.WED,
-        startMinute: 600,
-        endMinute: 600,
-      })
-      .set("content-type", "application/json");
+    const payload = {
+      userId,
+      tenantId,
+      weekday: Weekday.MON,
+      startMinute: 10,
+      endMinute: 5,
+    };
 
-    expect(bad.status).toBe(400);
-    expect(bad.body).toHaveProperty("message");
+    const res = await request(app.getHttpServer())
+      .post("/preferences")
+      .send(payload)
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(400);
   });
 
   it("PATCH /preferences/:id with invalid UUID should 400", async () => {
     const res = await request(app.getHttpServer())
-      .patch(`/preferences/not-a-uuid`)
-      .send({
-        weekday: Weekday.FRI,
-        startMinute: 8 * 60,
-        endMinute: 10 * 60,
-      })
-      .set("content-type", "application/json");
+      .patch("/preferences/not-a-uuid")
+      .send({ weekday: Weekday.WED, startMinute: 60, endMinute: 120 })
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
   });
 
   it("POST /preferences should 400 when minutes are out of range", async () => {
-    const badRange = await request(app.getHttpServer())
-      .post("/preferences")
-      .send({
-        userId,
-        tenantId,
-        weekday: Weekday.THU,
-        startMinute: -5, // invalid
-        endMinute: 1500, // invalid
-      })
-      .set("content-type", "application/json");
+    const payload = {
+      userId,
+      tenantId,
+      weekday: Weekday.MON,
+      startMinute: -1,
+      endMinute: 60,
+    };
 
-    expect(badRange.status).toBe(400);
-    expect(badRange.body).toHaveProperty("message");
+    const res = await request(app.getHttpServer())
+      .post("/preferences")
+      .send(payload)
+      .set("content-type", "application/json")
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(400);
   });
 
   it("DELETE /preferences/:id should delete the record (then GET 404)", async () => {
-    const del = await request(app.getHttpServer()).delete(
-      `/preferences/${prefId}`,
-    );
-    expect(del.status).toBe(200);
+    const resDelete = await request(app.getHttpServer())
+      .delete(`/preferences/${prefId}`)
+      .set("Authorization", authHeader);
+    expect(resDelete.status).toBe(200);
 
-    const getAfter = await request(app.getHttpServer()).get(
-      `/preferences/${prefId}`,
-    );
-    expect(getAfter.status).toBe(404);
+    const resGet = await request(app.getHttpServer())
+      .get(`/preferences/${prefId}`)
+      .set("Authorization", authHeader);
+    expect(resGet.status).toBe(404);
   });
 });

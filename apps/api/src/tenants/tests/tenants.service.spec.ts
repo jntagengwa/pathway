@@ -9,6 +9,9 @@ jest.mock("@pathway/db", () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    org: {
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -17,6 +20,7 @@ import { prisma } from "@pathway/db";
 const findMany = prisma.tenant.findMany as unknown as jest.Mock;
 const findUnique = prisma.tenant.findUnique as unknown as jest.Mock;
 const create = prisma.tenant.create as unknown as jest.Mock;
+const orgFindUnique = prisma.org.findUnique as unknown as jest.Mock;
 
 describe("TenantsService", () => {
   let svc: TenantsService;
@@ -28,9 +32,12 @@ describe("TenantsService", () => {
     createdAt: new Date(),
   };
 
+  const ORG_ID = "11111111-1111-1111-1111-111111111111";
+
   beforeEach(() => {
     jest.clearAllMocks();
     svc = new TenantsService();
+    orgFindUnique.mockResolvedValue({ id: ORG_ID });
   });
 
   describe("list", () => {
@@ -82,12 +89,17 @@ describe("TenantsService", () => {
       const result = await svc.create({
         name: "New Church",
         slug: "New-Church",
+        orgId: ORG_ID,
       });
       expect(findUnique).toHaveBeenCalledWith({
         where: { slug: "new-church" },
       });
       expect(create).toHaveBeenCalledWith({
-        data: { name: "New Church", slug: "new-church" },
+        data: {
+          name: "New Church",
+          slug: "new-church",
+          org: { connect: { id: ORG_ID } },
+        },
         select: {
           id: true,
           name: true,
@@ -95,6 +107,10 @@ describe("TenantsService", () => {
           createdAt: true,
           updatedAt: true,
         },
+      });
+      expect(orgFindUnique).toHaveBeenCalledWith({
+        where: { id: ORG_ID },
+        select: { id: true },
       });
       expect(result.slug).toBe("new-church");
     });
@@ -104,6 +120,7 @@ describe("TenantsService", () => {
       create.mockResolvedValue({ ...tenant, slug: "demo-with-links" });
 
       const dto = {
+        orgId: ORG_ID,
         name: "Demo With Links",
         slug: "demo-with-links",
         users: [
@@ -123,6 +140,7 @@ describe("TenantsService", () => {
 
       expect(create).toHaveBeenCalledWith({
         data: {
+          org: { connect: { id: ORG_ID } },
           name: "Demo With Links",
           slug: "demo-with-links",
           users: {
@@ -154,13 +172,17 @@ describe("TenantsService", () => {
         },
       });
 
+      expect(orgFindUnique).toHaveBeenCalledWith({
+        where: { id: ORG_ID },
+        select: { id: true },
+      });
       expect(result.slug).toBe("demo-with-links");
     });
 
     it("throws BadRequest when slug already exists (pre-check)", async () => {
       findUnique.mockResolvedValue(tenant); // duplicate
       await expect(
-        svc.create({ name: "Dup", slug: "demo-church" }),
+        svc.create({ name: "Dup", slug: "demo-church", orgId: ORG_ID }),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(create).not.toHaveBeenCalled();
     });
@@ -173,7 +195,7 @@ describe("TenantsService", () => {
       create.mockRejectedValue(p2002);
 
       await expect(
-        svc.create({ name: "Race", slug: "race-church" }),
+        svc.create({ name: "Race", slug: "race-church", orgId: ORG_ID }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

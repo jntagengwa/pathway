@@ -6,9 +6,7 @@ export const createVolunteerPreferenceDto = z
     userId: z
       .string({ required_error: "userId is required" })
       .uuid("userId must be a valid uuid"),
-    tenantId: z
-      .string({ required_error: "tenantId is required" })
-      .uuid("tenantId must be a valid uuid"),
+    tenantId: z.string().uuid("tenantId must be a valid uuid").optional(),
     weekday: z.nativeEnum(Weekday, {
       required_error: "weekday is required",
       invalid_type_error: "weekday must be a valid Weekday",

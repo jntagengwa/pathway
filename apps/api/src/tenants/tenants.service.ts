@@ -55,6 +55,15 @@ export class TenantsService {
     };
     const parsed = createTenantDto.parse(normalized);
 
+    // Ensure the org exists (Tenant requires an Org)
+    const org = await prisma.org.findUnique({
+      where: { id: parsed.orgId },
+      select: { id: true },
+    });
+    if (!org) {
+      throw new BadRequestException("org not found");
+    }
+
     // Pre-check for unique slug to provide a clean error (still race-safe with unique index)
     const exists = await prisma.tenant.findUnique({
       where: { slug: parsed.slug },
@@ -86,6 +95,7 @@ export class TenantsService {
         data: {
           name: parsed.name,
           slug: parsed.slug,
+          org: { connect: { id: parsed.orgId } },
           ...(usersConnect ? { users: usersConnect } : {}),
           ...(groupsConnect ? { groups: groupsConnect } : {}),
           ...(childrenConnect ? { children: childrenConnect } : {}),

@@ -11,7 +11,7 @@ export class SwapsService {
   /**
    * Create a swap request. Validates related records exist and basic invariants.
    */
-  async create(dto: CreateSwapDto) {
+  async create(dto: CreateSwapDto, tenantId: string) {
     // Basic invariant: ACCEPTED swaps must specify a target user
     if (dto.status === SwapStatus.ACCEPTED && !dto.toUserId) {
       throw new BadRequestException(
@@ -21,17 +21,17 @@ export class SwapsService {
 
     // Validate foreign keys
     const [assignment, fromUser, toUser] = await Promise.all([
-      prisma.assignment.findUnique({
-        where: { id: dto.assignmentId },
+      prisma.assignment.findFirst({
+        where: { id: dto.assignmentId, session: { tenantId } },
         select: { id: true },
       }),
-      prisma.user.findUnique({
-        where: { id: dto.fromUserId },
+      prisma.user.findFirst({
+        where: { id: dto.fromUserId, tenantId },
         select: { id: true },
       }),
       dto.toUserId
-        ? prisma.user.findUnique({
-            where: { id: dto.toUserId },
+        ? prisma.user.findFirst({
+            where: { id: dto.toUserId, tenantId },
             select: { id: true },
           })
         : Promise.resolve(null),
@@ -55,7 +55,8 @@ export class SwapsService {
   /**
    * List swap requests with optional filters.
    */
-  async findAll(filter?: {
+  async findAll(filter: {
+    tenantId: string;
     assignmentId?: string;
     fromUserId?: string;
     toUserId?: string;
@@ -67,6 +68,7 @@ export class SwapsService {
         fromUserId: filter?.fromUserId,
         toUserId: filter?.toUserId,
         status: filter?.status,
+        assignment: { session: { tenantId: filter.tenantId } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -75,8 +77,10 @@ export class SwapsService {
   /**
    * Get one swap request by id.
    */
-  async findOne(id: string) {
-    const found = await prisma.swapRequest.findUnique({ where: { id } });
+  async findOne(id: string, tenantId: string) {
+    const found = await prisma.swapRequest.findFirst({
+      where: { id, assignment: { session: { tenantId } } },
+    });
     if (!found) throw new NotFoundException("SwapRequest not found");
     return found;
   }
@@ -84,8 +88,10 @@ export class SwapsService {
   /**
    * Update a swap request.
    */
-  async update(id: string, dto: UpdateSwapDto) {
-    const existing = await prisma.swapRequest.findUnique({ where: { id } });
+  async update(id: string, dto: UpdateSwapDto, tenantId: string) {
+    const existing = await prisma.swapRequest.findFirst({
+      where: { id, assignment: { session: { tenantId } } },
+    });
     if (!existing) throw new NotFoundException("SwapRequest not found");
 
     // If status transitions to ACCEPTED, ensure we have a toUserId either incoming or existing
@@ -97,8 +103,8 @@ export class SwapsService {
     }
 
     if (dto.toUserId) {
-      const toUser = await prisma.user.findUnique({
-        where: { id: dto.toUserId },
+      const toUser = await prisma.user.findFirst({
+        where: { id: dto.toUserId, tenantId },
       });
       if (!toUser) throw new NotFoundException("toUser not found");
     }
@@ -115,7 +121,16 @@ export class SwapsService {
   /**
    * Delete a swap request.
    */
-  async remove(id: string) {
-    return prisma.swapRequest.delete({ where: { id } });
+  async remove(id: string, tenantId: string) {
+    const existing = await prisma.swapRequest.findFirst({
+      where: { id, assignment: { session: { tenantId } } },
+    });
+    if (!existing) throw new NotFoundException("SwapRequest not found");
+
+    await prisma.swapRequest.deleteMany({
+      where: { id, assignment: { session: { tenantId } } },
+    });
+
+    return existing;
   }
 }
