@@ -45,7 +45,6 @@ const unit = {
     "\\.e2e(\\.|-)spec\\.ts$",
   ],
   setupFilesAfterEnv: ["<rootDir>/test.setup.unit.ts"],
-  testSequencer: "<rootDir>/test.sequencer.ts",
 };
 
 // E2E: use only testMatch, never testRegex
@@ -57,7 +56,6 @@ const e2e = {
   setupFilesAfterEnv: ["<rootDir>/test.setup.e2e.ts"],
   maxWorkers: 1,
   testTimeout: 30000,
-  testSequencer: "<rootDir>/test.sequencer.ts",
 };
 
 export default { projects: [unit, e2e] };

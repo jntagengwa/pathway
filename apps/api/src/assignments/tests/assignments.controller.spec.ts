@@ -5,6 +5,7 @@ import { Role, AssignmentStatus } from "@pathway/db";
 import { CreateAssignmentDto } from "../dto/create-assignment.dto";
 import { UpdateAssignmentDto } from "../dto/update-assignment.dto";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { EntitlementsEnforcementService } from "../../billing/entitlements-enforcement.service";
 
 type AssignmentShape = {
   id: string;
@@ -52,6 +53,12 @@ describe("AssignmentsController", () => {
   };
 
   let service: ServiceMock;
+  let enforcement: jest.Mocked<
+    Pick<
+      EntitlementsEnforcementService,
+      "checkAv30ForOrg" | "assertWithinHardCap"
+    >
+  >;
 
   const createMockService = (): ServiceMock => ({
     create: jest.fn(),
@@ -63,9 +70,23 @@ describe("AssignmentsController", () => {
 
   beforeEach(async () => {
     const mock = createMockService();
+    const enforcementMock: typeof enforcement = {
+      checkAv30ForOrg: jest.fn().mockResolvedValue({
+        orgId: "org-123",
+        currentAv30: 10,
+        av30Cap: 100,
+        status: "OK",
+        graceUntil: null,
+        messageCode: "av30.ok",
+      }),
+      assertWithinHardCap: jest.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AssignmentsController],
-      providers: [{ provide: AssignmentsService, useValue: mock }],
+      providers: [
+        { provide: AssignmentsService, useValue: mock },
+        { provide: EntitlementsEnforcementService, useValue: enforcementMock },
+      ],
     })
       .overrideGuard(PathwayAuthGuard)
       .useValue({ canActivate: () => true })
@@ -73,6 +94,9 @@ describe("AssignmentsController", () => {
 
     controller = module.get<AssignmentsController>(AssignmentsController);
     service = module.get(AssignmentsService) as unknown as ServiceMock;
+    enforcement = module.get(
+      EntitlementsEnforcementService,
+    ) as unknown as typeof enforcementMock;
   });
 
   describe("create", () => {
@@ -85,9 +109,25 @@ describe("AssignmentsController", () => {
         status: AssignmentStatus.CONFIRMED,
       };
 
-      const result = await controller.create(dto, "tenant-1");
+      const result = await controller.create(dto, "tenant-1", "org-123");
       expect(service.create).toHaveBeenCalledWith(dto, "tenant-1");
       expect(result).toEqual(assignment);
+    });
+
+    it("blocks create when hard cap is reached", async () => {
+      enforcement.assertWithinHardCap.mockImplementation(() => {
+        throw new Error("HARD_CAP");
+      });
+      const dto: CreateAssignmentDto = {
+        sessionId: assignment.sessionId,
+        userId: assignment.userId,
+        role: assignment.role,
+      };
+
+      await expect(
+        controller.create(dto, "tenant-1", "org-123"),
+      ).rejects.toThrow("HARD_CAP");
+      expect(service.create).not.toHaveBeenCalled();
     });
   });
 

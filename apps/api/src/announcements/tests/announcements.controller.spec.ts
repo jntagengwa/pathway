@@ -2,6 +2,10 @@ import { Test } from "@nestjs/testing";
 import { AnnouncementsController } from "../announcements.controller";
 import { AnnouncementsService } from "../announcements.service";
 import { PathwayAuthGuard } from "@pathway/auth";
+import {
+  Av30HardCapExceededError,
+  EntitlementsEnforcementService,
+} from "../../billing/entitlements-enforcement.service";
 
 // Types used for strong typing in tests
 type Audience = "ALL" | "PARENTS" | "STAFF";
@@ -47,17 +51,34 @@ const mockService = () => ({
   remove: jest.fn<Promise<{ id: string }>, [string, string]>(),
 });
 
+const mockEnforcement = () => ({
+  checkAv30ForOrg: jest.fn().mockResolvedValue({
+    status: "OK",
+    orgId: "org-1",
+    currentAv30: 10,
+    av30Cap: 100,
+    graceUntil: null,
+    messageCode: "av30.ok",
+  }),
+  assertWithinHardCap: jest.fn(),
+});
+
 describe("AnnouncementsController", () => {
   let controller: AnnouncementsController;
   let service: ReturnType<typeof mockService>;
+  let enforcement: ReturnType<typeof mockEnforcement>;
 
   const tenantId = "11111111-1111-1111-1111-111111111111";
+  const orgId = "org-123";
   const id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [AnnouncementsController],
-      providers: [{ provide: AnnouncementsService, useFactory: mockService }],
+      providers: [
+        { provide: AnnouncementsService, useFactory: mockService },
+        { provide: EntitlementsEnforcementService, useFactory: mockEnforcement },
+      ],
     })
       .overrideGuard(PathwayAuthGuard)
       .useValue({ canActivate: () => true })
@@ -65,6 +86,7 @@ describe("AnnouncementsController", () => {
 
     controller = moduleRef.get(AnnouncementsController);
     service = moduleRef.get(AnnouncementsService);
+    enforcement = moduleRef.get(EntitlementsEnforcementService);
   });
 
   describe("create", () => {
@@ -87,7 +109,7 @@ describe("AnnouncementsController", () => {
 
       service.create.mockResolvedValue(created);
 
-      const res = await controller.create(body as unknown, tenantId);
+      const res = await controller.create(body as unknown, tenantId, orgId);
       expect(service.create).toHaveBeenCalledTimes(1);
       const [arg, argTenant] = service.create.mock.calls[0] as [
         {
@@ -176,6 +198,7 @@ describe("AnnouncementsController", () => {
         { id } as unknown,
         patch as unknown,
         tenantId,
+        orgId,
       );
       expect(service.update).toHaveBeenCalledTimes(1);
       const [, argDto, argTenant] = service.update.mock.calls[0];
@@ -196,5 +219,33 @@ describe("AnnouncementsController", () => {
       expect(service.remove).toHaveBeenCalledWith(id, tenantId);
       expect(res).toEqual(deleted);
     });
+  });
+
+  it("blocks create when hard cap is hit", async () => {
+    enforcement.checkAv30ForOrg.mockResolvedValue({
+      status: "HARD_CAP",
+      orgId,
+      currentAv30: 130,
+      av30Cap: 100,
+      graceUntil: null,
+      messageCode: "av30.hard_cap",
+    });
+    enforcement.assertWithinHardCap.mockImplementation(() => {
+      throw new Av30HardCapExceededError(orgId);
+    });
+
+    await expect(
+      controller.create(
+        {
+          tenantId,
+          title: "Cap hit",
+          body: "nope",
+          audience: "ALL",
+        } as unknown,
+        tenantId,
+        orgId,
+      ),
+    ).rejects.toBeInstanceOf(Av30HardCapExceededError);
+    expect(service.create).not.toHaveBeenCalled();
   });
 });

@@ -19,20 +19,28 @@ import {
   type UpdateAssignmentDto,
 } from "./dto/update-assignment.dto";
 import { AssignmentStatus, Role } from "@pathway/db";
-import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
+import { CurrentTenant, PathwayAuthGuard, CurrentOrg } from "@pathway/auth";
 import { UseGuards } from "@nestjs/common";
+import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
 
 @UseGuards(PathwayAuthGuard)
 @Controller("assignments")
 export class AssignmentsController {
-  constructor(private readonly assignmentsService: AssignmentsService) {}
+  constructor(
+    private readonly assignmentsService: AssignmentsService,
+    private readonly enforcement: EntitlementsEnforcementService,
+  ) {}
 
   @Post()
   async create(
     @Body() body: unknown,
     @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
   ) {
     const dto: CreateAssignmentDto = createAssignmentDto.parse(body);
+    const av30 = await this.enforcement.checkAv30ForOrg(orgId);
+    this.enforcement.assertWithinHardCap(av30);
+    // TODO(Epic4-UI): Surface av30 status in response metadata for warnings
     return this.assignmentsService.create(dto, tenantId);
   }
 
