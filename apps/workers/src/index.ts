@@ -1,3 +1,5 @@
 export * from "./av30/av30-compute.service";
 export * from "./av30/compute-av30.job";
+export * from "./retention/retention.service";
+export * from "./retention/retention-config.service";
 
