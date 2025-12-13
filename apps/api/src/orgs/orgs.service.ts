@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
@@ -36,6 +37,7 @@ type RegisterOrgResult = {
 
 @Injectable()
 export class OrgsService {
+  private readonly logger = new Logger(OrgsService.name);
   constructor(private readonly billing: BillingService) {}
 
   /**
@@ -46,9 +48,7 @@ export class OrgsService {
    * - Leaves billing/admin bootstrap to follow-up services (hook points noted)
    */
   async register(raw: unknown): Promise<RegisterOrgResult> {
-    console.log("[OrgsService] Raw input to register:", raw);
     const dto = await registerOrgDto.parseAsync(raw);
-    console.log("[OrgsService] Parsed DTO:", dto);
 
     try {
       const result = await prisma.$transaction(async (tx) => {
@@ -157,20 +157,23 @@ export class OrgsService {
           };
         }
 
-        const finalResult = {
+        return {
           org,
           initialTenant: createdTenant,
           admin: adminOutcome,
           billing: billingOutcome,
         };
-        console.log("[OrgsService] Final result:", finalResult);
-
-        return finalResult;
       });
 
       return result;
     } catch (e: unknown) {
-      console.error("[OrgsService] Error in register:", e);
+      this.logger.error("Failed to register org", {
+        orgSlug: dto.org?.slug,
+        code:
+          typeof e === "object" && e !== null && "code" in e
+            ? (e as { code?: string }).code ?? "unknown"
+            : "unknown",
+      });
       this.handlePrismaError(e);
     }
   }
