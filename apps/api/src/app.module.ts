@@ -22,6 +22,7 @@ import { SwapsModule } from "./swaps/swaps.module";
 import { AnnouncementsModule } from "./announcements/announcements.module";
 import { NotesModule } from "./notes/notes.module";
 import { ConcernsModule } from "./concerns/concerns.module";
+import { DsarModule } from "./dsar/dsar.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ConcernsModule } from "./concerns/concerns.module";
     AnnouncementsModule,
     NotesModule,
     ConcernsModule,
+    DsarModule,
     OrgsModule,
     BillingModule,
   ],
