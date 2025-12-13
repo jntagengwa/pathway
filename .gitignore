@@ -35,3 +35,4 @@ pgdata/
 
 # Turborepo
 .turbo/
+**/.turbo/
