@@ -10,11 +10,47 @@
   Configuration Documentation:
   https://jestjs.io/docs/configuration
 
-PASS unit src/preferences/tests/preference.controller.spec.ts
+PASS unit src/lessons/tests/lessons.controller.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/sessions/tests/sessions.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/av30/tests/av30-activity.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -28,47 +64,11 @@ PASS unit src/preferences/tests/preference.controller.spec.ts
 
       at Object.<anonymous> (test.setup.unit.ts:88:13)
 
-PASS unit src/notes/tests/notes.controller.spec.ts
+PASS unit src/concerns/tests/concerns.controller.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/sessions/tests/sessions.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/preferences/tests/preferences.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -82,16 +82,16 @@ PASS unit src/preferences/tests/preferences.service.spec.ts
 
       at Object.<anonymous> (test.setup.unit.ts:88:13)
 
-PASS unit src/lessons/tests/lessons.controller.spec.ts
+PASS unit src/preferences/tests/preferences.service.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -104,30 +104,12 @@ PASS unit src/assignments/tests/assignments.controller.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/av30/tests/av30-activity.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -136,16 +118,16 @@ PASS unit src/av30/tests/av30-activity.service.spec.ts
 
       at Object.<anonymous> (test.setup.unit.ts:88:13)
 
-PASS unit src/concerns/tests/concerns.controller.spec.ts
+PASS unit src/notes/tests/notes.controller.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -158,12 +140,12 @@ PASS e2e src/concerns/tests/concerns.e2e.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -186,193 +168,7 @@ PASS e2e src/assignments/tests/assignments.e2e.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/swaps/tests/swaps.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/announcements/tests/announcements.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS unit src/attendance/tests/attendance.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS e2e src/sessions/tests/sessions.e2e.spec.ts
-  ● Console
-
-    console.log
       [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/users/tests/users.e2e-spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/preferences/tests/preferences.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/attendance/tests/attendance.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -396,16 +192,16 @@ PASS e2e src/attendance/tests/attendance.e2e.spec.ts
 
       at Object.<anonymous> (test.setup.e2e.ts:102:11)
 
-PASS e2e src/tests/rls/pathway-rls.e2e.spec.ts
+PASS e2e src/announcements/tests/announcements.e2e.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  enable debug logging with { debug: true }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -424,11 +220,11 @@ PASS e2e src/tests/rls/pathway-rls.e2e.spec.ts
 
       at Object.<anonymous> (test.setup.e2e.ts:102:11)
 
-PASS e2e src/children/tests/children.e2e.spec.ts
+PASS e2e src/swaps/tests/swaps.e2e.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -456,12 +252,12 @@ PASS unit src/users/tests/users.service.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -474,12 +270,500 @@ PASS unit src/notes/tests/notes.service.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/lessons/tests/lessons.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS e2e src/groups/tests/groups.e2e-spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS unit src/preferences/tests/preference.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS e2e src/children/tests/children.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS e2e src/notes/tests/notes.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS e2e src/sessions/tests/sessions.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS e2e src/attendance/tests/attendance.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS e2e src/preferences/tests/preferences.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
       [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS e2e src/lessons/tests/lessons.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS e2e src/health/tests/health.e2e-spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS unit src/swaps/tests/swaps.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/users/tests/users.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS e2e src/tenants/tests/tenants.e2e-spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS unit src/attendance/tests/attendance.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS e2e src/billing/tests/billing.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS unit src/swaps/tests/swaps.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/sessions/tests/sessions.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS e2e src/tests/rls/pathway-rls.e2e.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS unit src/children/tests/children.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/announcements/tests/announcements.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/tenants/tests/tenants.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -492,12 +776,12 @@ PASS e2e src/orgs/tests/orgs.e2e.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -522,89 +806,15 @@ PASS e2e src/orgs/tests/orgs.e2e.spec.ts
       at OrgsController.getBySlug (src/orgs/orgs.controller.ts:75:13)
 
     console.log
-      [OrgsController] Incoming params: { slug: 'unknown-1765581191182' }
+      [OrgsController] Incoming params: { slug: 'unknown-1765581366809' }
 
       at OrgsController.getBySlug (src/orgs/orgs.controller.ts:75:13)
 
-PASS unit src/swaps/tests/swaps.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS e2e src/groups/tests/groups.e2e-spec.ts
+PASS e2e src/users/tests/users.e2e-spec.ts
   ● Console
 
     console.log
       [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/lessons/tests/lessons.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS unit src/tenants/tests/tenants.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -614,11 +824,21 @@ PASS unit src/tenants/tests/tenants.controller.spec.ts
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
 
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
+      at logDbUrl (test.setup.e2e.ts:40:13)
 
-PASS unit src/lessons/tests/lessons.service.spec.ts
+    console.log
+      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
+
+      at logDbUrl (test.setup.e2e.ts:40:13)
+
+    console.log
+      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.e2e.ts:102:11)
+
+PASS unit src/groups/tests/groups.service.spec.ts
   ● Console
 
     console.log
@@ -627,227 +847,7 @@ PASS unit src/lessons/tests/lessons.service.spec.ts
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/groups/tests/groups.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/sessions/tests/sessions.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS e2e src/notes/tests/notes.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/tenants/tests/tenants.e2e-spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS unit src/announcements/tests/announcements.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS e2e src/health/tests/health.e2e-spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS e2e src/billing/tests/billing.e2e.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.e2e] Base URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Worker URL: user=pathway_test_user host=localhost:5433 db=pathway_test_e2e schema=app
-
-      at logDbUrl (test.setup.e2e.ts:40:13)
-
-    console.log
-      [test.setup.e2e] Skipping prisma migrate reset; assuming schema is pre-migrated. Set E2E_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.e2e.ts:102:11)
-
-PASS unit src/common/safeguarding/safeguarding.guard.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/groups/tests/groups.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/children/tests/children.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -860,12 +860,12 @@ PASS unit src/orgs/tests/orgs.service.spec.ts
   ● Console
 
     console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -907,42 +907,6 @@ PASS unit src/orgs/tests/orgs.service.spec.ts
 
       at src/orgs/orgs.service.ts:166:17
 
-PASS unit src/billing/tests/billing.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/swaps/tests/swaps.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
 PASS unit src/tenants/tests/tenants.service.spec.ts
   ● Console
 
@@ -952,7 +916,79 @@ PASS unit src/tenants/tests/tenants.service.spec.ts
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/billing/tests/billing.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/billing/tests/billing.controller.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/common/safeguarding/safeguarding.guard.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/announcements/tests/announcements.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -970,79 +1006,7 @@ PASS unit src/children/tests/children.service.spec.ts
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/announcements/tests/announcements.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  suppress all logs with { quiet: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/billing/tests/billing.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  override existing env vars with { override: true }
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/concerns/tests/concerns.service.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
-
-      at Object.<anonymous> (test.setup.unit.ts:88:13)
-
-PASS unit src/users/tests/users.controller.spec.ts
-  ● Console
-
-    console.log
-      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 version env with Radar: https://dotenvx.com/radar
-
-      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
-
-    console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: ⚙️  suppress all logs with { quiet: true }
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -1060,7 +1024,7 @@ PASS unit src/orgs/tests/orgs.controller.spec.ts
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
     console.log
-      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
 
       at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
@@ -1069,47 +1033,81 @@ PASS unit src/orgs/tests/orgs.controller.spec.ts
 
       at Object.<anonymous> (test.setup.unit.ts:88:13)
 
-FAIL unit src/assignments/tests/assignments.service.spec.ts
-  ● Test suite failed to run
+PASS unit src/groups/tests/groups.controller.spec.ts
+  ● Console
 
-    [96msrc/assignments/tests/assignments.service.spec.ts[0m:[93m105[0m:[93m38[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is not assignable to parameter of type 'Av30ActivityService'.
-      Type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is missing the following properties from type 'Av30ActivityService': STAFF_ROLES, isStaffUser
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  enable debug logging with { debug: true }
 
-    [7m105[0m     service = new AssignmentsService(mockAv30Service, mockRequestContext);
-    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~[0m
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-FAIL unit src/attendance/tests/attendance.service.spec.ts
-  ● Test suite failed to run
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
 
-    [96msrc/attendance/tests/attendance.service.spec.ts[0m:[93m99[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is not assignable to parameter of type 'Av30ActivityService'.
-      Type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is missing the following properties from type 'Av30ActivityService': STAFF_ROLES, isStaffUser
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-    [7m99[0m     svc = new AttendanceService(mockAv30Service, mockRequestContext);
-    [7m  [0m [91m                                ~~~~~~~~~~~~~~~[0m
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
 
-Summary of all failing tests
-FAIL src/assignments/tests/assignments.service.spec.ts
-  ● Test suite failed to run
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
 
-    [96msrc/assignments/tests/assignments.service.spec.ts[0m:[93m105[0m:[93m38[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is not assignable to parameter of type 'Av30ActivityService'.
-      Type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is missing the following properties from type 'Av30ActivityService': STAFF_ROLES, isStaffUser
+PASS unit src/concerns/tests/concerns.service.spec.ts
+  ● Console
 
-    [7m105[0m     service = new AssignmentsService(mockAv30Service, mockRequestContext);
-    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~[0m
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
 
-FAIL src/attendance/tests/attendance.service.spec.ts
-  ● Test suite failed to run
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
 
-    [96msrc/attendance/tests/attendance.service.spec.ts[0m:[93m99[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is not assignable to parameter of type 'Av30ActivityService'.
-      Type 'Mocked<Pick<Av30ActivityService, "recordActivityForCurrentUser" | "recordActivity">>' is missing the following properties from type 'Av30ActivityService': STAFF_ROLES, isStaffUser
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
 
-    [7m99[0m     svc = new AttendanceService(mockAv30Service, mockRequestContext);
-    [7m  [0m [91m                                ~~~~~~~~~~~~~~~[0m
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/assignments/tests/assignments.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
+
+PASS unit src/attendance/tests/attendance.service.spec.ts
+  ● Console
+
+    console.log
+      [dotenv@17.2.2] injecting env (17) from ../../.env.test -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [dotenv@17.2.2] injecting env (0) from ../../.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (../../node_modules/.pnpm/dotenv@17.2.2/node_modules/dotenv/lib/main.js:139:11)
+
+    console.log
+      [test.setup.unit] Skipping prisma migrate reset; set UNIT_ALLOW_RESET=true to force a reset (requires privileged DB user).
+
+      at Object.<anonymous> (test.setup.unit.ts:88:13)
 
 
-Test Suites: 2 failed, 47 passed, 49 total
-Tests:       320 passed, 320 total
+Test Suites: 49 passed, 49 total
+Tests:       338 passed, 338 total
 Snapshots:   0 total
-Time:        7.146 s, estimated 14 s
+Time:        8.05 s
 Ran all test suites in 2 projects.
- ELIFECYCLE  Test failed. See above for more details.
