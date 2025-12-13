@@ -5,6 +5,7 @@ import {
   ParsedBillingWebhookEvent,
 } from "../billing-webhook.provider";
 import { EntitlementsService } from "../entitlements.service";
+import { LoggingService } from "../../common/logging/logging.service";
 import { BillingProvider, SubscriptionStatus } from "@pathway/db";
 
 const prismaMock = {
@@ -46,6 +47,7 @@ describe("BillingWebhookController", () => {
   let controller: BillingWebhookController;
   let provider: BillingWebhookProvider;
   let entitlements: jest.Mocked<Pick<EntitlementsService, "resolve">>;
+  const logging = new LoggingService();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -58,9 +60,9 @@ describe("BillingWebhookController", () => {
     };
 
     controller = new BillingWebhookController(
-      // Inject with token shape the module uses
       provider as unknown as BillingWebhookProvider,
       entitlements as unknown as EntitlementsService,
+      logging,
     );
   });
 

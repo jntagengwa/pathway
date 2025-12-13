@@ -1,4 +1,4 @@
-import { prisma, withTenantRlsContext } from "@pathway/db";
+import { prisma, withTenantRlsContext, Prisma } from "@pathway/db";
 
 export interface TenantOrgContext {
   tenantId: string;
@@ -68,7 +68,18 @@ export class Av30ComputeService {
     for (const ctx of uniqueContexts.values()) {
       await withTenantRlsContext(ctx.tenantId, ctx.orgId, async (tx) => {
         const staffSet = orgToStaff.get(ctx.orgId) ?? new Set<string>();
-        const staff = await tx.staffActivity.findMany({
+        type StaffActivityClient = {
+          findMany: (args: {
+            where: { occurredAt: { gte: Date } };
+            select: { staffUserId: boolean };
+            distinct?: string[];
+          }) => Promise<Array<{ staffUserId: string }>>;
+        };
+        type TxWithStaff = Prisma.TransactionClient & {
+          staffActivity: StaffActivityClient;
+        };
+        const client = tx as TxWithStaff;
+        const staff = await client.staffActivity.findMany({
           where: { occurredAt: { gte: windowStart } },
           select: { staffUserId: true },
           distinct: ["staffUserId"],
@@ -111,4 +122,3 @@ export class Av30ComputeService {
     return results;
   }
 }
-

@@ -2,12 +2,15 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { registerOrgDto } from "./dto/register-org.dto";
 import { BillingService } from "../billing/billing.service";
+import {
+  LoggingService,
+  StructuredLogger,
+} from "../common/logging/logging.service";
 
 type RegisterOrgResult = {
   org: {
@@ -37,8 +40,13 @@ type RegisterOrgResult = {
 
 @Injectable()
 export class OrgsService {
-  private readonly logger = new Logger(OrgsService.name);
-  constructor(private readonly billing: BillingService) {}
+  private readonly logger: StructuredLogger;
+  constructor(
+    private readonly billing: BillingService,
+    logging: LoggingService,
+  ) {
+    this.logger = logging.createLogger(OrgsService.name);
+  }
 
   /**
    * Register a new Organisation (and optionally its first Tenant).
