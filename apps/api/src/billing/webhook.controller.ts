@@ -4,7 +4,6 @@ import {
   Headers,
   HttpCode,
   Inject,
-  Logger,
   Post,
 } from "@nestjs/common";
 import { prisma, SubscriptionStatus, Prisma } from "@pathway/db";
@@ -15,6 +14,7 @@ import {
   FakeBillingWebhookProvider,
   ParsedBillingWebhookEvent,
 } from "./billing-webhook.provider";
+import { LoggingService, StructuredLogger } from "../common/logging/logging.service";
 
 type WebhookResult =
   | { status: "ok"; eventId: string }
@@ -23,13 +23,16 @@ type WebhookResult =
 
 @Controller("billing")
 export class BillingWebhookController {
-  private readonly logger = new Logger(BillingWebhookController.name);
+  private readonly logger: StructuredLogger;
 
   constructor(
     @Inject(BILLING_WEBHOOK_PROVIDER)
     private readonly provider: BillingWebhookProvider,
     private readonly entitlements: EntitlementsService,
-  ) {}
+    logging: LoggingService,
+  ) {
+    this.logger = logging.createLogger(BillingWebhookController.name);
+  }
 
   @Post("webhook")
   @HttpCode(200)
@@ -47,9 +50,10 @@ export class BillingWebhookController {
       select: { id: true },
     });
     if (alreadyHandled) {
-      this.logger.log("Duplicate webhook ignored", {
+      this.logger.info("Duplicate webhook ignored", {
         provider: event.provider,
         eventId: event.eventId,
+        orgId: event.orgId,
       });
       return { status: "ignored_duplicate", eventId: event.eventId };
     }
@@ -75,9 +79,10 @@ export class BillingWebhookController {
       return { status: "ok", eventId: event.eventId };
     }
 
-    this.logger.log("Unknown billing event ignored", {
+    this.logger.info("Unknown billing event ignored", {
       provider: event.provider,
       eventId: event.eventId,
+      orgId: event.orgId,
       kind: event.kind,
     });
     return { status: "ignored_unknown", eventId: event.eventId };

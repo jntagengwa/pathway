@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { OrgsService } from "../orgs.service";
 import { BillingService } from "../../billing/billing.service";
+import { LoggingService } from "../../common/logging/logging.service";
 
 // ---- Local helper types to avoid `any` -------------------------------------
 // Minimal shapes used in this spec; they mirror just what we need.
@@ -84,6 +85,7 @@ describe("OrgsService", () => {
       providers: [
         OrgsService,
         { provide: BillingService, useValue: mockBilling },
+        LoggingService,
       ],
     }).compile();
 
