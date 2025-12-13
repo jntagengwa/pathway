@@ -20,10 +20,6 @@ const parseOrBadRequest = async <T>(
     return await schema.parseAsync(data);
   } catch (e) {
     if (e instanceof z.ZodError) {
-      console.error(
-        "[OrgsController] Zod validation failed:",
-        JSON.stringify(e.flatten(), null, 2),
-      );
       throw new BadRequestException(e.flatten());
     }
     throw e;
@@ -72,7 +68,6 @@ export class OrgsController {
     @Param() params: unknown,
     @CurrentOrg("orgId") orgId: string,
   ) {
-    console.log("[OrgsController] Incoming params:", params);
     const { slug } = await parseOrBadRequest<typeof slugParam._output>(
       slugParam,
       params,

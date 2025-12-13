@@ -2,3 +2,13 @@
 > @pathway/api@0.1.0 lint /Users/JeanFidele/Projects/pathway/apps/api
 > eslint "src/**/*.{ts,tsx,js}" --no-error-on-unmatched-pattern
 
+
+/Users/JeanFidele/Projects/pathway/apps/api/src/billing/billing-webhook.provider.ts
+  55:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/JeanFidele/Projects/pathway/apps/api/src/billing/tests/billing-webhook.controller.spec.ts
+  4:3  error  'BILLING_WEBHOOK_PROVIDER' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 2 problems (2 errors, 0 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

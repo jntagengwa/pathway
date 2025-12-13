@@ -13,7 +13,8 @@ import {
 import { SessionsService, SessionListFilters } from "./sessions.service";
 import { CreateSessionDto } from "./dto/create-session.dto";
 import { UpdateSessionDto } from "./dto/update-session.dto";
-import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
+import { CurrentTenant, PathwayAuthGuard, CurrentOrg } from "@pathway/auth";
+import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
 
 type IsoDateString = string; // ISO 8601 expected
 
@@ -34,7 +35,10 @@ function parseDateOrThrow(label: string, value?: string): Date | undefined {
 
 @Controller("sessions")
 export class SessionsController {
-  constructor(private readonly svc: SessionsService) {}
+  constructor(
+    private readonly svc: SessionsService,
+    private readonly enforcement: EntitlementsEnforcementService,
+  ) {}
 
   @Get()
   @UseGuards(PathwayAuthGuard)
@@ -65,6 +69,7 @@ export class SessionsController {
   async create(
     @Body() dto: CreateSessionDto,
     @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
   ) {
     if (
       dto.startsAt &&
@@ -76,6 +81,9 @@ export class SessionsController {
     if (dto.tenantId && dto.tenantId !== tenantId) {
       throw new BadRequestException("tenantId must match current tenant");
     }
+    const av30 = await this.enforcement.checkAv30ForOrg(orgId);
+    this.enforcement.assertWithinHardCap(av30);
+    // TODO(Epic4-UI): Surface av30 status in response metadata for warnings
     return this.svc.create({ ...dto, tenantId }, tenantId);
   }
 

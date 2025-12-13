@@ -5,6 +5,7 @@ import { SessionsService } from "../sessions.service";
 import { CreateSessionDto } from "../dto/create-session.dto";
 import { UpdateSessionDto } from "../dto/update-session.dto";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { EntitlementsEnforcementService } from "../../billing/entitlements-enforcement.service";
 
 // Minimal shape used in tests (avoid importing Prisma types here)
 interface SessionShape {
@@ -22,6 +23,7 @@ describe("SessionsController", () => {
   let controller: SessionsController;
 
   const tenantId = "t1";
+  const orgId = "org-123";
   const baseSession: SessionShape = {
     id: "sess-1",
     tenantId,
@@ -49,12 +51,35 @@ describe("SessionsController", () => {
     >(),
   };
 
+  const enforcementMock: jest.Mocked<
+    Pick<
+      EntitlementsEnforcementService,
+      "checkAv30ForOrg" | "assertWithinHardCap"
+    >
+  > = {
+    checkAv30ForOrg: jest.fn().mockResolvedValue({
+      orgId,
+      currentAv30: 10,
+      av30Cap: 100,
+      status: "OK",
+      graceUntil: null,
+      messageCode: "av30.ok",
+    }),
+    assertWithinHardCap: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.resetAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SessionsController],
-      providers: [{ provide: SessionsService, useValue: serviceMock }],
+      providers: [
+        { provide: SessionsService, useValue: serviceMock },
+        {
+          provide: EntitlementsEnforcementService,
+          useValue: enforcementMock,
+        },
+      ],
     })
       .overrideGuard(PathwayAuthGuard)
       .useValue({ canActivate: () => true })
@@ -94,7 +119,7 @@ describe("SessionsController", () => {
       title: "Kids service",
     };
     serviceMock.create.mockResolvedValueOnce(baseSession);
-    const res = await controller.create(dto, tenantId);
+    const res = await controller.create(dto, tenantId, orgId);
     expect(res).toEqual(baseSession);
     expect(serviceMock.create).toHaveBeenCalledWith(dto, tenantId);
   });
@@ -108,8 +133,27 @@ describe("SessionsController", () => {
       title: "Bad times",
     };
 
-    await expect(controller.create(bad, tenantId)).rejects.toBeInstanceOf(
+    await expect(controller.create(bad, tenantId, orgId)).rejects.toBeInstanceOf(
       BadRequestException,
+    );
+    expect(serviceMock.create).not.toHaveBeenCalled();
+  });
+
+  it("create should block when hard cap enforcement throws", async () => {
+    enforcementMock.assertWithinHardCap.mockImplementation(() => {
+      throw new Error("HARD_CAP");
+    });
+
+    const dto: CreateSessionDto = {
+      tenantId,
+      groupId: "g1",
+      startsAt: new Date("2025-01-01T09:00:00Z"),
+      endsAt: new Date("2025-01-01T10:00:00Z"),
+      title: "Kids service",
+    };
+
+    await expect(controller.create(dto, tenantId, orgId)).rejects.toThrow(
+      "HARD_CAP",
     );
     expect(serviceMock.create).not.toHaveBeenCalled();
   });
