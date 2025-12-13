@@ -12,8 +12,19 @@ export type ResolvedRetentionPolicy = {
 
 export class RetentionConfigService {
   async resolveForOrg(orgId: string): Promise<ResolvedRetentionPolicy> {
+    type OrgRetentionPolicyDelegate = {
+      findUnique: (args: {
+        where: { orgId: string };
+        select: {
+          attendanceRetentionDays: true;
+          staffActivityRetentionDays: true;
+          auditEventRetentionDays: true;
+        };
+      }) => Promise<ResolvedRetentionPolicy | null>;
+    };
+
     const policy = await (prisma as unknown as {
-      orgRetentionPolicy: { findUnique: Function };
+      orgRetentionPolicy: OrgRetentionPolicyDelegate;
     }).orgRetentionPolicy.findUnique({
       where: { orgId },
       select: {

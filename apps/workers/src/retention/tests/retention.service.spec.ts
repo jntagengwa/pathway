@@ -8,11 +8,16 @@ const prismaMock = {
   auditEvent: { deleteMany: jest.fn() },
 };
 
+type RetentionClientMock = typeof prismaMock;
+type RetentionCallback = (
+  tx: RetentionClientMock,
+) => unknown | Promise<unknown>;
+
 const withTenantRlsContextMock = jest
   .fn()
-  .mockImplementation(async (_t: string, _o: string, cb: any) =>
+  .mockImplementation(async (_t: string, _o: string, cb: RetentionCallback) =>
     cb(prismaMock),
-  ); // eslint-disable-line @typescript-eslint/no-explicit-any
+  );
 
 jest.mock("@pathway/db", () => {
   const actual = jest.requireActual("@pathway/db");
@@ -44,7 +49,7 @@ describe("RetentionService", () => {
     process.env.RETENTION_ENABLED = "false";
     const svc = new RetentionService(
       config as unknown as RetentionConfigService,
-      prismaMock as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      prismaMock as RetentionClientMock,
     );
     await svc.run(new Date("2025-01-31T00:00:00Z"));
     expect(prismaMock.tenant.findMany).not.toHaveBeenCalled();
@@ -66,7 +71,7 @@ describe("RetentionService", () => {
 
     const svc = new RetentionService(
       config as unknown as RetentionConfigService,
-      prismaMock as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      prismaMock as RetentionClientMock,
     );
     await svc.run(new Date("2025-02-01T00:00:00Z"));
 

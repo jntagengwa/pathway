@@ -1,10 +1,23 @@
 import { prisma, withTenantRlsContext } from "@pathway/db";
 import { RetentionConfigService } from "./retention-config.service";
 
+type RetentionClient = {
+  tenant: { findMany: typeof prisma.tenant.findMany };
+  staffActivity: {
+    deleteMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
+  };
+  attendance: {
+    deleteMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
+  };
+  auditEvent: {
+    deleteMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
+  };
+};
+
 export class RetentionService {
   constructor(
     private readonly config = new RetentionConfigService(),
-    private readonly client = prisma,
+    private readonly client: RetentionClient = prisma as unknown as RetentionClient,
   ) {}
 
   async run(now: Date = new Date()): Promise<void> {
@@ -34,29 +47,20 @@ export class RetentionService {
         );
 
         // Least sensitive: staff activity — hard delete old rows
-        type DeleteMany = (
-          args: Record<string, unknown>,
-        ) => Promise<{ count: number }>;
-        const delegates = tx as unknown as Record<string, unknown>;
-        const staffActivityDelegate = delegates["staffActivity"] as {
-          deleteMany: DeleteMany;
-        };
+        const delegates = tx as unknown as RetentionClient;
+        const staffActivityDelegate = delegates.staffActivity;
         const staffActivityResult = await staffActivityDelegate.deleteMany({
           where: { occurredAt: { lt: staffActivityCutoff } },
         });
 
         // Attendance: soft-delete not available; hard delete older rows for now with TODO for anonymisation
-        const attendanceDelegate = delegates["attendance"] as {
-          deleteMany: DeleteMany;
-        };
+        const attendanceDelegate = delegates.attendance;
         const attendanceResult = await attendanceDelegate.deleteMany({
           where: { timestamp: { lt: attendanceCutoff } },
         });
 
         // Audit events: hard delete older rows (consider export/archive later)
-        const auditDelegate = delegates["auditEvent"] as {
-          deleteMany: DeleteMany;
-        };
+        const auditDelegate = delegates.auditEvent;
         const auditResult = await auditDelegate.deleteMany({
           where: { createdAt: { lt: auditEventCutoff } },
         });
