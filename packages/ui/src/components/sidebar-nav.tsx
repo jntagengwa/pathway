@@ -85,7 +85,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                 <a
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                    "flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-primary transition-all duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-info focus-visible:ring-offset-2 motion-safe:hover:translate-x-0.5",
                     active
                       ? "bg-accent-subtle text-accent-strong"
                       : "hover:text-text-primary",

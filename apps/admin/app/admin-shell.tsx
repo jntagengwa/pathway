@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SidebarNav, TopBar, type SidebarNavItem } from "@pathway/ui";
 
@@ -50,8 +51,21 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
         items={navItems}
         currentPath={pathname}
         header={
-          <div className="px-2 text-lg font-semibold font-heading">
-            PathWay Admin
+          <div className="flex items-center gap-2 px-2">
+            <Image
+              src="/pathwayLogo.png"
+              alt="PathWay"
+              width={28}
+              height={28}
+              className="rounded-md shadow-sm"
+              priority
+            />
+            <div className="flex flex-col leading-tight">
+              <span className="text-sm font-semibold tracking-tight text-text-primary">
+                PathWay
+              </span>
+              <span className="text-xs text-text-muted">Admin</span>
+            </div>
           </div>
         }
         footer={

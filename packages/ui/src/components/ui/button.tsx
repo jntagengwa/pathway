@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-info focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-50 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0",
   {
     variants: {
       variant: {
         primary:
-          "bg-accent-primary text-text-inverse hover:bg-accent-strong shadow-soft ring-status-info ring-offset-surface",
+          "bg-accent-primary text-text-inverse hover:bg-accent-strong shadow-soft motion-safe:hover:shadow-md",
         secondary:
-          "bg-surface text-text-primary border border-border-subtle hover:bg-muted",
+          "bg-surface text-text-primary border border-border-subtle hover:bg-muted motion-safe:hover:shadow-sm",
         outline:
-          "border border-border-subtle text-text-primary bg-transparent hover:bg-muted",
+          "border border-border-subtle text-text-primary bg-transparent hover:bg-muted motion-safe:hover:shadow-sm",
         ghost: "bg-transparent text-text-primary hover:bg-muted",
       },
       size: {
