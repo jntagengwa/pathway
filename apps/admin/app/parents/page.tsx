@@ -3,10 +3,10 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
-import { AdminChildRow, fetchChildrenMock } from "../../lib/api-client";
+import { AdminParentRow, fetchParentsMock } from "../../lib/api-client";
 
-export default function ChildrenPage() {
-  const [data, setData] = React.useState<AdminChildRow[]>([]);
+export default function ParentsPage() {
+  const [data, setData] = React.useState<AdminParentRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const router = useRouter();
@@ -15,10 +15,10 @@ export default function ChildrenPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchChildrenMock();
+      const result = await fetchParentsMock();
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load children");
+      setError(err instanceof Error ? err.message : "Failed to load parents");
     } finally {
       setIsLoading(false);
     }
@@ -28,7 +28,7 @@ export default function ChildrenPage() {
     void load();
   }, [load]);
 
-  const columns = React.useMemo<ColumnDef<AdminChildRow>[]>(
+  const columns = React.useMemo<ColumnDef<AdminParentRow>[]>(
     () => [
       {
         id: "name",
@@ -38,48 +38,50 @@ export default function ChildrenPage() {
             <span className="font-semibold text-text-primary">
               {row.fullName}
             </span>
-            {row.preferredName ? (
-              <span className="text-sm text-text-muted">
-                Preferred: {row.preferredName}
-              </span>
+            {row.isPrimaryContact ? (
+              <span className="text-xs text-text-muted">Primary contact</span>
             ) : null}
           </div>
         ),
       },
       {
-        id: "ageGroup",
-        header: "Age group",
+        id: "email",
+        header: "Email",
         cell: (row) => (
-          <span className="text-sm text-text-primary">
-            {row.ageGroup ?? "—"}
-          </span>
+          <a
+            href={`mailto:${row.email}`}
+            className="text-sm text-accent-strong underline-offset-2 hover:underline"
+          >
+            {row.email}
+          </a>
         ),
-        width: "120px",
       },
       {
-        id: "primaryGroup",
-        header: "Primary group/class",
-        cell: (row) => (
-          <span className="text-sm text-text-primary">
-            {row.primaryGroup ?? "—"}
-          </span>
-        ),
+        id: "phone",
+        header: "Phone",
+        cell: (row) =>
+          row.phone ? (
+            <a
+              href={`tel:${row.phone}`}
+              className="text-sm text-text-primary underline-offset-2 hover:underline"
+            >
+              {row.phone}
+            </a>
+          ) : (
+            <span className="text-sm text-text-muted">—</span>
+          ),
         width: "160px",
       },
       {
-        id: "flags",
-        header: "Flags",
+        id: "children",
+        header: "Children",
         cell: (row) => (
           <div className="flex flex-wrap gap-2">
-            {row.hasAllergies ? (
-              <Badge variant="warning">Allergies</Badge>
-            ) : null}
-            {row.hasAdditionalNeeds ? (
-              <Badge variant="accent">Additional needs</Badge>
-            ) : null}
-            <Badge variant={row.hasPhotoConsent ? "success" : "default"}>
-              {row.hasPhotoConsent ? "Photo consent" : "No photo consent"}
-            </Badge>
+            {row.children.map((child) => (
+              <Badge key={child.id} variant="accent">
+                {child.name}
+              </Badge>
+            ))}
           </div>
         ),
       },
@@ -102,22 +104,22 @@ export default function ChildrenPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary font-heading">
-          Children
+          Parents & Guardians
         </h1>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm">Add child</Button>
+          <Button size="sm">Add parent</Button>
         </div>
       </div>
       <Card
-        title="Children roster"
-        description="Mock data for now. Will respect tenant scoping and photo consent rules."
+        title="Parent contacts"
+        description="Mock data for now. Will respect tenant scoping and contact permissions."
       >
         {error ? (
           <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
-            <span className="font-semibold">Unable to load children</span>
+            <span className="font-semibold">Unable to load parents</span>
             <span>{error}</span>
             <div>
               <Button size="sm" variant="secondary" onClick={load}>
@@ -130,8 +132,8 @@ export default function ChildrenPage() {
             data={data}
             columns={columns}
             isLoading={isLoading}
-            emptyMessage="No children found."
-            onRowClick={(row) => router.push(`/children/${row.id}`)}
+            emptyMessage="No parents found."
+            onRowClick={(row) => router.push(`/parents/${row.id}`)}
           />
         )}
       </Card>
