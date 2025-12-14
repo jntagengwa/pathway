@@ -111,10 +111,10 @@ describe("ParentsController", () => {
   });
 
   it("forbids caller without staff roles", async () => {
-    (requestContext as any).roles = {
-      tenant: [UserTenantRole.PARENT],
-      org: [],
+    const ctx = requestContext as PathwayRequestContext & {
+      roles: { tenant: UserTenantRole[]; org: UserOrgRole[] };
     };
+    ctx.roles = { tenant: [UserTenantRole.PARENT], org: [] };
     await expect(controller.list(tenantId, orgId)).rejects.toBeInstanceOf(
       ForbiddenException,
     );

@@ -24,8 +24,9 @@ export class ParentsService {
    */
   async findAllForTenant(
     tenantId: string,
-    _orgId: string,
+    orgId: string,
   ): Promise<ParentSummaryDto[]> {
+    void orgId; // reserved for future org scoping once modelled
     // TODO: include org-level scoping once user/org joins are modelled.
     const parents = await prisma.user.findMany({
       where: { tenantId, hasFamilyAccess: true },
@@ -45,9 +46,10 @@ export class ParentsService {
 
   async findOneForTenant(
     tenantId: string,
-    _orgId: string,
+    orgId: string,
     parentId: string,
   ): Promise<ParentDetailDto | null> {
+    void orgId; // reserved for future org scoping once modelled
     // TODO: include org-level scoping once user/org joins are modelled.
     const parent = await prisma.user.findFirst({
       where: { id: parentId, tenantId, hasFamilyAccess: true },
