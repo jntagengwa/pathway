@@ -1,15 +1,48 @@
 import { prisma, withTenantRlsContext } from "@pathway/db";
 import { RetentionConfigService } from "./retention-config.service";
 
-type RetentionPrismaClient = Pick<
-  typeof prisma,
-  "tenant" | "staffActivity" | "attendance" | "auditEvent"
->;
+type DeleteMany = (args?: unknown) => Promise<{ count: number }>;
+
+export type RetentionPrismaClient = {
+  tenant: {
+    findMany: (args?: unknown) => Promise<Array<{ id: string; orgId: string }>>;
+  };
+  staffActivity: { deleteMany: (args?: unknown) => Promise<{ count: number }> };
+  attendance: { deleteMany: (args?: unknown) => Promise<{ count: number }> };
+  auditEvent: { deleteMany: (args?: unknown) => Promise<{ count: number }> };
+};
+
+const retentionPrisma: RetentionPrismaClient = {
+  tenant: {
+    findMany: (args) =>
+      prisma.tenant.findMany(
+        args as Parameters<typeof prisma.tenant.findMany>[0],
+      ),
+  },
+  staffActivity: {
+    deleteMany: (args) =>
+      (
+        prisma as unknown as Record<string, { deleteMany: DeleteMany }>
+      ).staffActivity.deleteMany(args as unknown),
+  },
+  attendance: {
+    deleteMany: (args) =>
+      (
+        prisma as unknown as Record<string, { deleteMany: DeleteMany }>
+      ).attendance.deleteMany(args as unknown),
+  },
+  auditEvent: {
+    deleteMany: (args) =>
+      (
+        prisma as unknown as Record<string, { deleteMany: DeleteMany }>
+      ).auditEvent.deleteMany(args as unknown),
+  },
+};
 
 export class RetentionService {
   constructor(
     private readonly config = new RetentionConfigService(),
-    private readonly client: RetentionPrismaClient = prisma,
+    private readonly client: RetentionPrismaClient = retentionPrisma,
   ) {}
 
   async run(now: Date = new Date()): Promise<void> {
@@ -39,9 +72,6 @@ export class RetentionService {
         );
 
         // Least sensitive: staff activity — hard delete old rows
-        type DeleteMany = (
-          args: Record<string, unknown>,
-        ) => Promise<{ count: number }>;
         const delegates = tx as unknown as Record<string, unknown>;
         const staffActivityDelegate = delegates["staffActivity"] as {
           deleteMany: DeleteMany;

@@ -1,11 +1,8 @@
-import { RetentionService } from "../retention.service";
+import {
+  RetentionService,
+  type RetentionPrismaClient,
+} from "../retention.service";
 import { RetentionConfigService } from "../retention-config.service";
-import { prisma } from "@pathway/db";
-
-type RetentionPrisma = Pick<
-  typeof prisma,
-  "tenant" | "staffActivity" | "attendance" | "auditEvent"
->;
 
 const prismaMock: Record<string, Record<string, jest.Mock>> = {
   tenant: { findMany: jest.fn() },
@@ -20,8 +17,8 @@ const withTenantRlsContextMock = jest
     async (
       tenantId: string,
       orgId: string,
-      callback: (tx: RetentionPrisma) => Promise<unknown> | unknown,
-    ) => callback(prismaMock as unknown as RetentionPrisma),
+      callback: (tx: RetentionPrismaClient) => Promise<unknown> | unknown,
+    ) => callback(prismaMock as unknown as RetentionPrismaClient),
   );
 
 jest.mock("@pathway/db", () => {
@@ -54,7 +51,7 @@ describe("RetentionService", () => {
     process.env.RETENTION_ENABLED = "false";
     const svc = new RetentionService(
       config as unknown as RetentionConfigService,
-      prismaMock as unknown as RetentionPrisma,
+      prismaMock as unknown as RetentionPrismaClient,
     );
     await svc.run(new Date("2025-01-31T00:00:00Z"));
     expect(prismaMock.tenant.findMany).not.toHaveBeenCalled();
@@ -76,7 +73,7 @@ describe("RetentionService", () => {
 
     const svc = new RetentionService(
       config as unknown as RetentionConfigService,
-      prismaMock as unknown as RetentionPrisma,
+      prismaMock as unknown as RetentionPrismaClient,
     );
     await svc.run(new Date("2025-02-01T00:00:00Z"));
 
