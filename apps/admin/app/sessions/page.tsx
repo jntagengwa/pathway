@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
-import { AdminSessionRow, fetchSessionsMock } from "../../lib/api-client";
+import { AdminSessionRow, fetchSessions } from "../../lib/api-client";
 
 const statusCopy: Record<AdminSessionRow["status"], string> = {
   not_started: "Not started",
@@ -49,7 +49,7 @@ export default function SessionsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchSessionsMock();
+      const result = await fetchSessions();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load sessions");

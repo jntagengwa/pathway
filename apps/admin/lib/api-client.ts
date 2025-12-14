@@ -1,4 +1,5 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3333";
 
 export type AdminSessionRow = {
   id: string;
@@ -38,6 +39,21 @@ export type AdminParentRow = {
   isPrimaryContact: boolean;
   status: "active" | "inactive";
 };
+
+function buildAuthHeaders(): HeadersInit {
+  // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
+  // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN) {
+    headers["Authorization"] =
+      `Bearer ${process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN}`;
+  }
+
+  return headers;
+}
 
 // TODO: wire real fetch with auth headers (PathwayRequestContext / Auth0)
 export async function fetchSessionsMock(): Promise<AdminSessionRow[]> {
@@ -99,6 +115,62 @@ export async function fetchSessionById(
 ): Promise<AdminSessionRow | null> {
   const all = await fetchSessionsMock();
   return all.find((s) => s.id === id) ?? null;
+}
+
+// Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
+export async function fetchSessions(): Promise<AdminSessionRow[]> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) return fetchSessionsMock();
+
+  const res = await fetch(`${API_BASE_URL}/sessions`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `Failed to load sessions (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  type ApiSession = {
+    id: string;
+    title: string | null;
+    startsAt: string;
+    endsAt: string;
+    groupId: string | null;
+    tenantId: string;
+  };
+
+  const json = (await res.json()) as ApiSession[];
+
+  const mapStatus = (
+    startsAt: string,
+    endsAt: string,
+  ): AdminSessionRow["status"] => {
+    const now = Date.now();
+    const startMs = new Date(startsAt).getTime();
+    const endMs = new Date(endsAt).getTime();
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return "not_started";
+    if (now < startMs) return "not_started";
+    if (now >= startMs && now <= endMs) return "in_progress";
+    return "completed";
+  };
+
+  return json.map((s) => ({
+    id: s.id,
+    title: s.title ?? "Session",
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    ageGroup: "—", // TODO: enrich with group/age info once API returns it
+    room: s.groupId ?? "—", // TODO: map to room/group name when available
+    status: mapStatus(s.startsAt, s.endsAt),
+    attendanceMarked: 0, // TODO: replace with real attendance summary once available
+    attendanceTotal: 0,
+    leadStaff: undefined,
+    supportStaff: undefined,
+  }));
 }
 
 // TODO: replace with real API call using tenant-scoped endpoint and auth headers
