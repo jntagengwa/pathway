@@ -8,10 +8,7 @@ import {
 } from "@nestjs/common";
 import { DEBUG_FALLBACK_TOKEN } from "../constants";
 import { PathwayRequestContext } from "../context/pathway-request-context.service";
-import type {
-  AuthContext,
-  PathwayAuthClaims,
-} from "../types/auth-context";
+import type { AuthContext, PathwayAuthClaims } from "../types/auth-context";
 import type { RequestWithAuthContext } from "../types/request-with-context";
 import { UserOrgRole, UserTenantRole } from "../types/roles";
 
@@ -53,9 +50,7 @@ export class PathwayAuthGuard implements CanActivate {
   constructor(private readonly requestContext: PathwayRequestContext) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context
-      .switchToHttp()
-      .getRequest<RequestWithAuthContext>();
+    const request = context.switchToHttp().getRequest<RequestWithAuthContext>();
 
     const claims = this.extractClaims(request);
     const authContext = this.mapClaimsToContext(claims);
@@ -87,6 +82,8 @@ export class PathwayAuthGuard implements CanActivate {
 
     const [, payload] = token.split(".");
     if (!payload) {
+      const fallback = this.tryDevTokenFallback();
+      if (fallback) return fallback;
       throw new UnauthorizedException("Malformed JWT payload");
     }
 
@@ -98,8 +95,37 @@ export class PathwayAuthGuard implements CanActivate {
         "Unable to parse token payload",
         error instanceof Error ? error.stack : undefined,
       );
+      const fallback = this.tryDevTokenFallback();
+      if (fallback) return fallback;
       throw new UnauthorizedException("Unable to parse token payload");
     }
+  }
+
+  /**
+   * Developer helper: if a token is malformed in dev/test, try a local
+   * fallback token or the default debug claims. Does not run in production.
+   */
+  private tryDevTokenFallback(): PathwayAuthClaims | null {
+    if (process.env.NODE_ENV === "production") return null;
+
+    const devToken =
+      process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN ?? process.env.DEV_BEARER_TOKEN;
+    if (devToken) {
+      const [, devPayload] = devToken.split(".");
+      if (devPayload) {
+        try {
+          const decoded = Buffer.from(devPayload, "base64url").toString("utf8");
+          return JSON.parse(decoded) as PathwayAuthClaims;
+        } catch (error) {
+          this.logger.warn(
+            "Dev token fallback failed to parse payload",
+            error instanceof Error ? error.message : String(error),
+          );
+        }
+      }
+    }
+
+    return DEFAULT_DEBUG_CLAIMS;
   }
 
   private mapClaimsToContext(claims: PathwayAuthClaims): AuthContext {
@@ -112,7 +138,10 @@ export class PathwayAuthGuard implements CanActivate {
     }
 
     const orgId =
-      orgClaims.orgId ?? tenantClaims.orgId ?? claims.org_id ?? tenantClaims.tenantId;
+      orgClaims.orgId ??
+      tenantClaims.orgId ??
+      claims.org_id ??
+      tenantClaims.tenantId;
 
     const roles = {
       org: this.parseOrgRoles(claims["https://pathway.app/org_roles"]),
