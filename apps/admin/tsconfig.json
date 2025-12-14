@@ -1,0 +1,14 @@
+{
+  "extends": "../../packages/config/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "baseUrl": ".",
+    "paths": {
+      "@pathway/ui": ["../../packages/ui/src/index.ts"],
+      "@pathway/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["app/**/*", "globals.d.ts"],
+  "exclude": ["node_modules"]
+}

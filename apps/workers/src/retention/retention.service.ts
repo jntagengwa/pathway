@@ -1,10 +1,15 @@
 import { prisma, withTenantRlsContext } from "@pathway/db";
 import { RetentionConfigService } from "./retention-config.service";
 
+type RetentionPrismaClient = Pick<
+  typeof prisma,
+  "tenant" | "staffActivity" | "attendance" | "auditEvent"
+>;
+
 export class RetentionService {
   constructor(
     private readonly config = new RetentionConfigService(),
-    private readonly client = prisma,
+    private readonly client: RetentionPrismaClient = prisma,
   ) {}
 
   async run(now: Date = new Date()): Promise<void> {
