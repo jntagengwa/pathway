@@ -10,6 +10,11 @@ export type AdminSessionRow = {
   status: "not_started" | "in_progress" | "completed";
   attendanceMarked: number;
   attendanceTotal: number;
+  presentCount?: number;
+  absentCount?: number;
+  lateCount?: number;
+  leadStaff?: string;
+  supportStaff?: string[];
 };
 
 // TODO: wire real fetch with auth headers (PathwayRequestContext / Auth0)
@@ -25,6 +30,11 @@ export async function fetchSessionsMock(): Promise<AdminSessionRow[]> {
       status: "not_started",
       attendanceMarked: 0,
       attendanceTotal: 24,
+      presentCount: 0,
+      absentCount: 0,
+      lateCount: 0,
+      leadStaff: "Ms. Patel",
+      supportStaff: ["Mr. Green"],
     },
     {
       id: "s2",
@@ -36,6 +46,11 @@ export async function fetchSessionsMock(): Promise<AdminSessionRow[]> {
       status: "in_progress",
       attendanceMarked: 8,
       attendanceTotal: 22,
+      presentCount: 8,
+      absentCount: 2,
+      lateCount: 0,
+      leadStaff: "Dr. Hughes",
+      supportStaff: ["Ms. Wong"],
     },
     {
       id: "s3",
@@ -47,6 +62,19 @@ export async function fetchSessionsMock(): Promise<AdminSessionRow[]> {
       status: "completed",
       attendanceMarked: 18,
       attendanceTotal: 18,
+      presentCount: 17,
+      absentCount: 1,
+      lateCount: 0,
+      leadStaff: "Mr. Ali",
+      supportStaff: ["Ms. Brown"],
     },
   ]);
+}
+
+// TODO: replace mock lookup with real API call using tenant-scoped endpoint and auth headers
+export async function fetchSessionById(
+  id: string,
+): Promise<AdminSessionRow | null> {
+  const all = await fetchSessionsMock();
+  return all.find((s) => s.id === id) ?? null;
 }

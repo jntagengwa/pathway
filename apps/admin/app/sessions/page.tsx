@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
 import { AdminSessionRow, fetchSessionsMock } from "../../lib/api-client";
 
@@ -42,6 +43,7 @@ export default function SessionsPage() {
   const [data, setData] = React.useState<AdminSessionRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter();
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -147,8 +149,7 @@ export default function SessionsPage() {
             isLoading={isLoading}
             emptyMessage="No sessions scheduled."
             onRowClick={(row) => {
-              // TODO: route to session detail once available
-              console.info("Session clicked", row.id);
+              router.push(`/sessions/${row.id}`);
             }}
           />
         )}
