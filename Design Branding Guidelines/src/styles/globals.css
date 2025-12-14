@@ -1,0 +1,396 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: clamp(14px, 4vw, 18px); /* Dynamic base font size */
+  
+  /* PathWay Brand Colors */
+  --pathway-mint: #76D7C4;
+  --pathway-yellow: #FFD166;
+  --pathway-blue: #4DA9E5;
+  --pathway-white: #FFFFFF;
+  --pathway-dark-gray: #333333;
+  --pathway-light-gray: #F5F5F5;
+  
+  /* Updated theme colors using PathWay brand */
+  --background: var(--pathway-white);
+  --foreground: var(--pathway-dark-gray);
+  --card: var(--pathway-white);
+  --card-foreground: var(--pathway-dark-gray);
+  --popover: var(--pathway-white);
+  --popover-foreground: var(--pathway-dark-gray);
+  --primary: var(--pathway-mint);
+  --primary-foreground: var(--pathway-dark-gray);
+  --secondary: var(--pathway-yellow);
+  --secondary-foreground: var(--pathway-dark-gray);
+  --muted: var(--pathway-light-gray);
+  --muted-foreground: var(--pathway-dark-gray);
+  --accent: var(--pathway-blue);
+  --accent-foreground: var(--pathway-white);
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(51, 51, 51, 0.1);
+  --input: transparent;
+  --input-background: var(--pathway-light-gray);
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: var(--pathway-blue);
+  --chart-1: var(--pathway-mint);
+  --chart-2: var(--pathway-blue);
+  --chart-3: var(--pathway-yellow);
+  --chart-4: var(--pathway-light-gray);
+  --chart-5: var(--pathway-dark-gray);
+  --radius: 0.625rem;
+  --sidebar: var(--pathway-light-gray);
+  --sidebar-foreground: var(--pathway-dark-gray);
+  --sidebar-primary: var(--pathway-mint);
+  --sidebar-primary-foreground: var(--pathway-dark-gray);
+  --sidebar-accent: var(--pathway-blue);
+  --sidebar-accent-foreground: var(--pathway-white);
+  --sidebar-border: rgba(51, 51, 51, 0.1);
+  --sidebar-ring: var(--pathway-blue);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 400;
+  }
+}
+
+/**
+ * Base typography with dynamic scaling and accessibility improvements.
+ * This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(1.75rem, 4vw, 2.25rem); /* 28px to 36px */
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+      color: var(--pathway-dark-gray);
+    }
+
+    h2 {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(1.5rem, 3.5vw, 1.875rem); /* 24px to 30px */
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: -0.025em;
+      color: var(--pathway-dark-gray);
+    }
+
+    h3 {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(1.25rem, 3vw, 1.5rem); /* 20px to 24px */
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--pathway-dark-gray);
+    }
+
+    h4 {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(1.125rem, 2.5vw, 1.25rem); /* 18px to 20px */
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--pathway-dark-gray);
+    }
+
+    p {
+      font-family: 'Quicksand', sans-serif;
+      font-size: clamp(0.875rem, 2vw, 1rem); /* 14px to 16px */
+      font-weight: 400;
+      line-height: 1.6; /* Improved readability */
+      color: var(--pathway-dark-gray);
+    }
+
+    label {
+      font-family: 'Quicksand', sans-serif;
+      font-size: clamp(0.875rem, 2vw, 1rem); /* 14px to 16px */
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--pathway-dark-gray);
+    }
+
+    button {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(0.875rem, 2vw, 1rem); /* 14px to 16px */
+      font-weight: 700;
+      line-height: 1.4;
+      letter-spacing: 0.025em;
+    }
+
+    input {
+      font-family: 'Quicksand', sans-serif;
+      font-size: clamp(0.875rem, 2vw, 1rem); /* 14px to 16px */
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--pathway-dark-gray);
+    }
+
+    /* Accessibility improvements */
+    input:focus,
+    button:focus {
+      outline: 2px solid var(--pathway-blue);
+      outline-offset: 2px;
+    }
+
+    /* Improved contrast for links */
+    a {
+      color: var(--pathway-blue);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    a:hover {
+      color: var(--pathway-dark-gray);
+      text-decoration-thickness: 2px;
+    }
+
+    a:focus {
+      outline: 2px solid var(--pathway-blue);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+  scroll-behavior: smooth;
+}
+
+/* Accessibility enhancements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --pathway-mint: #00C4A7;
+    --pathway-yellow: #FFB800;
+    --pathway-blue: #0066CC;
+    --pathway-dark-gray: #000000;
+    --border: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Focus management for keyboard navigation */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--pathway-dark-gray);
+  color: var(--pathway-white);
+  padding: 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  z-index: 1000;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Improved focus indicators */
+*:focus-visible {
+  outline: 3px solid var(--pathway-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced button accessibility */
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* PathWay Checkbox Styling */
+.pathway-checkbox {
+  appearance: none;
+  background-color: #FFFFFF;
+  border: 2px solid #D1D5DB;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.pathway-checkbox:hover {
+  border-color: #76D7C4;
+  box-shadow: 0 0 0 2px rgba(118, 215, 196, 0.1);
+}
+
+.pathway-checkbox:checked {
+  background-color: #76D7C4;
+  border-color: #76D7C4;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%23333333' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M13.485 3.146a.5.5 0 0 1 .708.708l-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6 10.293l6.985-6.985z'/%3e%3c/svg%3e");
+  background-size: 10px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.pathway-checkbox:checked:hover {
+  background-color: #5BC5B0;
+  border-color: #5BC5B0;
+}
+
+.pathway-checkbox:focus {
+  outline: none;
+  border-color: #76D7C4;
+  box-shadow: 0 0 0 3px rgba(118, 215, 196, 0.2);
+}
+
+.pathway-checkbox:focus-visible {
+  outline: 2px solid #4DA9E5;
+  outline-offset: 2px;
+}
+
+.pathway-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: #F3F4F6;
+  border-color: #D1D5DB;
+}
+
+/* Touch target sizing for mobile */
+@media (max-width: 768px) {
+  button, 
+  a, 
+  input[type="button"], 
+  input[type="submit"], 
+  input[type="checkbox"], 
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Improved color contrast indicators */
+.pathway-success {
+  background-color: #22C55E;
+  color: #FFFFFF;
+}
+
+.pathway-warning {
+  background-color: #F59E0B;
+  color: #000000;
+}
+
+.pathway-error {
+  background-color: #EF4444;
+  color: #FFFFFF;
+}
+
+.pathway-info {
+  background-color: var(--pathway-blue);
+  color: #FFFFFF;
+}

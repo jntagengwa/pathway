@@ -1,0 +1,142 @@
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import { AdminParentRow, fetchParentsMock } from "../../lib/api-client";
+
+export default function ParentsPage() {
+  const [data, setData] = React.useState<AdminParentRow[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter();
+
+  const load = React.useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await fetchParentsMock();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load parents");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  const columns = React.useMemo<ColumnDef<AdminParentRow>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        cell: (row) => (
+          <div className="flex flex-col">
+            <span className="font-semibold text-text-primary">
+              {row.fullName}
+            </span>
+            {row.isPrimaryContact ? (
+              <span className="text-xs text-text-muted">Primary contact</span>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: "email",
+        header: "Email",
+        cell: (row) => (
+          <a
+            href={`mailto:${row.email}`}
+            className="text-sm text-accent-strong underline-offset-2 hover:underline"
+          >
+            {row.email}
+          </a>
+        ),
+      },
+      {
+        id: "phone",
+        header: "Phone",
+        cell: (row) =>
+          row.phone ? (
+            <a
+              href={`tel:${row.phone}`}
+              className="text-sm text-text-primary underline-offset-2 hover:underline"
+            >
+              {row.phone}
+            </a>
+          ) : (
+            <span className="text-sm text-text-muted">—</span>
+          ),
+        width: "160px",
+      },
+      {
+        id: "children",
+        header: "Children",
+        cell: (row) => (
+          <div className="flex flex-wrap gap-2">
+            {row.children.map((child) => (
+              <Badge key={child.id} variant="accent">
+                {child.name}
+              </Badge>
+            ))}
+          </div>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (row) => (
+          <Badge variant={row.status === "active" ? "success" : "default"}>
+            {row.status === "active" ? "Active" : "Inactive"}
+          </Badge>
+        ),
+        align: "center",
+        width: "120px",
+      },
+    ],
+    [],
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-text-primary font-heading">
+          Parents & Guardians
+        </h1>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={load}>
+            Refresh
+          </Button>
+          <Button size="sm">Add parent</Button>
+        </div>
+      </div>
+      <Card
+        title="Parent contacts"
+        description="Mock data for now. Will respect tenant scoping and contact permissions."
+      >
+        {error ? (
+          <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
+            <span className="font-semibold">Unable to load parents</span>
+            <span>{error}</span>
+            <div>
+              <Button size="sm" variant="secondary" onClick={load}>
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <DataTable
+            data={data}
+            columns={columns}
+            isLoading={isLoading}
+            emptyMessage="No parents found."
+            onRowClick={(row) => router.push(`/parents/${row.id}`)}
+          />
+        )}
+      </Card>
+    </div>
+  );
+}

@@ -12,9 +12,7 @@ export type ResolvedRetentionPolicy = {
 
 export class RetentionConfigService {
   async resolveForOrg(orgId: string): Promise<ResolvedRetentionPolicy> {
-    const policy = await (prisma as unknown as {
-      orgRetentionPolicy: { findUnique: Function };
-    }).orgRetentionPolicy.findUnique({
+    const policy = await prisma.orgRetentionPolicy.findUnique({
       where: { orgId },
       select: {
         attendanceRetentionDays: true,
@@ -34,4 +32,3 @@ export class RetentionConfigService {
     return policy;
   }
 }
-

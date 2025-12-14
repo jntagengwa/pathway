@@ -91,6 +91,7 @@ model Org {
   tenants          Tenant[]
   subscriptions    Subscription[]
   entitlements     OrgEntitlementSnapshot[]
+  retentionPolicy  OrgRetentionPolicy?
   usageCounters    UsageCounters[]
   billingEvents    BillingEvent[]
   userOrgRoles     UserOrgRole[]
