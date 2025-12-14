@@ -15,4 +15,9 @@ export { TopBar, type TopBarProps } from "./components/top-bar";
 export { Card, type CardProps } from "./components/ui/card";
 export { Button, type ButtonProps } from "./components/ui/button";
 export { Badge, type BadgeProps } from "./components/ui/badge";
+export {
+  DataTable,
+  type DataTableProps,
+  type ColumnDef,
+} from "./components/ui/data-table";
 export { cn } from "./lib/cn";

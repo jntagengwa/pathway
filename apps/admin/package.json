@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "echo admin-dev",
-    "build": "echo admin-build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -v",
     "test": "echo admin-test"

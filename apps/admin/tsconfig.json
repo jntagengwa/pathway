@@ -1,14 +1,38 @@
 {
   "extends": "../../packages/config/tsconfig/base.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "jsx": "preserve",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@pathway/ui": ["../../packages/ui/src/index.ts"],
-      "@pathway/ui/*": ["../../packages/ui/src/*"]
-    }
+      "@pathway/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@pathway/ui/*": [
+        "../../packages/ui/src/*"
+      ]
+    },
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["app/**/*", "globals.d.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "app/**/*",
+    "globals.d.ts",
+    "lib/**/*",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
