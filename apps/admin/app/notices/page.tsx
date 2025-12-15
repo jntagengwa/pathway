@@ -104,12 +104,12 @@ export default function NoticesPage() {
         </div>
       </div>
       <Card
-        title="Messages Sent to Parents and Staff"
-        description="High-level summary only. Contents are not shown here."
+        title="Notices & Announcements"
+        description="Messages sent to parents and staff for this organisation."
       >
         {error ? (
           <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
-            <span className="font-semibold">Unable to load announcements</span>
+            <span className="font-semibold">Couldn’t load announcements yet.</span>
             <span>{error}</span>
             <div>
               <Button size="sm" variant="secondary" onClick={load}>
@@ -122,11 +122,8 @@ export default function NoticesPage() {
             data={data}
             columns={columns}
             isLoading={isLoading}
-            emptyMessage="No announcements yet."
-            onRowClick={(row) => {
-              // TODO: implement announcement detail/edit at /admin/notices/[id].
-              router.push(`/notices/${row.id}`);
-            }}
+            emptyMessage="No announcements have been created for this organisation yet."
+            onRowClick={(row) => router.push(`/notices/${row.id}`)}
           />
         )}
         <p className="mt-3 text-xs text-text-muted">

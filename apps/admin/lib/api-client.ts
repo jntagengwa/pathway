@@ -75,6 +75,19 @@ export type AdminAnnouncementRow = {
   scheduledAt?: string | null;
 };
 
+export type AdminAnnouncementDetail = {
+  id: string;
+  title: string;
+  body: string | null;
+  audienceLabel: string | null;
+  status: "draft" | "scheduled" | "sent" | "archived" | "unknown" | string;
+  createdAt: string | null;
+  scheduledAt: string | null;
+  publishedAt: string | null;
+  channels?: string[] | null;
+  targetsSummary?: string | null;
+};
+
 export type AdminAttendanceRow = {
   id: string; // sessionId
   sessionId: string;
@@ -725,6 +738,7 @@ const statusLabelMap: Record<string, string> = {
   draft: "Draft",
   scheduled: "Scheduled",
   sent: "Sent",
+  archived: "Archived",
 };
 
 const audienceLabelMap: Record<string, string> = {
@@ -743,6 +757,33 @@ const mapApiAnnouncementToAdminRow = (
   statusLabel: statusLabelMap[api.status] ?? api.status ?? "Unknown",
   createdAt: api.createdAt,
   scheduledAt: api.scheduledAt ?? null,
+});
+
+const mapApiAnnouncementToAdminDetail = (
+  api: ApiAnnouncement,
+): AdminAnnouncementDetail => ({
+  id: api.id,
+  title: api.title,
+  body: (api as { body?: string | null }).body ?? null,
+  audienceLabel:
+    (api.audience && audienceLabelMap[api.audience]) || api.audience || null,
+  status:
+    api.status === "draft" ||
+    api.status === "scheduled" ||
+    api.status === "sent" ||
+    api.status === "archived"
+      ? api.status
+      : (api.status ?? "unknown"),
+  createdAt: api.createdAt ?? null,
+  scheduledAt: api.scheduledAt ?? null,
+  publishedAt: (api as { publishedAt?: string | null }).publishedAt ?? null,
+  channels:
+    ((api as { channels?: string[] | null }).channels ??
+    (api as { channel?: string | null }).channel)
+      ? [(api as { channel?: string | null }).channel as string]
+      : null,
+  targetsSummary:
+    (api as { targetsSummary?: string | null }).targetsSummary ?? null,
 });
 
 export async function fetchAnnouncements(): Promise<AdminAnnouncementRow[]> {
@@ -795,6 +836,49 @@ export async function fetchRecentAnnouncements(
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, limit);
+}
+
+// NOTICES: detail view is read-only; do not surface provider payloads or internal delivery logs here.
+export async function fetchAnnouncementById(
+  id: string,
+): Promise<AdminAnnouncementDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    const mock = await fetchAnnouncements();
+    const row = mock.find((a) => a.id === id);
+    return row
+      ? {
+          id: row.id,
+          title: row.title,
+          body: "Mock announcement body.",
+          audienceLabel: row.audienceLabel,
+          status:
+            row.statusLabel.toLowerCase() as AdminAnnouncementDetail["status"],
+          createdAt: row.createdAt,
+          scheduledAt: row.scheduledAt ?? null,
+          publishedAt: row.scheduledAt ?? null,
+          channels: ["in-app"],
+          targetsSummary: row.audienceLabel,
+        }
+      : null;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/announcements/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch announcement: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAnnouncement;
+  return mapApiAnnouncementToAdminDetail(json);
 }
 
 type ApiAttendanceRow = {
