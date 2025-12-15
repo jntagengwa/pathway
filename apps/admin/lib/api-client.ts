@@ -125,6 +125,25 @@ export type AdminNotesSummary = {
   staffOnly: number;
 };
 
+export type AdminStaffRow = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  rolesLabel: string;
+  status: "active" | "inactive" | "unknown";
+};
+
+export type AdminStaffDetail = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  roles: string[];
+  primaryRoleLabel: string | null;
+  status: "active" | "inactive" | "unknown";
+  groups?: { id: string; name: string }[];
+  sessionsCount?: number | null;
+};
+
 export type AdminBillingOverview = {
   orgId: string;
   subscriptionStatus:
@@ -1144,4 +1163,112 @@ export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
 
   const json = (await res.json()) as ApiEntitlements;
   return mapApiEntitlementsToAdmin(json);
+}
+
+type ApiUser = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  hasServeAccess?: boolean | null;
+  hasFamilyAccess?: boolean | null;
+  createdAt?: string;
+};
+
+const mapUserToStaffRow = (u: ApiUser): AdminStaffRow => {
+  const roles: string[] = [];
+  if (u.hasServeAccess) roles.push("Staff access");
+  if (u.hasFamilyAccess) roles.push("Family access");
+  return {
+    id: u.id,
+    fullName: u.name || "Unknown user",
+    email: u.email,
+    rolesLabel: roles.length ? roles.join(", ") : "—",
+    status: u.hasServeAccess === false ? "inactive" : "active",
+  };
+};
+
+const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
+  const roles: string[] = [];
+  if (u.hasServeAccess) roles.push("Staff access");
+  if (u.hasFamilyAccess) roles.push("Family access");
+  return {
+    id: u.id,
+    fullName: u.name || "Unknown user",
+    email: u.email,
+    roles,
+    primaryRoleLabel: roles[0] ?? null,
+    status: u.hasServeAccess === false ? "inactive" : "active",
+    groups: undefined, // TODO: map staff groups/classes when API exposes them.
+    sessionsCount: undefined, // TODO: derive from assignments when available.
+  };
+};
+
+// PEOPLE: high-level staff metadata only. No auth tokens or logs.
+export async function fetchStaff(): Promise<AdminStaffRow[]> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return [
+      {
+        id: "u1",
+        fullName: "Alex Morgan",
+        email: "alex.morgan@example.edu",
+        rolesLabel: "Staff access",
+        status: "active",
+      },
+      {
+        id: "u2",
+        fullName: "Jamie Lee",
+        email: "jamie.lee@example.edu",
+        rolesLabel: "Family access",
+        status: "active",
+      },
+    ];
+  }
+
+  const res = await fetch(`${API_BASE_URL}/users`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch users: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as ApiUser[];
+  return json.map(mapUserToStaffRow);
+}
+
+export async function fetchStaffById(
+  userId: string,
+): Promise<AdminStaffDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return {
+      id: userId,
+      fullName: "Alex Morgan",
+      email: "alex.morgan@example.edu",
+      roles: ["Staff access"],
+      primaryRoleLabel: "Staff access",
+      status: "active",
+      groups: [],
+      sessionsCount: null,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch user: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as ApiUser;
+  return mapUserToStaffDetail(json);
 }
