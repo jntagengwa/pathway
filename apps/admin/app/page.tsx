@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Badge, Card } from "@pathway/ui";
 
 type Session = { title: string; time: string; room: string };
@@ -31,26 +32,37 @@ export default function DashboardPage() {
           {todaysSessions.length === 0 ? (
             <p className="text-sm text-text-muted">No sessions today yet.</p>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {todaysSessions.map((session) => (
-                <li
-                  key={session.title}
-                  className="list-none rounded-md border border-border-subtle bg-surface px-3 py-2"
+            <>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-sm text-text-muted">What’s on today.</p>
+                <Link
+                  href="/sessions"
+                  className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold text-text-primary font-heading leading-6">
+                  View all
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {todaysSessions.map((session) => (
+                  <div
+                    key={session.title}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-3"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-text-primary">
                         {session.title}
-                      </p>
-                      <p className="text-sm text-text-muted">
+                      </span>
+                      <span className="text-xs text-text-muted">
                         {session.time} · {session.room}
-                      </p>
+                      </span>
                     </div>
-                    <Badge variant="accent">Scheduled</Badge>
+                    <Badge variant="accent" className="px-2 py-1 text-[11px]">
+                      Scheduled
+                    </Badge>
                   </div>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            </>
           )}
         </Card>
 

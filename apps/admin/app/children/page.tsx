@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
-import { AdminChildRow, fetchChildrenMock } from "../../lib/api-client";
+import { AdminChildRow, fetchChildren } from "../../lib/api-client";
 
 export default function ChildrenPage() {
   const [data, setData] = React.useState<AdminChildRow[]>([]);
@@ -15,7 +15,7 @@ export default function ChildrenPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchChildrenMock();
+      const result = await fetchChildren();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load children");

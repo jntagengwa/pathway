@@ -220,6 +220,53 @@ export async function fetchChildById(
   return all.find((c) => c.id === id) ?? null;
 }
 
+type ApiChild = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photoKey: string | null;
+  allergies: string[] | null;
+  disabilities: string[] | null;
+  groupId: string | null;
+  tenantId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
+  id: c.id,
+  fullName: `${c.firstName} ${c.lastName}`.trim(),
+  preferredName: null, // TODO: populate when API exposes preferredName
+  ageGroup: "—", // TODO: map when API exposes age/room/group name
+  primaryGroup: c.groupId ?? "—",
+  hasPhotoConsent: false, // TODO: derive from consent flag when available (do not assume photoKey implies consent)
+  hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
+  hasAdditionalNeeds:
+    Array.isArray(c.disabilities) && c.disabilities.length > 0,
+  status: "active", // TODO: map from API status/archived flag when available
+});
+
+// Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
+export async function fetchChildren(): Promise<AdminChildRow[]> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) return fetchChildrenMock();
+
+  const res = await fetch(`${API_BASE_URL}/children`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch children (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiChild[];
+  return json.map(mapApiChildToAdmin);
+}
+
 // TODO: replace with real API call; include tenant/org context and auth
 export async function fetchParentsMock(): Promise<AdminParentRow[]> {
   return Promise.resolve([
