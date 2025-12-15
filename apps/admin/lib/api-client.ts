@@ -36,6 +36,7 @@ export type AdminParentRow = {
   email: string;
   phone?: string | null;
   children: { id: string; name: string }[];
+  childrenCount?: number;
   isPrimaryContact: boolean;
   status: "active" | "inactive";
 };
@@ -306,4 +307,45 @@ export async function fetchParentById(
 ): Promise<AdminParentRow | null> {
   const all = await fetchParentsMock();
   return all.find((p) => p.id === id) ?? null;
+}
+
+type ApiParentSummary = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  childrenCount: number;
+};
+
+const mapApiParentToAdminParentRow = (
+  api: ApiParentSummary,
+): AdminParentRow => ({
+  id: api.id,
+  fullName: api.fullName || "Unknown parent",
+  email: api.email ?? "",
+  phone: null, // TODO: map phone when backend exposes it
+  children: [], // TODO: map child summaries when list endpoint exposes them
+  childrenCount: api.childrenCount,
+  isPrimaryContact: false, // TODO: map when API exposes primary-contact flag
+  status: "active", // TODO: map real status/archival when available
+});
+
+// Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
+export async function fetchParents(): Promise<AdminParentRow[]> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) return fetchParentsMock(); // Fallback to mock data when API base URL is not configured.
+
+  const res = await fetch(`${API_BASE_URL}/parents`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch parents: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiParentSummary[];
+  return json.map(mapApiParentToAdminParentRow);
 }

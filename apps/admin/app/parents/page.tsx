@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
-import { AdminParentRow, fetchParentsMock } from "../../lib/api-client";
+import { AdminParentRow, fetchParents } from "../../lib/api-client";
 
 export default function ParentsPage() {
   const [data, setData] = React.useState<AdminParentRow[]>([]);
@@ -15,7 +15,7 @@ export default function ParentsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchParentsMock();
+      const result = await fetchParents();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load parents");
@@ -76,13 +76,13 @@ export default function ParentsPage() {
         id: "children",
         header: "Children",
         cell: (row) => (
-          <div className="flex flex-wrap gap-2">
-            {row.children.map((child) => (
-              <Badge key={child.id} variant="accent">
-                {child.name}
-              </Badge>
-            ))}
-          </div>
+          <span className="text-sm text-text-primary">
+            {typeof row.childrenCount === "number"
+              ? row.childrenCount === 1
+                ? "1 child"
+                : `${row.childrenCount} children`
+              : "—"}
+          </span>
         ),
       },
       {

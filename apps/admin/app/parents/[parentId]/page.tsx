@@ -25,6 +25,7 @@ export default function ParentDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
+      // TODO: wire parent detail to GET /parents/:id (read-only) once list API usage is validated.
       const result = await fetchParentById(parentId);
       setParent(result);
       if (!result) {
