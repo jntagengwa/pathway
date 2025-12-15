@@ -195,6 +195,17 @@ export type AdminRetentionOverview = {
   notesRetentionYears?: number | null;
 };
 
+export type AdminKpis = {
+  totalChildren?: number;
+  totalParents?: number;
+  openConcerns?: number;
+  positiveNotesCount?: number;
+  av30Used?: number | null;
+  av30Cap?: number | null;
+  sessionsToday?: number;
+  planTier?: string | null;
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -879,6 +890,53 @@ export async function fetchAnnouncementById(
 
   const json = (await res.json()) as ApiAnnouncement;
   return mapApiAnnouncementToAdminDetail(json);
+}
+
+// REPORTS: this helper must only aggregate counts/ratios from existing endpoints; no raw safeguarding text or provider payloads.
+export async function fetchAdminKpis(): Promise<AdminKpis> {
+  const results = await Promise.allSettled([
+    fetchChildren(),
+    fetchParents(),
+    fetchOpenConcerns(),
+    fetchNotesSummary(),
+    fetchBillingOverview(),
+    fetchSessions(),
+  ]);
+
+  const children =
+    results[0].status === "fulfilled" ? (results[0].value ?? []) : undefined;
+  const parents =
+    results[1].status === "fulfilled" ? (results[1].value ?? []) : undefined;
+  const concerns =
+    results[2].status === "fulfilled" ? (results[2].value ?? []) : undefined;
+  const notesSummary =
+    results[3].status === "fulfilled" ? (results[3].value ?? null) : undefined;
+  const billing =
+    results[4].status === "fulfilled" ? (results[4].value ?? null) : undefined;
+  const sessions =
+    results[5].status === "fulfilled" ? (results[5].value ?? []) : undefined;
+
+  const kpis: AdminKpis = {
+    totalChildren: Array.isArray(children) ? children.length : undefined,
+    totalParents: Array.isArray(parents) ? parents.length : undefined,
+    openConcerns: Array.isArray(concerns) ? concerns.length : undefined,
+    positiveNotesCount: notesSummary ? notesSummary.totalNotes : undefined,
+    av30Used: billing ? (billing.currentAv30 ?? null) : null,
+    av30Cap: billing ? (billing.av30Cap ?? null) : null,
+    sessionsToday: Array.isArray(sessions)
+      ? sessions.filter(
+          (s) => isTodayLocal(s.startsAt) || isTodayLocal(s.endsAt),
+        ).length
+      : undefined,
+    planTier: billing?.planCode ?? null,
+  };
+
+  const allRejected = results.every((r) => r.status === "rejected");
+  if (allRejected) {
+    throw new Error("Failed to load reports data");
+  }
+
+  return kpis;
 }
 
 type ApiAttendanceRow = {
