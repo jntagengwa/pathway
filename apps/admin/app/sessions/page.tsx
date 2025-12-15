@@ -3,7 +3,14 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
-import { AdminSessionRow, fetchSessions } from "../../lib/api-client";
+import {
+  AdminAssignmentRow,
+  AdminRotaDay,
+  AdminSessionRow,
+  fetchAssignmentsForOrg,
+  fetchSessions,
+  mapApiAssignmentsToRotaDays,
+} from "../../lib/api-client";
 
 const statusCopy: Record<AdminSessionRow["status"], string> = {
   not_started: "Not started",
@@ -20,7 +27,17 @@ const statusTone: Record<
   completed: "success",
 };
 
-function formatTimeRange(startsAt: string, endsAt: string) {
+const assignmentStatusTone: Record<
+  AdminAssignmentRow["status"],
+  "default" | "accent" | "warning" | "success"
+> = {
+  pending: "warning",
+  confirmed: "success",
+  declined: "default",
+};
+
+function formatTimeRange(startsAt?: string, endsAt?: string) {
+  if (!startsAt || !endsAt) return { date: "Unknown", range: "—" };
   const start = new Date(startsAt);
   const end = new Date(endsAt);
   const date = start.toLocaleDateString(undefined, {
@@ -39,28 +56,100 @@ function formatTimeRange(startsAt: string, endsAt: string) {
   return { date, range: `${startTime} – ${endTime}` };
 }
 
-export default function SessionsPage() {
-  const [data, setData] = React.useState<AdminSessionRow[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const router = useRouter();
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
 
-  const load = React.useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+const startOfWeek = (date: Date) => {
+  const next = new Date(date);
+  const day = next.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday as first day
+  next.setDate(next.getDate() + diff);
+  next.setHours(0, 0, 0, 0);
+  return next;
+};
+
+const formatWeekRange = (start: Date) => {
+  const end = addDays(start, 6);
+  const startLabel = start.toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  const endLabel = end.toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  return `${startLabel} – ${endLabel}`;
+};
+
+export default function SessionsPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = React.useState<"sessions" | "rota">(
+    "sessions",
+  );
+  const [sessions, setSessions] = React.useState<AdminSessionRow[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = React.useState(true);
+  const [sessionsError, setSessionsError] = React.useState<string | null>(null);
+
+  const [weekStart, setWeekStart] = React.useState<Date>(
+    () => startOfWeek(new Date()),
+  );
+  const [rotaDays, setRotaDays] = React.useState<AdminRotaDay[]>([]);
+  const [rotaLoading, setRotaLoading] = React.useState(false);
+  const [rotaError, setRotaError] = React.useState<string | null>(null);
+
+  const loadSessions = React.useCallback(async () => {
+    setIsLoadingSessions(true);
+    setSessionsError(null);
     try {
       const result = await fetchSessions();
-      setData(result);
+      setSessions(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load sessions");
+      setSessionsError(
+        err instanceof Error ? err.message : "Failed to load sessions",
+      );
     } finally {
-      setIsLoading(false);
+      setIsLoadingSessions(false);
     }
   }, []);
 
+  const loadRota = React.useCallback(
+    async (start: Date) => {
+      setRotaLoading(true);
+      setRotaError(null);
+      const dateFrom = start.toISOString().slice(0, 10);
+      const dateTo = addDays(start, 6).toISOString().slice(0, 10);
+      try {
+        const assignments = await fetchAssignmentsForOrg({
+          dateFrom,
+          dateTo,
+        });
+        const grouped = mapApiAssignmentsToRotaDays(assignments);
+        setRotaDays(grouped);
+      } catch (err) {
+        setRotaError(
+          err instanceof Error ? err.message : "Failed to load rota",
+        );
+      } finally {
+        setRotaLoading(false);
+      }
+    },
+    [],
+  );
+
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    void loadSessions();
+  }, [loadSessions]);
+
+  React.useEffect(() => {
+    if (activeTab === "rota") {
+      void loadRota(weekStart);
+    }
+  }, [activeTab, loadRota, weekStart]);
 
   const columns = React.useMemo<ColumnDef<AdminSessionRow>[]>(
     () => [
@@ -104,7 +193,7 @@ export default function SessionsPage() {
         id: "attendance",
         header: "Attendance",
         cell: (row) => (
-          <span className="text-sm text-text-primary font-medium">
+          <span className="text-sm font-medium text-text-primary">
             {row.attendanceMarked} / {row.attendanceTotal} marked
           </span>
         ),
@@ -115,45 +204,225 @@ export default function SessionsPage() {
     [],
   );
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary font-heading">
-          Sessions & Attendance
-        </h1>
+  const weekDates = React.useMemo(
+    () => Array.from({ length: 7 }, (_, idx) => addDays(weekStart, idx)),
+    [weekStart],
+  );
+
+  const rotaMap = React.useMemo(
+    () => new Map(rotaDays.map((day) => [day.date, day.assignments])),
+    [rotaDays],
+  );
+
+  const renderSessionsTab = () => (
+    <Card
+      title="Upcoming Sessions"
+      description="Live data uses tenant scoping; mock data shown when API base URL is not set."
+      actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={load}>
+          <Button variant="secondary" size="sm" onClick={loadSessions}>
             Refresh
           </Button>
           <Button size="sm">Create session</Button>
         </div>
-      </div>
+      }
+    >
+      {sessionsError ? (
+        <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
+          <span className="font-semibold">Unable to load sessions</span>
+          <span>{sessionsError}</span>
+          <div>
+            <Button size="sm" variant="secondary" onClick={loadSessions}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <DataTable
+          data={sessions}
+          columns={columns}
+          isLoading={isLoadingSessions}
+          emptyMessage="No sessions scheduled."
+          onRowClick={(row) => {
+            router.push(`/sessions/${row.id}`);
+          }}
+        />
+      )}
+    </Card>
+  );
+
+  const renderRotaTab = () => (
+    <div className="flex flex-col gap-3">
       <Card
-        title="Upcoming Sessions"
-        description="Mocked data for now. Live data will respect tenant and role filters."
+        title="Staff rota"
+        description="Weekly view of who is scheduled on each session."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWeekStart((prev) => addDays(prev, -7))}
+            >
+              Previous
+            </Button>
+            <div className="rounded-md border border-border-subtle bg-surface px-3 py-1 text-sm text-text-primary">
+              {formatWeekRange(weekStart)}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWeekStart((prev) => addDays(prev, 7))}
+            >
+              Next
+            </Button>
+          </div>
+        }
       >
-        {error ? (
+        {rotaError ? (
           <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
-            <span className="font-semibold">Unable to load sessions</span>
-            <span>{error}</span>
+            <span className="font-semibold">Unable to load rota</span>
+            <span>{rotaError}</span>
             <div>
-              <Button size="sm" variant="secondary" onClick={load}>
+              <Button size="sm" variant="secondary" onClick={() => loadRota(weekStart)}>
                 Retry
               </Button>
             </div>
           </div>
+        ) : rotaLoading ? (
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+            {weekDates.map((date) => (
+              <div
+                key={date.toISOString()}
+                className="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-alt p-4"
+              >
+                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                <div className="space-y-2">
+                  <div className="h-3 w-full animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <DataTable
-            data={data}
-            columns={columns}
-            isLoading={isLoading}
-            emptyMessage="No sessions scheduled."
-            onRowClick={(row) => {
-              router.push(`/sessions/${row.id}`);
-            }}
-          />
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+            {weekDates.map((date) => {
+              const dateKey = date.toISOString().slice(0, 10);
+              const assignments = rotaMap.get(dateKey) ?? [];
+              const dayLabel = date.toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              return (
+                <div
+                  key={dateKey}
+                  className="flex min-h-[180px] flex-col gap-3 rounded-lg border border-border-subtle bg-surface-alt p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-text-primary">
+                      {dayLabel}
+                    </div>
+                    <span className="text-xs text-text-muted">
+                      {assignments.length
+                        ? `${assignments.length} staff`
+                        : "No staff"}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    {assignments.length === 0 ? (
+                      <p className="text-sm text-text-muted">
+                        No staff are scheduled.
+                      </p>
+                    ) : (
+                      assignments.map((assignment) => {
+                        const { range } = formatTimeRange(
+                          assignment.startsAt,
+                          assignment.endsAt,
+                        );
+                        return (
+                          <button
+                            key={assignment.id}
+                            type="button"
+                            onClick={() =>
+                              router.push(`/sessions/${assignment.sessionId}`)
+                            }
+                            className="group flex w-full flex-col gap-1 rounded-md border border-border-subtle bg-white px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-semibold text-text-primary">
+                                {assignment.sessionTitle ?? "Session"}
+                              </span>
+                              <Badge variant={assignmentStatusTone[assignment.status]}>
+                                {assignment.status === "pending"
+                                  ? "Pending"
+                                  : assignment.status === "declined"
+                                    ? "Declined"
+                                    : "Confirmed"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-text-muted">
+                              <span>{range}</span>
+                              <span className="font-medium text-text-primary">
+                                {assignment.staffName} · {assignment.roleLabel}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
+        {!rotaLoading && !rotaError && rotaDays.length === 0 ? (
+          <p className="mt-2 text-sm text-text-muted">
+            No staff are scheduled in this week yet.
+          </p>
+        ) : null}
       </Card>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary font-heading">
+            Sessions & Attendance
+          </h1>
+          <p className="text-sm text-text-muted">
+            Manage sessions and see who is scheduled on the rota.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-md border border-border-subtle bg-surface-alt p-1">
+          <button
+            type="button"
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "sessions"
+                ? "bg-white text-text-primary shadow-sm"
+                : "text-text-muted"
+            }`}
+            onClick={() => setActiveTab("sessions")}
+          >
+            Sessions
+          </button>
+          <button
+            type="button"
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "rota"
+                ? "bg-white text-text-primary shadow-sm"
+                : "text-text-muted"
+            }`}
+            onClick={() => setActiveTab("rota")}
+          >
+            Rota
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "sessions" ? renderSessionsTab() : renderRotaTab()}
     </div>
   );
 }

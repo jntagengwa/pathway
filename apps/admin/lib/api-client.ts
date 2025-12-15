@@ -18,7 +18,33 @@ export type AdminSessionRow = {
   supportStaff?: string[];
 };
 
-export type AdminSessionDetail = AdminSessionRow;
+export type AdminAssignmentRow = {
+  id: string;
+  sessionId: string;
+  staffId: string;
+  staffName: string;
+  roleLabel: "Lead" | "Support" | string;
+  status: "pending" | "confirmed" | "declined";
+  sessionTitle?: string;
+  startsAt?: string;
+  endsAt?: string;
+};
+
+export type AdminAssignmentInput = {
+  sessionId: string;
+  staffId: string;
+  role: string;
+  status?: "pending" | "confirmed";
+};
+
+export type AdminRotaDay = {
+  date: string; // YYYY-MM-DD
+  assignments: AdminAssignmentRow[];
+};
+
+export type AdminSessionDetail = AdminSessionRow & {
+  assignments?: AdminAssignmentRow[];
+};
 
 export type AdminChildRow = {
   id: string;
@@ -285,6 +311,121 @@ const isTodayLocal = (dateString?: string) => {
   );
 };
 
+type ApiAssignment = {
+  id: string;
+  sessionId: string;
+  userId: string;
+  role?: string | null;
+  status?: string | null;
+  session?: {
+    id: string;
+    title?: string | null;
+    startsAt?: string | null;
+    endsAt?: string | null;
+  } | null;
+  user?: {
+    id: string;
+    name?: string | null;
+  } | null;
+};
+
+const normalizeAssignmentStatus = (
+  status?: string | null,
+): AdminAssignmentRow["status"] => {
+  const normalized = (status ?? "").toLowerCase();
+  if (normalized === "confirmed") return "confirmed";
+  if (normalized === "declined") return "declined";
+  return "pending";
+};
+
+const normalizeRoleLabel = (role?: string | null): string => {
+  if (!role) return "Support";
+  const upper = role.toUpperCase();
+  if (upper === "LEAD") return "Lead";
+  if (upper === "SUPPORT") return "Support";
+  const words = role
+    .replace(/[_-]+/g, " ")
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1));
+  return words.join(" ") || role;
+};
+
+export const mapApiAssignmentToAdminRow = (
+  assignment: ApiAssignment,
+  opts?: {
+    sessionLookup?: Record<
+      string,
+      {
+        title?: string | null;
+        startsAt?: string | null;
+        endsAt?: string | null;
+      }
+    >;
+    userLookup?: Record<string, { name?: string | null }>;
+  },
+): AdminAssignmentRow => {
+  const sessionMeta =
+    opts?.sessionLookup?.[assignment.sessionId] ??
+    assignment.session ??
+    undefined;
+  const userMeta =
+    opts?.userLookup?.[assignment.userId] ?? assignment.user ?? undefined;
+
+  const startsAt = sessionMeta?.startsAt ?? undefined;
+  const endsAt = sessionMeta?.endsAt ?? undefined;
+  const staffId = assignment.userId ?? "unknown";
+
+  return {
+    id: assignment.id,
+    sessionId: assignment.sessionId,
+    staffId,
+    staffName:
+      (userMeta?.name ?? "").trim() ||
+      (staffId !== "unknown" ? `Staff ${staffId.slice(0, 4)}…` : "Staff"),
+    roleLabel: normalizeRoleLabel(assignment.role),
+    status: normalizeAssignmentStatus(assignment.status),
+    sessionTitle: sessionMeta?.title ?? undefined,
+    startsAt,
+    endsAt,
+  };
+};
+
+export const mapApiAssignmentsToRotaDays = (
+  assignments: AdminAssignmentRow[],
+): AdminRotaDay[] => {
+  const grouped = new Map<string, AdminAssignmentRow[]>();
+
+  assignments.forEach((assignment) => {
+    const dateKey = (() => {
+      if (!assignment.startsAt) return "unknown";
+      const parsed = new Date(assignment.startsAt);
+      if (Number.isNaN(parsed.getTime())) return "unknown";
+      return parsed.toISOString().slice(0, 10);
+    })();
+
+    const existing = grouped.get(dateKey) ?? [];
+    existing.push(assignment);
+    grouped.set(dateKey, existing);
+  });
+
+  const sorted = Array.from(grouped.entries()).sort(([a], [b]) => {
+    if (a === "unknown") return 1;
+    if (b === "unknown") return -1;
+    return a.localeCompare(b);
+  });
+
+  return sorted.map(([date, dayAssignments]) => ({
+    date,
+    assignments: [...dayAssignments].sort((a, b) => {
+      const aStart = a.startsAt ?? "";
+      const bStart = b.startsAt ?? "";
+      return aStart.localeCompare(bStart);
+    }),
+  }));
+};
+
 const safeChildLabel = (
   childId?: string | null,
   child?: { firstName?: string | null; lastName?: string | null } | null,
@@ -401,7 +542,20 @@ export async function fetchSessionById(
   const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
   if (useMock) {
     const all = await fetchSessionsMock();
-    return all.find((s) => s.id === id) ?? null;
+    const session = all.find((s) => s.id === id);
+    if (!session) return null;
+    const sessionLookup = {
+      [session.id]: {
+        title: session.title,
+        startsAt: session.startsAt,
+        endsAt: session.endsAt,
+      },
+    };
+    const assignments = await fetchAssignmentsForOrg({
+      sessionId: id,
+      sessionLookup,
+    });
+    return { ...session, assignments };
   }
 
   const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
@@ -417,7 +571,25 @@ export async function fetchSessionById(
   }
 
   const json = (await res.json()) as ApiSessionDetail;
-  return mapApiSessionDetailToAdmin(json);
+  const session = mapApiSessionDetailToAdmin(json);
+
+  try {
+    const sessionLookup = {
+      [session.id]: {
+        title: session.title,
+        startsAt: session.startsAt,
+        endsAt: session.endsAt,
+      },
+    };
+    const assignments = await fetchAssignmentsForOrg({
+      sessionId: session.id,
+      sessionLookup,
+    });
+    return { ...session, assignments };
+  } catch (err) {
+    console.warn("Failed to load assignments for session detail", err);
+    return session;
+  }
 }
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
@@ -461,6 +633,326 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     leadStaff: undefined,
     supportStaff: undefined,
   }));
+}
+
+// ROTA: assignments are staff + session metadata only.
+// Do not expose safeguarding content or internal provider payloads.
+export async function fetchAssignmentsForOrg(
+  params: {
+    dateFrom?: string;
+    dateTo?: string;
+    sessionId?: string;
+    sessionLookup?: Record<
+      string,
+      {
+        title?: string | null;
+        startsAt?: string | null;
+        endsAt?: string | null;
+      }
+    >;
+    userLookup?: Record<string, { name?: string | null }>;
+  } = {},
+): Promise<AdminAssignmentRow[]> {
+  const {
+    dateFrom,
+    dateTo,
+    sessionId,
+    sessionLookup: providedSessionLookup,
+    userLookup: providedUserLookup,
+  } = params;
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  if (useMock) {
+    const mockSessions = [
+      {
+        id: "s1",
+        title: "Year 3 Maths",
+        startsAt: "2025-01-15T09:00:00Z",
+        endsAt: "2025-01-15T09:50:00Z",
+      },
+      {
+        id: "s2",
+        title: "Year 5 Science",
+        startsAt: "2025-01-16T11:00:00Z",
+        endsAt: "2025-01-16T11:50:00Z",
+      },
+      {
+        id: "s3",
+        title: "Coding Club",
+        startsAt: "2025-01-17T15:30:00Z",
+        endsAt: "2025-01-17T16:30:00Z",
+      },
+    ];
+    const sessionLookup =
+      providedSessionLookup ??
+      mockSessions.reduce<
+        Record<string, { title?: string; startsAt?: string; endsAt?: string }>
+      >((acc, session) => {
+        acc[session.id] = session;
+        return acc;
+      }, {});
+    const userLookup = providedUserLookup ?? {
+      u1: { name: "Alex Morgan" },
+      u2: { name: "Jamie Lee" },
+    };
+    const mockAssignments: ApiAssignment[] = [
+      {
+        id: "a1",
+        sessionId: "s1",
+        userId: "u1",
+        role: "LEAD",
+        status: "CONFIRMED",
+      },
+      {
+        id: "a2",
+        sessionId: "s1",
+        userId: "u2",
+        role: "SUPPORT",
+        status: "PENDING",
+      },
+      {
+        id: "a3",
+        sessionId: "s2",
+        userId: "u1",
+        role: "SUPPORT",
+        status: "CONFIRMED",
+      },
+    ];
+    const filteredBySession = sessionId
+      ? mockAssignments.filter((a) => a.sessionId === sessionId)
+      : mockAssignments;
+    const filteredByDate = filteredBySession.filter((assignment) => {
+      if (!dateFrom && !dateTo) return true;
+      const session = sessionLookup[assignment.sessionId];
+      if (!session?.startsAt) return false;
+      const start = session.startsAt.slice(0, 10);
+      if (dateFrom && start < dateFrom) return false;
+      if (dateTo && start > dateTo) return false;
+      return true;
+    });
+    return filteredByDate.map((a) =>
+      mapApiAssignmentToAdminRow(a, { sessionLookup, userLookup }),
+    );
+  }
+
+  let sessionLookup = providedSessionLookup;
+  if ((dateFrom || dateTo) && !sessionLookup) {
+    const qs = new URLSearchParams();
+    if (dateFrom) qs.set("from", dateFrom);
+    if (dateTo) qs.set("to", dateTo);
+    const sessionsRes = await fetch(
+      `${API_BASE_URL}/sessions${qs.size ? `?${qs.toString()}` : ""}`,
+      { headers: buildAuthHeaders(), cache: "no-store" },
+    );
+    if (sessionsRes.ok) {
+      type ApiSessionForLookup = {
+        id: string;
+        title?: string | null;
+        startsAt?: string | null;
+        endsAt?: string | null;
+      };
+      const sessionJson = (await sessionsRes.json()) as ApiSessionForLookup[];
+      sessionLookup = sessionJson.reduce<
+        Record<
+          string,
+          {
+            title?: string | null;
+            startsAt?: string | null;
+            endsAt?: string | null;
+          }
+        >
+      >((acc, s) => {
+        acc[s.id] = {
+          title: s.title ?? undefined,
+          startsAt: s.startsAt ?? undefined,
+          endsAt: s.endsAt ?? undefined,
+        };
+        return acc;
+      }, {});
+    } else {
+      const body = await sessionsRes.text().catch(() => "");
+      console.warn(
+        "Failed to prefetch sessions for rota window",
+        sessionsRes.status,
+        body,
+      );
+    }
+  }
+
+  let userLookup = providedUserLookup;
+  if (!userLookup) {
+    try {
+      const staff = await fetchStaff();
+      userLookup = staff.reduce<Record<string, { name?: string | null }>>(
+        (acc, person) => {
+          acc[person.id] = { name: person.fullName };
+          return acc;
+        },
+        {},
+      );
+    } catch (err) {
+      console.warn("Failed to fetch staff lookup for assignments", err);
+    }
+  }
+
+  const assignmentQuery = new URLSearchParams();
+  if (sessionId) assignmentQuery.set("sessionId", sessionId);
+
+  const res = await fetch(
+    `${API_BASE_URL}/assignments${
+      assignmentQuery.size ? `?${assignmentQuery.toString()}` : ""
+    }`,
+    {
+      headers: buildAuthHeaders(),
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to load assignments (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAssignment[];
+  const filtered = json.filter((assignment) => {
+    if (!dateFrom && !dateTo) return true;
+    const session = sessionLookup?.[assignment.sessionId];
+    if (!session?.startsAt) return true;
+    const start = session.startsAt.slice(0, 10);
+    if (dateFrom && start < dateFrom) return false;
+    if (dateTo && start > dateTo) return false;
+    return true;
+  });
+
+  return filtered.map((assignment) =>
+    mapApiAssignmentToAdminRow(assignment, { sessionLookup, userLookup }),
+  );
+}
+
+export async function createAssignment(
+  input: AdminAssignmentInput,
+  opts?: {
+    sessionLookup?: Record<
+      string,
+      {
+        title?: string | null;
+        startsAt?: string | null;
+        endsAt?: string | null;
+      }
+    >;
+    userLookup?: Record<string, { name?: string | null }>;
+  },
+): Promise<AdminAssignmentRow> {
+  const payload = {
+    sessionId: input.sessionId,
+    userId: input.staffId,
+    role: input.role,
+    status:
+      input.status === "confirmed"
+        ? "CONFIRMED"
+        : input.status === "pending"
+          ? "PENDING"
+          : undefined,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/assignments`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create assignment (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAssignment;
+  return mapApiAssignmentToAdminRow(json, {
+    sessionLookup: opts?.sessionLookup,
+    userLookup: opts?.userLookup,
+  });
+}
+
+export async function updateAssignment(
+  id: string,
+  input: Partial<AdminAssignmentInput> & { status?: string },
+  opts?: {
+    sessionLookup?: Record<
+      string,
+      {
+        title?: string | null;
+        startsAt?: string | null;
+        endsAt?: string | null;
+      }
+    >;
+    userLookup?: Record<string, { name?: string | null }>;
+  },
+): Promise<AdminAssignmentRow> {
+  const payload = {
+    ...(input.sessionId ? { sessionId: input.sessionId } : {}),
+    ...(input.staffId ? { userId: input.staffId } : {}),
+    ...(input.role ? { role: input.role } : {}),
+    ...(input.status
+      ? {
+          status:
+            input.status === "confirmed"
+              ? "CONFIRMED"
+              : input.status === "pending"
+                ? "PENDING"
+                : input.status === "declined"
+                  ? "DECLINED"
+                  : input.status.toUpperCase(),
+        }
+      : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/assignments/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update assignment (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAssignment;
+  return mapApiAssignmentToAdminRow(json, {
+    sessionLookup: opts?.sessionLookup,
+    userLookup: opts?.userLookup,
+  });
+}
+
+export async function deleteAssignment(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/assignments/${id}`, {
+    method: "DELETE",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to delete assignment (${res.status}): ${body || res.statusText}`,
+    );
+  }
+}
+
+export async function fetchAssignmentsForCurrentStaff(params: {
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<AdminAssignmentRow[]> {
+  // TODO: once auth exposes staff userId, filter assignments to current staff only and reuse in mobile app.
+  return fetchAssignmentsForOrg(params);
 }
 
 // TODO: replace with real API call using tenant-scoped endpoint and auth headers
