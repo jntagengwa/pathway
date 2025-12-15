@@ -41,6 +41,15 @@ export type AdminParentRow = {
   status: "active" | "inactive";
 };
 
+export type AdminAnnouncementRow = {
+  id: string;
+  title: string;
+  audienceLabel: string;
+  statusLabel: string;
+  createdAt: string;
+  scheduledAt?: string | null;
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -348,4 +357,76 @@ export async function fetchParents(): Promise<AdminParentRow[]> {
 
   const json = (await res.json()) as ApiParentSummary[];
   return json.map(mapApiParentToAdminParentRow);
+}
+
+type ApiAnnouncement = {
+  id: string;
+  title: string;
+  status: string;
+  audience?: string | null;
+  createdAt: string;
+  scheduledAt?: string | null;
+};
+
+const statusLabelMap: Record<string, string> = {
+  draft: "Draft",
+  scheduled: "Scheduled",
+  sent: "Sent",
+};
+
+const audienceLabelMap: Record<string, string> = {
+  parents: "Parents",
+  staff: "Staff",
+  parents_staff: "Parents & staff",
+};
+
+const mapApiAnnouncementToAdminRow = (
+  api: ApiAnnouncement,
+): AdminAnnouncementRow => ({
+  id: api.id,
+  title: api.title,
+  audienceLabel:
+    (api.audience && audienceLabelMap[api.audience]) || api.audience || "—",
+  statusLabel: statusLabelMap[api.status] ?? api.status ?? "Unknown",
+  createdAt: api.createdAt,
+  scheduledAt: api.scheduledAt ?? null,
+});
+
+export async function fetchAnnouncements(): Promise<AdminAnnouncementRow[]> {
+  if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return [
+      {
+        id: "a1",
+        title: "Staff inset day reminder",
+        audienceLabel: "Staff",
+        statusLabel: "Scheduled",
+        createdAt: new Date().toISOString(),
+        scheduledAt: new Date(Date.now() + 3600_000).toISOString(),
+      },
+      {
+        id: "a2",
+        title: "Parents evening signup",
+        audienceLabel: "Parents",
+        statusLabel: "Draft",
+        createdAt: new Date().toISOString(),
+        scheduledAt: null,
+      },
+    ];
+  }
+
+  const res = await fetch(`${API_BASE_URL}/announcements`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch announcements: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAnnouncement[];
+  return json.map(mapApiAnnouncementToAdminRow);
 }

@@ -115,7 +115,7 @@ export default function ParentsPage() {
       </div>
       <Card
         title="Parent contacts"
-        description="Mock data for now. Will respect tenant scoping and contact permissions."
+        description="Contacts with family access in this organisation."
       >
         {error ? (
           <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
