@@ -75,6 +75,40 @@ export type AdminAnnouncementRow = {
   scheduledAt?: string | null;
 };
 
+export type AdminAttendanceRow = {
+  id: string; // sessionId
+  sessionId: string;
+  title: string;
+  date: string;
+  timeRangeLabel: string;
+  roomLabel: string | null;
+  ageGroupLabel: string | null;
+  attendanceMarked: number;
+  attendanceTotal: number;
+  status: "not_started" | "in_progress" | "completed";
+};
+
+export type AdminAttendanceDetail = {
+  sessionId: string;
+  title: string;
+  date: string;
+  timeRangeLabel: string;
+  roomLabel: string | null;
+  ageGroupLabel: string | null;
+  rows: {
+    childId: string;
+    childName: string;
+    status: "present" | "absent" | "late" | "unknown";
+  }[];
+  summary: {
+    present: number;
+    absent: number;
+    late: number;
+    unknown: number;
+  };
+  status: "not_started" | "in_progress" | "completed";
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -102,6 +136,36 @@ const mapSessionStatus = (
   if (now < startMs) return "not_started";
   if (now >= startMs && now <= endMs) return "in_progress";
   return "completed";
+};
+
+const buildTimeRangeLabel = (
+  startsAt?: string,
+  endsAt?: string,
+): string | null => {
+  if (!startsAt || !endsAt) return null;
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  const startTime = start.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const endTime = end.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${startTime} – ${endTime}`;
+};
+
+const isTodayLocal = (dateString?: string) => {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
 };
 
 // TODO: wire real fetch with auth headers (PathwayRequestContext / Auth0)
@@ -642,4 +706,204 @@ export async function fetchRecentAnnouncements(
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, limit);
+}
+
+type ApiAttendanceRow = {
+  id: string;
+  childId: string;
+  groupId: string | null;
+  present: boolean | null;
+  timestamp: string;
+  sessionId: string | null;
+};
+
+const mapAttendanceStatus = (
+  present: boolean | null,
+): "present" | "absent" | "late" | "unknown" => {
+  if (present === true) return "present";
+  if (present === false) return "absent";
+  return "unknown";
+};
+
+export async function fetchAttendanceSummariesForToday(): Promise<
+  AdminAttendanceRow[]
+> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return [
+      {
+        id: "s1",
+        sessionId: "s1",
+        title: "Year 3 Maths",
+        date: new Date().toISOString(),
+        timeRangeLabel: "09:00 – 09:50",
+        roomLabel: "Room 12",
+        ageGroupLabel: "Year 3",
+        attendanceMarked: 18,
+        attendanceTotal: 24,
+        status: "in_progress",
+      },
+    ];
+  }
+
+  const [attendanceRes, sessions] = await Promise.all([
+    fetch(`${API_BASE_URL}/attendance`, {
+      headers: buildAuthHeaders(),
+      cache: "no-store",
+    }),
+    fetchSessions(),
+  ]);
+
+  if (!attendanceRes.ok) {
+    const body = await attendanceRes.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch attendance: ${attendanceRes.status} ${body}`,
+    );
+  }
+
+  const attendance = (await attendanceRes.json()) as ApiAttendanceRow[];
+  const sessionMap = new Map(sessions.map((s) => [s.id, s]));
+
+  const grouped = attendance.reduce<Record<string, ApiAttendanceRow[]>>(
+    (acc, row) => {
+      if (!row.sessionId) return acc;
+      acc[row.sessionId] = acc[row.sessionId] || [];
+      acc[row.sessionId].push(row);
+      return acc;
+    },
+    {},
+  );
+
+  const rows: AdminAttendanceRow[] = Object.entries(grouped)
+    .map(([sessionId, rowsForSession]) => {
+      const session = sessionMap.get(sessionId);
+      const dateSource =
+        session?.startsAt ??
+        rowsForSession[0]?.timestamp ??
+        new Date().toISOString();
+      const timeRangeLabel =
+        buildTimeRangeLabel(session?.startsAt, session?.endsAt) ?? "Time TBC";
+      const attendanceMarked = rowsForSession.filter(
+        (r) => typeof r.present === "boolean",
+      ).length;
+      const attendanceTotal = rowsForSession.length;
+
+      return {
+        id: sessionId,
+        sessionId,
+        title: session?.title ?? "Session",
+        date: dateSource,
+        timeRangeLabel,
+        roomLabel: session?.room ?? null,
+        ageGroupLabel: session?.ageGroup ?? null,
+        attendanceMarked,
+        attendanceTotal,
+        status:
+          session?.status ??
+          mapSessionStatus(session?.startsAt, session?.endsAt) ??
+          "not_started",
+      };
+    })
+    .filter(
+      (row) =>
+        isTodayLocal(row.date) ||
+        isTodayLocal(sessionMap.get(row.sessionId)?.startsAt) ||
+        isTodayLocal(sessionMap.get(row.sessionId)?.endsAt),
+    )
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return rows;
+}
+
+export async function fetchAttendanceDetailBySessionId(
+  sessionId: string,
+): Promise<AdminAttendanceDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return {
+      sessionId,
+      title: "Year 3 Maths",
+      date: new Date().toISOString(),
+      timeRangeLabel: "09:00 – 09:50",
+      roomLabel: "Room 12",
+      ageGroupLabel: "Year 3",
+      rows: [
+        { childId: "c1", childName: "Amara Patel", status: "present" },
+        { childId: "c2", childName: "Leo Williams", status: "absent" },
+      ],
+      summary: { present: 1, absent: 1, late: 0, unknown: 0 },
+      status: "in_progress",
+    };
+  }
+
+  const [attendanceRes, session] = await Promise.all([
+    fetch(`${API_BASE_URL}/attendance`, {
+      headers: buildAuthHeaders(),
+      cache: "no-store",
+    }),
+    fetchSessionById(sessionId),
+  ]);
+
+  if (!attendanceRes.ok) {
+    const body = await attendanceRes.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch attendance: ${attendanceRes.status} ${body}`,
+    );
+  }
+
+  const attendance = (await attendanceRes.json()) as ApiAttendanceRow[];
+  const rowsForSession = attendance.filter((r) => r.sessionId === sessionId);
+
+  if (rowsForSession.length === 0 && !session) {
+    return null;
+  }
+
+  let childNameMap = new Map<string, string>();
+  try {
+    const children = await fetchChildren();
+    childNameMap = new Map(children.map((c) => [c.id, c.fullName]));
+  } catch {
+    // If children lookup fails, fallback to ids.
+  }
+
+  const rows = rowsForSession.map((r) => {
+    const status = mapAttendanceStatus(r.present);
+    return {
+      childId: r.childId,
+      childName: childNameMap.get(r.childId) ?? `Child ${r.childId}`,
+      status,
+    };
+  });
+
+  const summary = rows.reduce(
+    (acc, row) => {
+      acc[row.status] += 1;
+      return acc;
+    },
+    { present: 0, absent: 0, late: 0, unknown: 0 },
+  );
+
+  const timeRangeLabel =
+    buildTimeRangeLabel(session?.startsAt, session?.endsAt) ?? "Time TBC";
+  const date =
+    session?.startsAt ??
+    rowsForSession[0]?.timestamp ??
+    new Date().toISOString();
+
+  return {
+    sessionId,
+    title: session?.title ?? "Session",
+    date,
+    timeRangeLabel,
+    roomLabel: session?.room ?? null,
+    ageGroupLabel: session?.ageGroup ?? null,
+    rows,
+    summary,
+    status:
+      session?.status ??
+      mapSessionStatus(session?.startsAt, session?.endsAt) ??
+      "not_started",
+  };
 }
