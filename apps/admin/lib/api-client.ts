@@ -167,6 +167,21 @@ export type AdminBillingOverview = {
   maxSites?: number | null;
 };
 
+export type AdminOrgOverview = {
+  id: string;
+  name: string;
+  slug: string | null;
+  isMultiSite: boolean;
+  planTier?: string | null;
+  siteCount?: number | null;
+};
+
+export type AdminRetentionOverview = {
+  attendanceRetentionYears?: number | null;
+  safeguardingRetentionYears?: number | null;
+  notesRetentionYears?: number | null;
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -1163,6 +1178,71 @@ export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
 
   const json = (await res.json()) as ApiEntitlements;
   return mapApiEntitlementsToAdmin(json);
+}
+
+type ApiOrg = {
+  id: string;
+  name: string;
+  slug?: string | null;
+  planCode?: string | null;
+  isSuite?: boolean | null;
+  // TODO: map site counts when available
+};
+
+const mapApiOrgToAdmin = (org: ApiOrg): AdminOrgOverview => ({
+  id: org.id,
+  name: org.name,
+  slug: org.slug ?? null,
+  isMultiSite: Boolean(org.isSuite), // TODO: confirm multi-site flag mapping
+  planTier: org.planCode ?? null,
+  siteCount: null,
+});
+
+// SETTINGS: org overview is metadata-only; do not surface secrets or API keys here.
+export async function fetchOrgOverview(): Promise<AdminOrgOverview> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock once admin env is always configured.
+    return {
+      id: "mock-org",
+      name: "Mock Organisation",
+      slug: "mock-org",
+      isMultiSite: false,
+      planTier: null,
+      siteCount: null,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/orgs`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch org: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as ApiOrg[];
+  const firstOrg = json[0];
+  if (!firstOrg) {
+    return {
+      id: "unknown",
+      name: "Organisation",
+      slug: null,
+      isMultiSite: false,
+      planTier: null,
+      siteCount: null,
+    };
+  }
+
+  return mapApiOrgToAdmin(firstOrg);
+}
+
+// SETTINGS: high-level retention config only; detailed policy text belongs in docs, not raw JSON here.
+export async function fetchRetentionOverview(): Promise<AdminRetentionOverview | null> {
+  // TODO: wire to real retention config endpoint when exposed.
+  return null;
 }
 
 type ApiUser = {
