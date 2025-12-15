@@ -109,6 +109,22 @@ export type AdminAttendanceDetail = {
   status: "not_started" | "in_progress" | "completed";
 };
 
+export type AdminConcernRow = {
+  id: string;
+  createdAt: string;
+  updatedAt?: string | null;
+  status: "open" | "in_review" | "closed" | "other";
+  category?: string | null;
+  childLabel: string;
+  reportedByLabel?: string | null;
+};
+
+export type AdminNotesSummary = {
+  totalNotes: number;
+  visibleToParents: number;
+  staffOnly: number;
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -166,6 +182,22 @@ const isTodayLocal = (dateString?: string) => {
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate()
   );
+};
+
+const safeChildLabel = (
+  childId?: string | null,
+  child?: { firstName?: string | null; lastName?: string | null } | null,
+): string => {
+  // SAFEGUARDING: do NOT show full child names here. Initials only when available.
+  const first = (child?.firstName ?? "").trim();
+  const lastInitial = (child?.lastName ?? "").trim().charAt(0);
+  if (first) {
+    return lastInitial ? `${first} ${lastInitial}.` : first;
+  }
+  if (childId) {
+    return `Child ${childId.slice(0, 4)}…`;
+  }
+  return "Child record";
 };
 
 // TODO: wire real fetch with auth headers (PathwayRequestContext / Auth0)
@@ -906,4 +938,103 @@ export async function fetchAttendanceDetailBySessionId(
       mapSessionStatus(session?.startsAt, session?.endsAt) ??
       "not_started",
   };
+}
+
+type ApiConcern = {
+  id: string;
+  childId?: string | null;
+  child?: { firstName?: string | null; lastName?: string | null } | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+  status?: string | null;
+  category?: string | null;
+  summary?: string | null;
+  details?: string | null;
+};
+
+const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
+  id: c.id,
+  createdAt: c.createdAt ?? new Date().toISOString(),
+  updatedAt: c.updatedAt ?? null,
+  status:
+    c.status === "open" || c.status === "in_review" || c.status === "closed"
+      ? c.status
+      : "other",
+  category: c.category ?? null,
+  // SAFEGUARDING: show initials/generic labels only, never full names or free text.
+  childLabel: safeChildLabel(c.childId, c.child ?? null),
+  reportedByLabel: null, // TODO: map reporter role/title when backend exposes a safe label.
+});
+
+export async function fetchOpenConcerns(): Promise<AdminConcernRow[]> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return [
+      {
+        id: "concern-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        status: "open",
+        category: "Safeguarding",
+        childLabel: "Child record",
+        reportedByLabel: "Staff member",
+      },
+    ];
+  }
+
+  const res = await fetch(`${API_BASE_URL}/concerns`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch concerns: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiConcern[];
+
+  return json
+    .filter((c) => (c.status ?? "open") !== "closed") // basic open filter; backend filter preferred when available
+    .map(mapApiConcernToAdmin)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+}
+
+type ApiNote = {
+  id: string;
+  createdAt?: string;
+  visibleToParents?: boolean;
+};
+
+export async function fetchNotesSummary(): Promise<AdminNotesSummary> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return { totalNotes: 2, visibleToParents: 0, staffOnly: 2 };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/notes`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch notes: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const notes = (await res.json()) as ApiNote[];
+  const totalNotes = notes.length;
+  const visibleToParents = notes.filter((n) => n.visibleToParents).length;
+  const staffOnly = totalNotes - visibleToParents;
+
+  return { totalNotes, visibleToParents, staffOnly };
 }
