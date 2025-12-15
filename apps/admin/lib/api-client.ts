@@ -206,6 +206,26 @@ export type AdminKpis = {
   planTier?: string | null;
 };
 
+export type AdminLessonRow = {
+  id: string;
+  title: string;
+  ageGroupLabel: string | null;
+  groupLabel: string | null;
+  status: "draft" | "published" | "archived" | "unknown";
+  updatedAt: string | null;
+};
+
+export type AdminLessonDetail = {
+  id: string;
+  title: string;
+  description: string | null;
+  ageGroupLabel: string | null;
+  groupLabel: string | null;
+  status: "draft" | "published" | "archived" | "unknown";
+  updatedAt: string | null;
+  resources: { id: string; label: string; type?: string | null }[];
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -937,6 +957,138 @@ export async function fetchAdminKpis(): Promise<AdminKpis> {
   }
 
   return kpis;
+}
+
+type ApiLesson = {
+  id: string;
+  title: string;
+  description?: string | null;
+  groupId?: string | null;
+  tenantId?: string;
+  weekOf?: string | null;
+  fileKey?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: string | null;
+};
+
+const mapLessonStatus = (status?: string | null): AdminLessonRow["status"] => {
+  if (status === "draft" || status === "published" || status === "archived") {
+    return status;
+  }
+  return "unknown";
+};
+
+const resourceLabelFromKey = (key?: string | null) => {
+  if (!key) return "Resource";
+  const parts = key.split("/");
+  const last = parts.pop();
+  return last || key;
+};
+
+const mapApiLessonToAdminRow = (api: ApiLesson): AdminLessonRow => ({
+  id: api.id,
+  title: api.title,
+  ageGroupLabel: api.weekOf ?? null, // TODO: map to age group when available
+  groupLabel: api.groupId ?? null, // TODO: map group name when API exposes it
+  status: mapLessonStatus(api.status),
+  updatedAt: api.updatedAt ?? null,
+});
+
+const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
+  id: api.id,
+  title: api.title,
+  description: api.description ?? null,
+  ageGroupLabel: api.weekOf ?? null, // TODO: map to age group when available
+  groupLabel: api.groupId ?? null, // TODO: map group name when API exposes it
+  status: mapLessonStatus(api.status),
+  updatedAt: api.updatedAt ?? null,
+  resources: api.fileKey
+    ? [
+        {
+          id: api.fileKey,
+          label: resourceLabelFromKey(api.fileKey),
+          type: null,
+        },
+      ]
+    : [],
+});
+
+// LESSONS: content/curriculum only – no safeguarding notes or secrets. Do not expose raw S3 URLs or provider payloads; show safe labels only.
+export async function fetchLessons(): Promise<AdminLessonRow[]> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return [
+      {
+        id: "l1",
+        title: "Year 3 Maths – Fractions",
+        ageGroupLabel: "Year 3",
+        groupLabel: "3A",
+        status: "published",
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "l2",
+        title: "Year 4 Science – Habitats",
+        ageGroupLabel: "Year 4",
+        groupLabel: "4B",
+        status: "draft",
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+  }
+
+  const res = await fetch(`${API_BASE_URL}/lessons`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch lessons: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as ApiLesson[];
+  return json.map(mapApiLessonToAdminRow);
+}
+
+export async function fetchLessonById(
+  lessonId: string,
+): Promise<AdminLessonDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    return {
+      id: lessonId,
+      title: "Mock lesson",
+      description: "This is a mock lesson description.",
+      ageGroupLabel: "Year 3",
+      groupLabel: "3A",
+      status: "draft",
+      updatedAt: new Date().toISOString(),
+      resources: [
+        { id: "res1", label: "Mock worksheet.pdf", type: "pdf" },
+        { id: "res2", label: "Slides.pptx", type: "ppt" },
+      ],
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch lesson: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiLesson;
+  return mapApiLessonToAdminDetail(json);
 }
 
 type ApiAttendanceRow = {
