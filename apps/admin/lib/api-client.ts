@@ -630,3 +630,16 @@ export async function fetchAnnouncements(): Promise<AdminAnnouncementRow[]> {
   const json = (await res.json()) as ApiAnnouncement[];
   return json.map(mapApiAnnouncementToAdminRow);
 }
+
+export async function fetchRecentAnnouncements(
+  limit = 4,
+): Promise<AdminAnnouncementRow[]> {
+  const all = await fetchAnnouncements();
+  return all
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, limit);
+}
