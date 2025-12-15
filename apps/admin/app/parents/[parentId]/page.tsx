@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, Mail, User } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
 import { AdminParentDetail, fetchParentById } from "../../../lib/api-client";
 
@@ -130,18 +130,12 @@ export default function ParentDetailPage() {
                     {parent.email}
                   </a>
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
-                  {parent.phone ? (
-                    <a
-                      href={`tel:${parent.phone}`}
-                      className="text-text-primary underline-offset-2 hover:underline"
-                    >
-                      {parent.phone}
-                    </a>
-                  ) : (
-                    <span className="text-text-muted">No phone</span>
-                  )}
+                <span className="text-xs text-text-muted">
+                  {typeof parent.childrenCount === "number"
+                    ? parent.childrenCount === 1
+                      ? "1 linked child"
+                      : `${parent.childrenCount} linked children`
+                    : null}
                 </span>
               </div>
             </div>
