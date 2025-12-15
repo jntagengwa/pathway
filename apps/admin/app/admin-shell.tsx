@@ -3,20 +3,14 @@
 import React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { SidebarNav, TopBar, type SidebarNavItem } from "@pathway/ui";
+import {
+  SidebarNav,
+  TopBar,
+  type SidebarNavItem,
+  defaultSidebarItems,
+} from "@pathway/ui";
 
-const navItems: SidebarNavItem[] = [
-  { label: "Dashboard", href: "/" },
-  { label: "People / Users", href: "/people" },
-  { label: "Children", href: "/children" },
-  { label: "Sessions & Attendance", href: "/sessions" },
-  { label: "Attendance", href: "/attendance" },
-  { label: "Notices / Lessons", href: "/notices" },
-  { label: "Safeguarding", href: "/safeguarding" },
-  { label: "Billing", href: "/billing" },
-  { label: "Reports", href: "/reports" },
-  { label: "Settings", href: "/settings" },
-];
+const navItems: SidebarNavItem[] = defaultSidebarItems;
 
 const titleMap: Record<string, string> = {
   "/": "Dashboard",
@@ -24,6 +18,7 @@ const titleMap: Record<string, string> = {
   "/people": "People",
   "/users": "People",
   "/children": "Children",
+  "/parents": "Parents & guardians",
   "/sessions": "Sessions & Attendance",
   "/attendance": "Attendance",
   "/notices": "Notices & Lessons",

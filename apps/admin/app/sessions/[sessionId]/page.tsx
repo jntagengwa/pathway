@@ -5,16 +5,16 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CalendarClock, MapPin, Users } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
-import { AdminSessionRow, fetchSessionById } from "../../../lib/api-client";
+import { AdminSessionDetail, fetchSessionById } from "../../../lib/api-client";
 
-const statusCopy: Record<AdminSessionRow["status"], string> = {
+const statusCopy: Record<AdminSessionDetail["status"], string> = {
   not_started: "Not started",
   in_progress: "In progress",
   completed: "Completed",
 };
 
 const statusTone: Record<
-  AdminSessionRow["status"],
+  AdminSessionDetail["status"],
   "default" | "accent" | "warning" | "success"
 > = {
   not_started: "default",
@@ -47,21 +47,30 @@ export default function SessionDetailPage() {
   const router = useRouter();
   const sessionId = params.sessionId;
 
-  const [session, setSession] = React.useState<AdminSessionRow | null>(null);
+  const [session, setSession] = React.useState<AdminSessionDetail | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [notFound, setNotFound] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setNotFound(false);
     try {
       const result = await fetchSessionById(sessionId);
       setSession(result);
       if (!result) {
-        setError("Session not found");
+        setNotFound(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load session");
+      const message =
+        err instanceof Error ? err.message : "Failed to load session";
+      if (message.includes("404")) {
+        setNotFound(true);
+      } else {
+        setError(message);
+      }
+      setSession(null);
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +121,7 @@ export default function SessionDetailPage() {
             </div>
           </Card>
         </div>
-      ) : error ? (
+      ) : notFound ? (
         <Card title="Session not found">
           <p className="text-sm text-text-muted">
             We couldn’t find a session matching id <strong>{sessionId}</strong>.
@@ -124,6 +133,19 @@ export default function SessionDetailPage() {
             >
               Back to sessions
             </Button>
+          </div>
+        </Card>
+      ) : error ? (
+        <Card title="Error loading session">
+          <p className="text-sm text-text-muted">{error}</p>
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/sessions")}
+            >
+              Back to sessions
+            </Button>
+            <Button onClick={load}>Retry</Button>
           </div>
         </Card>
       ) : session ? (

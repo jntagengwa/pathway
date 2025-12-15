@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   LayoutDashboard,
   Users,
+  UserRound,
   GraduationCap,
   CalendarClock,
   CheckSquare,
@@ -32,6 +33,7 @@ const defaultIcons = [
   <LayoutDashboard key="dashboard" className="h-4 w-4" />,
   <Users key="users" className="h-4 w-4" />,
   <GraduationCap key="children" className="h-4 w-4" />,
+  <UserRound key="parents" className="h-4 w-4" />,
   <CalendarClock key="sessions" className="h-4 w-4" />,
   <CheckSquare key="attendance" className="h-4 w-4" />,
   <Megaphone key="notices" className="h-4 w-4" />,
@@ -45,6 +47,7 @@ export const defaultSidebarItems: SidebarNavItem[] = [
   { label: "Dashboard", href: "/" },
   { label: "People / Users", href: "/people" },
   { label: "Children", href: "/children" },
+  { label: "Parents & guardians", href: "/parents" },
   { label: "Sessions & Attendance", href: "/sessions" },
   { label: "Attendance", href: "/attendance" },
   { label: "Notices / Lessons", href: "/notices" },

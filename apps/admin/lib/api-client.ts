@@ -18,6 +18,8 @@ export type AdminSessionRow = {
   supportStaff?: string[];
 };
 
+export type AdminSessionDetail = AdminSessionRow;
+
 export type AdminChildRow = {
   id: string;
   fullName: string;
@@ -30,12 +32,35 @@ export type AdminChildRow = {
   status: "active" | "inactive";
 };
 
+export type AdminChildDetail = {
+  id: string;
+  fullName: string;
+  preferredName?: string | null;
+  ageGroupLabel?: string | null;
+  primaryGroupLabel?: string | null;
+  hasPhotoConsent: boolean;
+  hasAllergies: boolean;
+  hasAdditionalNeeds: boolean;
+  status: "active" | "inactive";
+};
+
 export type AdminParentRow = {
   id: string;
   fullName: string;
   email: string;
   phone?: string | null;
   children: { id: string; name: string }[];
+  childrenCount?: number;
+  isPrimaryContact: boolean;
+  status: "active" | "inactive";
+};
+
+export type AdminParentDetail = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  children: { id: string; fullName: string }[];
   childrenCount?: number;
   isPrimaryContact: boolean;
   status: "active" | "inactive";
@@ -64,6 +89,20 @@ function buildAuthHeaders(): HeadersInit {
 
   return headers;
 }
+
+const mapSessionStatus = (
+  startsAt?: string,
+  endsAt?: string,
+): AdminSessionRow["status"] => {
+  if (!startsAt || !endsAt) return "not_started";
+  const now = Date.now();
+  const startMs = new Date(startsAt).getTime();
+  const endMs = new Date(endsAt).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return "not_started";
+  if (now < startMs) return "not_started";
+  if (now >= startMs && now <= endMs) return "in_progress";
+  return "completed";
+};
 
 // TODO: wire real fetch with auth headers (PathwayRequestContext / Auth0)
 export async function fetchSessionsMock(): Promise<AdminSessionRow[]> {
@@ -119,12 +158,69 @@ export async function fetchSessionsMock(): Promise<AdminSessionRow[]> {
   ]);
 }
 
-// TODO: replace mock lookup with real API call using tenant-scoped endpoint and auth headers
+type ApiSessionDetail = {
+  id: string;
+  title: string | null;
+  startsAt: string;
+  endsAt: string;
+  ageGroup?: string | null;
+  room?: string | null;
+  groupId?: string | null;
+  attendanceMarked?: number | null;
+  attendanceTotal?: number | null;
+  presentCount?: number | null;
+  absentCount?: number | null;
+  lateCount?: number | null;
+  leadStaff?: string | null;
+  supportStaff?: string[] | null;
+};
+
+const mapApiSessionDetailToAdmin = (
+  s: ApiSessionDetail,
+): AdminSessionDetail => ({
+  id: s.id,
+  title: s.title ?? "Session",
+  startsAt: s.startsAt,
+  endsAt: s.endsAt,
+  ageGroup: s.ageGroup ?? "—", // TODO: map to age group label once API exposes it
+  room: s.room ?? s.groupId ?? "—", // TODO: map to room/group name when available
+  status: mapSessionStatus(s.startsAt, s.endsAt),
+  attendanceMarked:
+    s.attendanceMarked ??
+    (typeof s.presentCount === "number" ? s.presentCount : 0),
+  attendanceTotal:
+    s.attendanceTotal ??
+    (typeof s.attendanceMarked === "number" ? s.attendanceMarked : 0),
+  presentCount: typeof s.presentCount === "number" ? s.presentCount : undefined,
+  absentCount: typeof s.absentCount === "number" ? s.absentCount : undefined,
+  lateCount: typeof s.lateCount === "number" ? s.lateCount : undefined,
+  leadStaff: s.leadStaff ?? undefined,
+  supportStaff: s.supportStaff ?? undefined,
+});
+
 export async function fetchSessionById(
   id: string,
-): Promise<AdminSessionRow | null> {
-  const all = await fetchSessionsMock();
-  return all.find((s) => s.id === id) ?? null;
+): Promise<AdminSessionDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    const all = await fetchSessionsMock();
+    return all.find((s) => s.id === id) ?? null;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch session: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiSessionDetail;
+  return mapApiSessionDetailToAdmin(json);
 }
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
@@ -155,19 +251,6 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
 
   const json = (await res.json()) as ApiSession[];
 
-  const mapStatus = (
-    startsAt: string,
-    endsAt: string,
-  ): AdminSessionRow["status"] => {
-    const now = Date.now();
-    const startMs = new Date(startsAt).getTime();
-    const endMs = new Date(endsAt).getTime();
-    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return "not_started";
-    if (now < startMs) return "not_started";
-    if (now >= startMs && now <= endMs) return "in_progress";
-    return "completed";
-  };
-
   return json.map((s) => ({
     id: s.id,
     title: s.title ?? "Session",
@@ -175,7 +258,7 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     endsAt: s.endsAt,
     ageGroup: "—", // TODO: enrich with group/age info once API returns it
     room: s.groupId ?? "—", // TODO: map to room/group name when available
-    status: mapStatus(s.startsAt, s.endsAt),
+    status: mapSessionStatus(s.startsAt, s.endsAt),
     attendanceMarked: 0, // TODO: replace with real attendance summary once available
     attendanceTotal: 0,
     leadStaff: undefined,
@@ -222,14 +305,6 @@ export async function fetchChildrenMock(): Promise<AdminChildRow[]> {
   ]);
 }
 
-// TODO: replace mock lookup with real API call; include tenant/org context and auth
-export async function fetchChildById(
-  id: string,
-): Promise<AdminChildRow | null> {
-  const all = await fetchChildrenMock();
-  return all.find((c) => c.id === id) ?? null;
-}
-
 type ApiChild = {
   id: string;
   firstName: string;
@@ -241,6 +316,16 @@ type ApiChild = {
   tenantId: string;
   createdAt: string;
   updatedAt: string;
+};
+
+type ApiChildDetail = ApiChild & {
+  preferredName?: string | null;
+  ageGroup?: string | null;
+  ageGroupLabel?: string | null;
+  primaryGroup?: string | null;
+  primaryGroupLabel?: string | null;
+  hasPhotoConsent?: boolean | null;
+  status?: string | null;
 };
 
 const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
@@ -255,6 +340,57 @@ const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
     Array.isArray(c.disabilities) && c.disabilities.length > 0,
   status: "active", // TODO: map from API status/archived flag when available
 });
+
+const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
+  id: c.id,
+  fullName: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "Child",
+  preferredName: c.preferredName ?? null,
+  ageGroupLabel: c.ageGroupLabel ?? c.ageGroup ?? null,
+  primaryGroupLabel: c.primaryGroupLabel ?? c.primaryGroup ?? c.groupId ?? null,
+  hasPhotoConsent: Boolean(c.hasPhotoConsent),
+  hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
+  hasAdditionalNeeds:
+    Array.isArray(c.disabilities) && c.disabilities.length > 0,
+  status: c.status === "inactive" ? "inactive" : "active",
+});
+
+export async function fetchChildById(
+  id: string,
+): Promise<AdminChildDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    const all = await fetchChildrenMock();
+    const match = all.find((c) => c.id === id);
+    return match
+      ? {
+          id: match.id,
+          fullName: match.fullName,
+          preferredName: match.preferredName ?? null,
+          ageGroupLabel: match.ageGroup ?? null,
+          primaryGroupLabel: match.primaryGroup ?? null,
+          hasPhotoConsent: match.hasPhotoConsent,
+          hasAllergies: match.hasAllergies,
+          hasAdditionalNeeds: match.hasAdditionalNeeds,
+          status: match.status,
+        }
+      : null;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/children/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch child: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiChildDetail;
+  return mapApiChildDetailToAdmin(json);
+}
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchChildren(): Promise<AdminChildRow[]> {
@@ -310,19 +446,21 @@ export async function fetchParentsMock(): Promise<AdminParentRow[]> {
   ]);
 }
 
-// TODO: replace mock lookup with real API call; include tenant/org context and auth
-export async function fetchParentById(
-  id: string,
-): Promise<AdminParentRow | null> {
-  const all = await fetchParentsMock();
-  return all.find((p) => p.id === id) ?? null;
-}
-
 type ApiParentSummary = {
   id: string;
   fullName: string;
   email: string | null;
   childrenCount: number;
+};
+
+type ApiParentDetail = {
+  id: string;
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  children?: { id: string; fullName?: string | null; name?: string | null }[];
+  isPrimaryContact?: boolean | null;
+  status?: string | null;
 };
 
 const mapApiParentToAdminParentRow = (
@@ -337,6 +475,68 @@ const mapApiParentToAdminParentRow = (
   isPrimaryContact: false, // TODO: map when API exposes primary-contact flag
   status: "active", // TODO: map real status/archival when available
 });
+
+const mapApiParentDetailToAdmin = (
+  api: ApiParentDetail,
+): AdminParentDetail => ({
+  id: api.id,
+  fullName: api.fullName || "Unknown parent",
+  email: api.email ?? "",
+  phone: api.phone ?? null,
+  children:
+    api.children?.map((child) => ({
+      id: child.id,
+      fullName: child.fullName ?? child.name ?? "Child",
+    })) ?? [],
+  childrenCount: api.children?.length ?? undefined,
+  isPrimaryContact: Boolean(api.isPrimaryContact),
+  status: api.status === "inactive" ? "inactive" : "active",
+});
+
+export async function fetchParentById(
+  id: string,
+): Promise<AdminParentDetail | null> {
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
+    const all = await fetchParentsMock();
+    const match = all.find((p) => p.id === id);
+    return match
+      ? {
+          id: match.id,
+          fullName: match.fullName,
+          email: match.email,
+          phone: match.phone ?? null,
+          children:
+            match.children?.map((child) => ({
+              id: child.id,
+              fullName: child.name ?? "Child",
+            })) ?? [],
+          childrenCount: match.childrenCount ?? match.children.length,
+          isPrimaryContact: match.isPrimaryContact,
+          status: match.status,
+        }
+      : null;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/parents/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    let body = "";
+    try {
+      body = await res.text();
+    } catch {
+      body = "";
+    }
+    throw new Error(`Failed to fetch parent: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as ApiParentDetail;
+  return mapApiParentDetailToAdmin(json);
+}
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchParents(): Promise<AdminParentRow[]> {

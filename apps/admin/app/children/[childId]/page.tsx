@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BadgeCheck, Users } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
-import { AdminChildRow, fetchChildById } from "../../../lib/api-client";
+import { AdminChildDetail, fetchChildById } from "../../../lib/api-client";
 
-const statusTone: Record<AdminChildRow["status"], "success" | "default"> = {
+const statusTone: Record<AdminChildDetail["status"], "success" | "default"> = {
   active: "success",
   inactive: "default",
 };
@@ -17,21 +17,30 @@ export default function ChildDetailPage() {
   const router = useRouter();
   const childId = params.childId;
 
-  const [child, setChild] = React.useState<AdminChildRow | null>(null);
+  const [child, setChild] = React.useState<AdminChildDetail | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [notFound, setNotFound] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setNotFound(false);
     try {
       const result = await fetchChildById(childId);
       setChild(result);
       if (!result) {
-        setError("Child not found");
+        setNotFound(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load child");
+      const message =
+        err instanceof Error ? err.message : "Failed to load child";
+      if (message.includes("404")) {
+        setNotFound(true);
+      } else {
+        setError(message);
+      }
+      setChild(null);
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +94,7 @@ export default function ChildDetailPage() {
             </div>
           </Card>
         </div>
-      ) : error ? (
+      ) : notFound ? (
         <Card title="Child not found">
           <p className="text-sm text-text-muted">
             We couldn’t find a child matching id <strong>{childId}</strong>.
@@ -97,6 +106,19 @@ export default function ChildDetailPage() {
             >
               Back to children
             </Button>
+          </div>
+        </Card>
+      ) : error ? (
+        <Card title="Error loading child">
+          <p className="text-sm text-text-muted">{error}</p>
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/children")}
+            >
+              Back to children
+            </Button>
+            <Button onClick={load}>Retry</Button>
           </div>
         </Card>
       ) : child ? (
@@ -119,11 +141,11 @@ export default function ChildDetailPage() {
               <div className="flex flex-wrap items-center gap-3 text-sm text-text-muted">
                 <span className="inline-flex items-center gap-1">
                   <Users className="h-4 w-4" />
-                  {child.ageGroup ?? "Age group TBD"}
+                  {child.ageGroupLabel ?? "Age group TBD"}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <BadgeCheck className="h-4 w-4" />
-                  Primary group: {child.primaryGroup ?? "Unassigned"}
+                  Primary group: {child.primaryGroupLabel ?? "Unassigned"}
                 </span>
               </div>
             </div>
@@ -147,9 +169,9 @@ export default function ChildDetailPage() {
           <Card title="Groups">
             <div className="space-y-2 text-sm text-text-primary">
               <div>
-                Primary group/class: {child.primaryGroup ?? "Unassigned"}
+                Primary group/class: {child.primaryGroupLabel ?? "Unassigned"}
               </div>
-              <div>Age group: {child.ageGroup ?? "Not set"}</div>
+              <div>Age group: {child.ageGroupLabel ?? "Not set"}</div>
             </div>
           </Card>
 
