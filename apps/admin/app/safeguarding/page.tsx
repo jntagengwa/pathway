@@ -228,7 +228,7 @@ export default function SafeguardingPage() {
   return (
     <div className="flex flex-col gap-4">
       <Card
-        title="Safeguarding & pastoral"
+        title="Safeguarding & Wellbeing"
         description="High-level overview for safeguarding leads and admins."
       >
         <div className="mb-4 text-xs text-text-muted">
@@ -237,10 +237,10 @@ export default function SafeguardingPage() {
           in this overview.
         </div>
         <div className="flex flex-col gap-4">
-          <Card title="Open concerns">
+          <Card title="Open Concerns">
             {concernContent()}
           </Card>
-          <Card title="Positive notes & pastoral summary">
+          <Card title="Positive Notes & Wellbeing Summary">
             {notesContent()}
             <p className="mt-3 text-xs text-text-muted">
               {/* TODO: Wire richer notes summary once backend exposes aggregate-friendly fields. */}

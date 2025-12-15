@@ -157,7 +157,7 @@ export default function AttendanceDetailPage() {
           </Card>
         </div>
       ) : notFound ? (
-        <Card title="Attendance not found">
+        <Card title="Attendance Not Found">
           <p className="text-sm text-text-muted">
             We couldn’t find attendance for session <strong>{sessionId}</strong>.
           </p>
@@ -168,7 +168,7 @@ export default function AttendanceDetailPage() {
           </div>
         </Card>
       ) : error ? (
-        <Card title="Something went wrong">
+        <Card title="Something Went Wrong">
           <p className="text-sm text-text-muted">{error}</p>
           <div className="mt-4 flex items-center gap-2">
             <Button variant="secondary" onClick={() => router.push("/attendance")}>
@@ -198,7 +198,7 @@ export default function AttendanceDetailPage() {
 
           {renderSummary()}
 
-          <Card title="Attendance details">
+          <Card title="Attendance Details">
             <DataTable
               data={detail.rows}
               columns={columns}

@@ -85,7 +85,7 @@ export default function ParentDetailPage() {
           </Card>
         </div>
       ) : notFound ? (
-        <Card title="Parent not found">
+        <Card title="Parent Not Found">
           <p className="text-sm text-text-muted">
             We couldn’t find a parent matching id <strong>{parentId}</strong>.
           </p>
@@ -96,7 +96,7 @@ export default function ParentDetailPage() {
           </div>
         </Card>
       ) : error ? (
-        <Card title="Error loading parent">
+        <Card title="Error Loading Parent">
           <p className="text-sm text-text-muted">{error}</p>
           <div className="mt-4 flex items-center gap-2">
             <Button variant="secondary" onClick={() => router.push("/parents")}>
@@ -141,7 +141,7 @@ export default function ParentDetailPage() {
             </div>
           </Card>
 
-          <Card title="Linked children">
+          <Card title="Linked Children">
             {parent.children.length === 0 ? (
               <p className="text-sm text-text-muted">No linked children.</p>
             ) : (

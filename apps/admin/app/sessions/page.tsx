@@ -129,7 +129,7 @@ export default function SessionsPage() {
         </div>
       </div>
       <Card
-        title="Upcoming sessions"
+        title="Upcoming Sessions"
         description="Mocked data for now. Live data will respect tenant and role filters."
       >
         {error ? (

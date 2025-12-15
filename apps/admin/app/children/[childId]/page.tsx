@@ -95,7 +95,7 @@ export default function ChildDetailPage() {
           </Card>
         </div>
       ) : notFound ? (
-        <Card title="Child not found">
+        <Card title="Child Not Found">
           <p className="text-sm text-text-muted">
             We couldn’t find a child matching id <strong>{childId}</strong>.
           </p>
@@ -109,7 +109,7 @@ export default function ChildDetailPage() {
           </div>
         </Card>
       ) : error ? (
-        <Card title="Error loading child">
+        <Card title="Error Loading Child">
           <p className="text-sm text-text-muted">{error}</p>
           <div className="mt-4 flex items-center gap-2">
             <Button

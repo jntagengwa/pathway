@@ -122,7 +122,7 @@ export default function SessionDetailPage() {
           </Card>
         </div>
       ) : notFound ? (
-        <Card title="Session not found">
+        <Card title="Session Not Found">
           <p className="text-sm text-text-muted">
             We couldn’t find a session matching id <strong>{sessionId}</strong>.
           </p>
@@ -136,7 +136,7 @@ export default function SessionDetailPage() {
           </div>
         </Card>
       ) : error ? (
-        <Card title="Error loading session">
+        <Card title="Error Loading Session">
           <p className="text-sm text-text-muted">{error}</p>
           <div className="mt-4 flex items-center gap-2">
             <Button
@@ -198,7 +198,7 @@ export default function SessionDetailPage() {
             </div>
           </Card>
 
-          <Card title="Staff assignments">
+          <Card title="Staff Assignments">
             <div className="space-y-2 text-sm text-text-primary">
               <div className="inline-flex items-center gap-2">
                 <Users className="h-4 w-4 text-text-muted" />
@@ -215,7 +215,7 @@ export default function SessionDetailPage() {
             </div>
           </Card>
 
-          <Card title="Notes & safeguarding">
+          <Card title="Notes & Safeguarding">
             <p className="text-sm text-text-muted">
               TODO: show related notes/concerns once wired. Respect safeguarding
               RBAC.
