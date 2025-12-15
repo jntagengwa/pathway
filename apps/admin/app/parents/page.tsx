@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
-import { AdminParentRow, fetchParentsMock } from "../../lib/api-client";
+import { AdminParentRow, fetchParents } from "../../lib/api-client";
 
 export default function ParentsPage() {
   const [data, setData] = React.useState<AdminParentRow[]>([]);
@@ -15,7 +15,7 @@ export default function ParentsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchParentsMock();
+      const result = await fetchParents();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load parents");
@@ -47,43 +47,31 @@ export default function ParentsPage() {
       {
         id: "email",
         header: "Email",
-        cell: (row) => (
-          <a
-            href={`mailto:${row.email}`}
-            className="text-sm text-accent-strong underline-offset-2 hover:underline"
-          >
-            {row.email}
-          </a>
-        ),
-      },
-      {
-        id: "phone",
-        header: "Phone",
         cell: (row) =>
-          row.phone ? (
+          row.email ? (
             <a
-              href={`tel:${row.phone}`}
-              className="text-sm text-text-primary underline-offset-2 hover:underline"
+              href={`mailto:${row.email}`}
+              className="text-sm text-accent-strong underline-offset-2 hover:underline"
             >
-              {row.phone}
+              {row.email}
             </a>
           ) : (
             <span className="text-sm text-text-muted">—</span>
           ),
-        width: "160px",
       },
       {
         id: "children",
         header: "Children",
         cell: (row) => (
-          <div className="flex flex-wrap gap-2">
-            {row.children.map((child) => (
-              <Badge key={child.id} variant="accent">
-                {child.name}
-              </Badge>
-            ))}
-          </div>
+          <span className="text-sm text-text-primary">
+            {typeof row.childrenCount === "number"
+              ? row.childrenCount === 1
+                ? "1 child"
+                : `${row.childrenCount} children`
+              : "—"}
+          </span>
         ),
+        width: "140px",
       },
       {
         id: "status",
@@ -93,6 +81,7 @@ export default function ParentsPage() {
             {row.status === "active" ? "Active" : "Inactive"}
           </Badge>
         ),
+        // TODO: map real status once backend exposes archived/deactivated flags.
         align: "center",
         width: "120px",
       },
@@ -102,40 +91,46 @@ export default function ParentsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary font-heading">
-          Parents & Guardians
-        </h1>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={load}>
-            Refresh
-          </Button>
-          <Button size="sm">Add parent</Button>
-        </div>
-      </div>
-      <Card
-        title="Parent contacts"
-        description="Mock data for now. Will respect tenant scoping and contact permissions."
-      >
-        {error ? (
-          <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
-            <span className="font-semibold">Unable to load parents</span>
-            <span>{error}</span>
-            <div>
-              <Button size="sm" variant="secondary" onClick={load}>
-                Retry
-              </Button>
-            </div>
+      <Card className="p-0">
+        <div className="flex items-start justify-between border-b border-border-subtle px-6 py-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold text-text-primary font-heading">
+              Parents & Guardians
+            </h1>
+            <p className="text-sm text-text-muted">
+              Contacts with family access for this organisation.
+            </p>
           </div>
-        ) : (
-          <DataTable
-            data={data}
-            columns={columns}
-            isLoading={isLoading}
-            emptyMessage="No parents found."
-            onRowClick={(row) => router.push(`/parents/${row.id}`)}
-          />
-        )}
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={load}>
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" disabled>
+              New parent
+            </Button>
+          </div>
+        </div>
+        <div className="px-6 pb-6 pt-4">
+          {error ? (
+            <div className="flex flex-col gap-2 rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
+              <span className="font-semibold">Couldn’t load parents yet.</span>
+              <span className="text-text-muted">{error}</span>
+              <div>
+                <Button size="sm" variant="secondary" onClick={load}>
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <DataTable
+              data={data}
+              columns={columns}
+              isLoading={isLoading}
+              emptyMessage="No parents or guardians found for this organisation yet."
+              onRowClick={(row) => router.push(`/parents/${row.id}`)}
+            />
+          )}
+        </div>
       </Card>
     </div>
   );

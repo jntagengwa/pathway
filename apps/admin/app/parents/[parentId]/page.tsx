@@ -3,11 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, Mail, User } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
-import { AdminParentRow, fetchParentById } from "../../../lib/api-client";
+import { AdminParentDetail, fetchParentById } from "../../../lib/api-client";
 
-const statusTone: Record<AdminParentRow["status"], "success" | "default"> = {
+const statusTone: Record<AdminParentDetail["status"], "success" | "default"> = {
   active: "success",
   inactive: "default",
 };
@@ -17,21 +17,30 @@ export default function ParentDetailPage() {
   const router = useRouter();
   const parentId = params.parentId;
 
-  const [parent, setParent] = React.useState<AdminParentRow | null>(null);
+  const [parent, setParent] = React.useState<AdminParentDetail | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [notFound, setNotFound] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setNotFound(false);
     try {
       const result = await fetchParentById(parentId);
       setParent(result);
       if (!result) {
-        setError("Parent not found");
+        setNotFound(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load parent");
+      const message =
+        err instanceof Error ? err.message : "Failed to load parent";
+      if (message.includes("404")) {
+        setNotFound(true);
+      } else {
+        setError(message);
+      }
+      setParent(null);
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +84,8 @@ export default function ParentDetailPage() {
             </div>
           </Card>
         </div>
-      ) : error ? (
-        <Card title="Parent not found">
+      ) : notFound ? (
+        <Card title="Parent Not Found">
           <p className="text-sm text-text-muted">
             We couldn’t find a parent matching id <strong>{parentId}</strong>.
           </p>
@@ -84,6 +93,16 @@ export default function ParentDetailPage() {
             <Button variant="secondary" onClick={() => router.push("/parents")}>
               Back to parents
             </Button>
+          </div>
+        </Card>
+      ) : error ? (
+        <Card title="Error Loading Parent">
+          <p className="text-sm text-text-muted">{error}</p>
+          <div className="mt-4 flex items-center gap-2">
+            <Button variant="secondary" onClick={() => router.push("/parents")}>
+              Back to parents
+            </Button>
+            <Button onClick={load}>Retry</Button>
           </div>
         </Card>
       ) : parent ? (
@@ -111,24 +130,18 @@ export default function ParentDetailPage() {
                     {parent.email}
                   </a>
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
-                  {parent.phone ? (
-                    <a
-                      href={`tel:${parent.phone}`}
-                      className="text-text-primary underline-offset-2 hover:underline"
-                    >
-                      {parent.phone}
-                    </a>
-                  ) : (
-                    <span className="text-text-muted">No phone</span>
-                  )}
+                <span className="text-xs text-text-muted">
+                  {typeof parent.childrenCount === "number"
+                    ? parent.childrenCount === 1
+                      ? "1 linked child"
+                      : `${parent.childrenCount} linked children`
+                    : null}
                 </span>
               </div>
             </div>
           </Card>
 
-          <Card title="Linked children">
+          <Card title="Linked Children">
             {parent.children.length === 0 ? (
               <p className="text-sm text-text-muted">No linked children.</p>
             ) : (
@@ -140,7 +153,7 @@ export default function ParentDetailPage() {
                   >
                     <span className="inline-flex items-center gap-2">
                       <User className="h-4 w-4 text-text-muted" />
-                      {child.name}
+                      {child.fullName}
                     </span>
                     <Link
                       href={`/children/${child.id}`}

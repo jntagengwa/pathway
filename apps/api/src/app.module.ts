@@ -17,6 +17,7 @@ import { SessionsModule } from "./sessions/sessions.module";
 import { AssignmentsModule } from "./assignments/assignments.module";
 import { PreferencesModule } from "./preferences/preferences.module";
 import { SwapsModule } from "./swaps/swaps.module";
+import { ParentsModule } from "./parents/parents.module";
 
 // // Comms & Safeguarding
 import { AnnouncementsModule } from "./announcements/announcements.module";
@@ -38,6 +39,7 @@ import { DsarModule } from "./dsar/dsar.module";
     AssignmentsModule,
     PreferencesModule,
     SwapsModule,
+    ParentsModule,
     AnnouncementsModule,
     NotesModule,
     ConcernsModule,

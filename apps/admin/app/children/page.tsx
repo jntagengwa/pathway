@@ -112,7 +112,7 @@ export default function ChildrenPage() {
         </div>
       </div>
       <Card
-        title="Children roster"
+        title="Children Roster"
         description="Mock data for now. Will respect tenant scoping and photo consent rules."
       >
         {error ? (
