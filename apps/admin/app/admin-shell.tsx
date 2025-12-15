@@ -18,7 +18,7 @@ const titleMap: Record<string, string> = {
   "/people": "People",
   "/users": "People",
   "/children": "Children",
-  "/parents": "Parents & guardians",
+  "/parents": "Parents & Guardians",
   "/sessions": "Sessions & Attendance",
   "/attendance": "Attendance",
   "/notices": "Notices & Lessons",

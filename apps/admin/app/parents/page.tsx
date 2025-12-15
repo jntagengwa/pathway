@@ -95,7 +95,7 @@ export default function ParentsPage() {
         <div className="flex items-start justify-between border-b border-border-subtle px-6 py-4">
           <div className="space-y-1">
             <h1 className="text-xl font-semibold text-text-primary font-heading">
-              Parents & guardians
+              Parents & Guardians
             </h1>
             <p className="text-sm text-text-muted">
               Contacts with family access for this organisation.

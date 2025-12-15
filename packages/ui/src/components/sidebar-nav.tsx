@@ -47,7 +47,7 @@ export const defaultSidebarItems: SidebarNavItem[] = [
   { label: "Dashboard", href: "/" },
   { label: "People / Users", href: "/people" },
   { label: "Children", href: "/children" },
-  { label: "Parents & guardians", href: "/parents" },
+  { label: "Parents & Guardians", href: "/parents" },
   { label: "Sessions & Attendance", href: "/sessions" },
   { label: "Attendance", href: "/attendance" },
   { label: "Notices / Lessons", href: "/notices" },

@@ -125,6 +125,29 @@ export type AdminNotesSummary = {
   staffOnly: number;
 };
 
+export type AdminBillingOverview = {
+  orgId: string;
+  subscriptionStatus:
+    | "ACTIVE"
+    | "TRIALING"
+    | "CANCELED"
+    | "PAST_DUE"
+    | "NONE"
+    | string;
+  planCode?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
+  av30Cap?: number | null;
+  currentAv30?: number | null;
+  storageGbCap?: number | null;
+  storageGbUsage?: number | null;
+  smsMessagesCap?: number | null;
+  smsMonthUsage?: number | null;
+  leaderSeatsIncluded?: number | null;
+  maxSites?: number | null;
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -1037,4 +1060,88 @@ export async function fetchNotesSummary(): Promise<AdminNotesSummary> {
   const staffOnly = totalNotes - visibleToParents;
 
   return { totalNotes, visibleToParents, staffOnly };
+}
+
+type ApiEntitlements = {
+  orgId: string;
+  subscriptionStatus?: string;
+  subscription?: {
+    planCode?: string | null;
+    status?: string | null;
+    periodStart?: string | null;
+    periodEnd?: string | null;
+    cancelAtPeriodEnd?: boolean | null;
+  };
+  av30Cap?: number | null;
+  storageGbCap?: number | null;
+  smsMessagesCap?: number | null;
+  leaderSeatsIncluded?: number | null;
+  maxSites?: number | null;
+  currentAv30?: number | null;
+  storageGbUsage?: number | null;
+  smsMonthUsage?: number | null;
+  usageCalculatedAt?: string | null;
+};
+
+const mapApiEntitlementsToAdmin = (
+  api: ApiEntitlements,
+): AdminBillingOverview => ({
+  orgId: api.orgId,
+  subscriptionStatus: api.subscriptionStatus ?? "NONE",
+  planCode: api.subscription?.planCode ?? null,
+  periodStart: api.subscription?.periodStart ?? null,
+  periodEnd: api.subscription?.periodEnd ?? null,
+  cancelAtPeriodEnd: api.subscription?.cancelAtPeriodEnd ?? null,
+  av30Cap: api.av30Cap ?? null,
+  currentAv30: api.currentAv30 ?? null,
+  storageGbCap: api.storageGbCap ?? null,
+  storageGbUsage: api.storageGbUsage ?? null,
+  smsMessagesCap: api.smsMessagesCap ?? null,
+  smsMonthUsage: api.smsMonthUsage ?? null,
+  leaderSeatsIncluded: api.leaderSeatsIncluded ?? null,
+  maxSites: api.maxSites ?? null,
+});
+
+export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
+  // BILLING: high-level entitlements only. Do NOT surface card details or billing addresses.
+  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (useMock) {
+    return {
+      orgId: "demo-org",
+      subscriptionStatus: "ACTIVE",
+      planCode: "demo_plan",
+      periodStart: new Date().toISOString(),
+      periodEnd: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+      av30Cap: 50,
+      currentAv30: 32,
+      storageGbCap: 100,
+      storageGbUsage: 12,
+      smsMessagesCap: 1000,
+      smsMonthUsage: 120,
+      leaderSeatsIncluded: 10,
+      maxSites: 3,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/billing/entitlements`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) {
+      // TODO: replace fallback when a public entitlements endpoint is available.
+      return {
+        orgId: "unknown",
+        subscriptionStatus: "NONE",
+      };
+    }
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch billing: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiEntitlements;
+  return mapApiEntitlementsToAdmin(json);
 }
