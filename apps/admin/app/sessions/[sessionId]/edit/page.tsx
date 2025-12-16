@@ -3,10 +3,9 @@
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Badge, Button, Card, Input, Label } from "@pathway/ui";
+import { Button, Card, Input, Label } from "@pathway/ui";
 import {
   AdminSessionFormValues,
-  AdminSessionDetail,
   fetchSessionById,
   updateSession,
 } from "../../../../lib/api-client";
@@ -16,10 +15,11 @@ export default function EditSessionPage() {
   const router = useRouter();
   const sessionId = params.sessionId;
 
-  const [session, setSession] = React.useState<AdminSessionDetail | null>(null);
   const [form, setForm] = React.useState<AdminSessionFormValues | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] =
+    React.useState<Partial<Record<keyof AdminSessionFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -30,10 +30,8 @@ export default function EditSessionPage() {
         const result = await fetchSessionById(sessionId);
         if (!result) {
           setError("Session not found.");
-          setSession(null);
           setForm(null);
         } else {
-          setSession(result);
           setForm({
             title: result.title,
             startsAt: result.startsAt.slice(0, 16),
@@ -43,7 +41,6 @@ export default function EditSessionPage() {
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load session.");
-        setSession(null);
         setForm(null);
       } finally {
         setLoading(false);
@@ -54,6 +51,7 @@ export default function EditSessionPage() {
 
   const handleChange = (key: keyof AdminSessionFormValues, value: string) => {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,16 +59,23 @@ export default function EditSessionPage() {
     if (!form) return;
     setError(null);
 
+    const nextErrors: typeof fieldErrors = {};
+    const startMs = form.startsAt ? Date.parse(form.startsAt) : NaN;
+    const endMs = form.endsAt ? Date.parse(form.endsAt) : NaN;
     if (!form.title.trim()) {
-      setError("Title is required.");
-      return;
+      nextErrors.title = "Title is required.";
     }
-    if (!form.startsAt || !form.endsAt) {
-      setError("Start and end time are required.");
-      return;
+    if (!form.startsAt || Number.isNaN(startMs)) {
+      nextErrors.startsAt = "Enter a valid start time.";
     }
-    if (new Date(form.endsAt).getTime() <= new Date(form.startsAt).getTime()) {
-      setError("End time must be after start time.");
+    if (!form.endsAt || Number.isNaN(endMs)) {
+      nextErrors.endsAt = "Enter a valid end time.";
+    } else if (!Number.isNaN(startMs) && endMs <= startMs) {
+      nextErrors.endsAt = "End time must be after start time.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
 
@@ -82,11 +87,7 @@ export default function EditSessionPage() {
       });
       router.push(`/sessions/${sessionId}`);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to update session. Please try again.",
-      );
+      setError("We couldn’t save this session. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -103,12 +104,11 @@ export default function EditSessionPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to session
         </Button>
-        <Badge variant="secondary">Based on UpdateSessionDto</Badge>
       </div>
 
       <Card
         title="Edit session"
-        description="Update the session title or timings."
+        description="Update details for this session."
       >
         {error ? (
           <div className="mb-4 rounded-md border border-status-danger/30 bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
@@ -132,6 +132,9 @@ export default function EditSessionPage() {
                 onChange={(e) => handleChange("title", e.target.value)}
                 required
               />
+              {fieldErrors.title ? (
+                <p className="text-xs text-status-danger">{fieldErrors.title}</p>
+              ) : null}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -144,6 +147,11 @@ export default function EditSessionPage() {
                   onChange={(e) => handleChange("startsAt", e.target.value)}
                   required
                 />
+                {fieldErrors.startsAt ? (
+                  <p className="text-xs text-status-danger">
+                    {fieldErrors.startsAt}
+                  </p>
+                ) : null}
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="endsAt">End time</Label>
@@ -154,6 +162,11 @@ export default function EditSessionPage() {
                   onChange={(e) => handleChange("endsAt", e.target.value)}
                   required
                 />
+                {fieldErrors.endsAt ? (
+                  <p className="text-xs text-status-danger">
+                    {fieldErrors.endsAt}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -163,7 +176,7 @@ export default function EditSessionPage() {
                 id="group"
                 value={form.groupId ?? ""}
                 onChange={(e) => handleChange("groupId", e.target.value)}
-                placeholder="e.g. group UUID"
+                placeholder="e.g. Willow class"
               />
               <p className="text-xs text-text-muted">
                 TODO: replace with a group selector once available.

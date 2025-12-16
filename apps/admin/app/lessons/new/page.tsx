@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
-import { Badge, Button, Card, Input, Label, Textarea } from "@pathway/ui";
+import { Button, Card, Input, Label, Textarea } from "@pathway/ui";
 import {
   AdminLessonFormValues,
   createLesson,
@@ -11,6 +11,9 @@ import {
 
 const startOfWeekIso = () => {
   const d = new Date();
+  const day = d.getDay(); // 0 (Sun) - 6 (Sat)
+  const diff = day === 0 ? -6 : 1 - day; // move to Monday
+  d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
   return d.toISOString().slice(0, 10);
 };
@@ -25,34 +28,47 @@ export default function NewLessonPage() {
     resources: [],
   });
   const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] =
+    React.useState<Partial<Record<keyof AdminLessonFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
+
+  const handleFieldChange = (
+    key: keyof AdminLessonFormValues,
+    value: string,
+  ) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const nextErrors: typeof fieldErrors = {};
     if (!form.title.trim()) {
-      setError("Title is required.");
-      return;
+      nextErrors.title = "Title is required.";
     }
     if (!form.weekOf) {
-      setError("Week of date is required.");
+      nextErrors.weekOf = "Week of date is required.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
+
+    const cleanedResources =
+      form.resources?.map((r) => ({ label: r.label.trim() })).filter((r) => r.label) ?? [];
     setSubmitting(true);
     try {
-      const primaryResource = form.resources?.[0]?.label;
+      const primaryResource = cleanedResources[0]?.label;
       const created = await createLesson({
         ...form,
         groupId: form.groupId || undefined,
         fileKey: primaryResource,
+        resources: cleanedResources,
       });
       router.push(created?.id ? `/lessons/${created.id}` : "/lessons");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create lesson. Please try again.",
-      );
+      setError("We couldn’t save this lesson. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -92,12 +108,11 @@ export default function NewLessonPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to lessons
         </Button>
-        <Badge variant="secondary">Based on CreateLessonDto</Badge>
       </div>
 
       <Card
-        title="Create lesson"
-        description="Capture lesson details for the timetable. Files are optional for now."
+        title="New lesson"
+        description="Capture lesson details for the timetable."
       >
         {error ? (
           <div className="mb-4 rounded-md border border-status-danger/30 bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
@@ -111,12 +126,13 @@ export default function NewLessonPage() {
             <Input
               id="title"
               value={form.title}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, title: e.target.value }))
-              }
+              onChange={(e) => handleFieldChange("title", e.target.value)}
               placeholder="e.g. Year 4 Science – Habitats"
               required
             />
+            {fieldErrors.title ? (
+              <p className="text-xs text-status-danger">{fieldErrors.title}</p>
+            ) : null}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -126,27 +142,27 @@ export default function NewLessonPage() {
                 id="weekOf"
                 type="date"
                 value={form.weekOf ?? ""}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, weekOf: e.target.value }))
-                }
+                onChange={(e) => handleFieldChange("weekOf", e.target.value)}
                 required
               />
-              <p className="text-xs text-text-muted">
-                This maps to CreateLessonDto.weekOf.
-              </p>
+              {fieldErrors.weekOf ? (
+                <p className="text-xs text-status-danger">{fieldErrors.weekOf}</p>
+              ) : (
+                <p className="text-xs text-text-muted">
+                  Use the week’s start date. Maps to lesson weekOf.
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="groupId">Group / class</Label>
               <Input
                 id="groupId"
                 value={form.groupId ?? ""}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, groupId: e.target.value }))
-                }
-                placeholder="e.g. group UUID"
+                onChange={(e) => handleFieldChange("groupId", e.target.value)}
+                placeholder="e.g. Willow class"
               />
               <p className="text-xs text-text-muted">
-                TODO: replace with a group picker when available.
+                TODO: replace with age-group/class pickers when available.
               </p>
             </div>
           </div>

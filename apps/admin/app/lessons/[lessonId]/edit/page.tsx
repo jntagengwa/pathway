@@ -3,10 +3,9 @@
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
-import { Badge, Button, Card, Input, Label, Textarea } from "@pathway/ui";
+import { Button, Card, Input, Label, Textarea } from "@pathway/ui";
 import {
   AdminLessonFormValues,
-  AdminLessonDetail,
   fetchLessonById,
   updateLesson,
 } from "../../../../lib/api-client";
@@ -16,11 +15,20 @@ export default function EditLessonPage() {
   const router = useRouter();
   const lessonId = params.lessonId;
 
-  const [lesson, setLesson] = React.useState<AdminLessonDetail | null>(null);
   const [form, setForm] = React.useState<AdminLessonFormValues | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [fieldErrors, setFieldErrors] =
+    React.useState<Partial<Record<keyof AdminLessonFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
+
+  const handleFieldChange = (
+    key: keyof AdminLessonFormValues,
+    value: string,
+  ) => {
+    setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
 
   React.useEffect(() => {
     const load = async () => {
@@ -29,15 +37,13 @@ export default function EditLessonPage() {
       try {
         const result = await fetchLessonById(lessonId);
         if (!result) {
-          setLesson(null);
           setForm(null);
           setError("Lesson not found.");
         } else {
-          setLesson(result);
           setForm({
             title: result.title,
             description: result.description ?? "",
-            weekOf: result.updatedAt ? result.updatedAt.slice(0, 10) : "",
+            weekOf: result.weekOf ? result.weekOf.slice(0, 10) : "",
             groupId: result.groupLabel ?? "",
             resources: result.resources.map((r) => ({ label: r.label })),
           });
@@ -46,7 +52,6 @@ export default function EditLessonPage() {
         setError(
           err instanceof Error ? err.message : "Failed to load lesson details.",
         );
-        setLesson(null);
         setForm(null);
       } finally {
         setLoading(false);
@@ -59,27 +64,33 @@ export default function EditLessonPage() {
     e.preventDefault();
     if (!form) return;
     setError(null);
+    const nextErrors: typeof fieldErrors = {};
     if (!form.title.trim()) {
-      setError("Title is required.");
+      nextErrors.title = "Title is required.";
+    }
+    if (!form.weekOf) {
+      nextErrors.weekOf = "Week of date is required.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
 
+    const cleanedResources =
+      form.resources?.map((r) => ({ label: r.label.trim() })).filter((r) => r.label) ?? [];
     setSubmitting(true);
     try {
-      const primaryResource = form.resources?.[0]?.label;
+      const primaryResource = cleanedResources[0]?.label;
       await updateLesson(lessonId, {
         ...form,
         weekOf: form.weekOf || undefined,
         groupId: form.groupId || undefined,
         fileKey: primaryResource,
+        resources: cleanedResources,
       });
       router.push(`/lessons/${lessonId}`);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to update lesson. Please try again.",
-      );
+      setError("We couldn’t save this lesson. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -122,12 +133,11 @@ export default function EditLessonPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to lesson
         </Button>
-        <Badge variant="secondary">Based on UpdateLessonDto</Badge>
       </div>
 
       <Card
         title="Edit lesson"
-        description="Update lesson details. Files and uploads remain TODO."
+        description="Update lesson details for staff."
       >
         {error ? (
           <div className="mb-4 rounded-md border border-status-danger/30 bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
@@ -148,11 +158,12 @@ export default function EditLessonPage() {
               <Input
                 id="title"
                 value={form.title}
-                onChange={(e) =>
-                  setForm((prev) => (prev ? { ...prev, title: e.target.value } : prev))
-                }
+                onChange={(e) => handleFieldChange("title", e.target.value)}
                 required
               />
+              {fieldErrors.title ? (
+                <p className="text-xs text-status-danger">{fieldErrors.title}</p>
+              ) : null}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -162,25 +173,23 @@ export default function EditLessonPage() {
                   id="weekOf"
                   type="date"
                   value={form.weekOf ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) =>
-                      prev ? { ...prev, weekOf: e.target.value } : prev,
-                    )
-                  }
+                onChange={(e) => handleFieldChange("weekOf", e.target.value)}
                 />
+                {fieldErrors.weekOf ? (
+                  <p className="text-xs text-status-danger">{fieldErrors.weekOf}</p>
+                ) : null}
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="groupId">Group / class</Label>
                 <Input
                   id="groupId"
                   value={form.groupId ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) =>
-                      prev ? { ...prev, groupId: e.target.value } : prev,
-                    )
-                  }
-                  placeholder="e.g. group UUID"
+                onChange={(e) => handleFieldChange("groupId", e.target.value)}
+                  placeholder="e.g. Willow class"
                 />
+                <p className="text-xs text-text-muted">
+                  TODO: replace with age-group/class pickers when available.
+                </p>
               </div>
             </div>
 
@@ -190,9 +199,7 @@ export default function EditLessonPage() {
                 id="description"
                 value={form.description ?? ""}
                 onChange={(e) =>
-                  setForm((prev) =>
-                    prev ? { ...prev, description: e.target.value } : prev,
-                  )
+                  handleFieldChange("description", e.target.value)
                 }
                 rows={4}
               />

@@ -269,6 +269,7 @@ export type AdminLessonDetail = {
   groupLabel: string | null;
   status: "draft" | "published" | "archived" | "unknown";
   updatedAt: string | null;
+  weekOf?: string | null;
   resources: { id: string; label: string; type?: string | null }[];
 };
 
@@ -1712,6 +1713,7 @@ const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
   groupLabel: api.groupLabel ?? api.groupId ?? null, // TODO: map group/class name when API exposes it.
   status: mapLessonStatus(api.status),
   updatedAt: api.updatedAt ?? api.createdAt ?? null,
+  weekOf: api.weekOf ?? null,
   resources: api.fileKey
     ? [
         {

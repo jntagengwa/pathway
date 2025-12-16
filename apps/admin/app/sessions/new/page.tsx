@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Badge, Button, Card, Input, Label } from "@pathway/ui";
+import { Button, Card, Input, Label } from "@pathway/ui";
 import {
   AdminSessionFormValues,
   createSession,
@@ -31,6 +31,8 @@ export default function NewSessionPage() {
     groupId: "",
   });
   const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] =
+    React.useState<Partial<Record<keyof AdminSessionFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
 
   const handleChange = (
@@ -38,22 +40,30 @@ export default function NewSessionPage() {
     value: string,
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    const nextErrors: typeof fieldErrors = {};
     if (!form.title.trim()) {
-      setError("Title is required.");
-      return;
+      nextErrors.title = "Title is required.";
     }
-    if (!form.startsAt || !form.endsAt) {
-      setError("Start and end time are required.");
-      return;
+    const startMs = Date.parse(form.startsAt);
+    const endMs = Date.parse(form.endsAt);
+    if (!form.startsAt || Number.isNaN(startMs)) {
+      nextErrors.startsAt = "Enter a valid start time.";
     }
-    if (new Date(form.endsAt).getTime() <= new Date(form.startsAt).getTime()) {
-      setError("End time must be after start time.");
+    if (!form.endsAt || Number.isNaN(endMs)) {
+      nextErrors.endsAt = "Enter a valid end time.";
+    } else if (!Number.isNaN(startMs) && endMs <= startMs) {
+      nextErrors.endsAt = "End time must be after start time.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
 
@@ -65,11 +75,7 @@ export default function NewSessionPage() {
       });
       router.push(created?.id ? `/sessions/${created.id}` : "/sessions");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create session. Please try again.",
-      );
+      setError("We couldn’t save this session. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -86,12 +92,11 @@ export default function NewSessionPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to sessions
         </Button>
-        <Badge variant="secondary">Based on CreateSessionDto</Badge>
       </div>
 
       <Card
-        title="Create session"
-        description="Set up a new session with date, time, and group details."
+        title="New session"
+        description="Create a new session in the rota."
       >
         {error ? (
           <div className="mb-4 rounded-md border border-status-danger/30 bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
@@ -109,9 +114,14 @@ export default function NewSessionPage() {
               placeholder="e.g. Year 3 Maths"
               required
             />
-            <p className="text-xs text-text-muted">
-              A short label shown to staff when scheduling and marking attendance.
-            </p>
+            {fieldErrors.title ? (
+              <p className="text-xs text-status-danger">{fieldErrors.title}</p>
+            ) : (
+              <p className="text-xs text-text-muted">
+                A short label shown to staff when scheduling and marking
+                attendance.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -124,6 +134,11 @@ export default function NewSessionPage() {
                 onChange={(e) => handleChange("startsAt", e.target.value)}
                 required
               />
+              {fieldErrors.startsAt ? (
+                <p className="text-xs text-status-danger">
+                  {fieldErrors.startsAt}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="endsAt">End time</Label>
@@ -134,35 +149,25 @@ export default function NewSessionPage() {
                 onChange={(e) => handleChange("endsAt", e.target.value)}
                 required
               />
+              {fieldErrors.endsAt ? (
+                <p className="text-xs text-status-danger">
+                  {fieldErrors.endsAt}
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="group">Group / class</Label>
-              <Input
-                id="group"
-                value={form.groupId ?? ""}
-                onChange={(e) => handleChange("groupId", e.target.value)}
-                placeholder="e.g. group UUID"
-              />
-              <p className="text-xs text-text-muted">
-                TODO: replace with a group selector once available.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="location">Location / room</Label>
-              <Input
-                id="location"
-                placeholder="Optional room name"
-                onChange={() => {
-                  // Placeholder: location not part of DTO yet.
-                }}
-              />
-              <p className="text-xs text-text-muted">
-                Room is informational only and not yet persisted.
-              </p>
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="group">Group / class</Label>
+            <Input
+              id="group"
+              value={form.groupId ?? ""}
+              onChange={(e) => handleChange("groupId", e.target.value)}
+              placeholder="e.g. Willow class"
+            />
+            <p className="text-xs text-text-muted">
+              TODO: replace with a group picker when the API exposes classes.
+            </p>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
