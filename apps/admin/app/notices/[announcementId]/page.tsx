@@ -83,9 +83,14 @@ export default function NoticeDetailPage() {
             Back to notices
           </Link>
         </Button>
-        <Button variant="secondary" size="sm" onClick={load}>
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={load}>
+            Refresh
+          </Button>
+          <Button asChild size="sm">
+            <Link href={`/notices/${announcementId}/edit`}>Edit notice</Link>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

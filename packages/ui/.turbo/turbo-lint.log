@@ -2,3 +2,19 @@
 > @pathway/ui@0.0.0 lint /Users/JeanFidele/Projects/pathway/packages/ui
 > eslint "src/**/*.{ts,tsx,js}" --no-error-on-unmatched-pattern
 
+
+/Users/JeanFidele/Projects/pathway/packages/ui/src/components/ui/input.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/JeanFidele/Projects/pathway/packages/ui/src/components/ui/label.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/JeanFidele/Projects/pathway/packages/ui/src/components/ui/select.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/JeanFidele/Projects/pathway/packages/ui/src/components/ui/textarea.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+✖ 4 problems (4 errors, 0 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

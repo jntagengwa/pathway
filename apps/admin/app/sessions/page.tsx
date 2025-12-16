@@ -223,7 +223,9 @@ export default function SessionsPage() {
           <Button variant="secondary" size="sm" onClick={loadSessions}>
             Refresh
           </Button>
-          <Button size="sm">Create session</Button>
+          <Button asChild size="sm">
+            <a href="/sessions/new">New session</a>
+          </Button>
         </div>
       }
     >

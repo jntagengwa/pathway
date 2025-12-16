@@ -98,8 +98,8 @@ export default function NoticesPage() {
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm" disabled>
-            New notice (soon)
+          <Button asChild size="sm">
+            <a href="/notices/new">New notice</a>
           </Button>
         </div>
       </div>

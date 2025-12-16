@@ -46,6 +46,15 @@ export type AdminSessionDetail = AdminSessionRow & {
   assignments?: AdminAssignmentRow[];
 };
 
+// SESSION FORMS (CreateSessionDto / UpdateSessionDto subset)
+export type AdminSessionFormValues = {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  groupId?: string;
+  tenantId?: string;
+};
+
 export type AdminChildRow = {
   id: string;
   fullName: string;
@@ -112,6 +121,17 @@ export type AdminAnnouncementDetail = {
   publishedAt: string | null;
   channels?: string[] | null;
   targetsSummary?: string | null;
+};
+
+// ANNOUNCEMENTS FORMS (CreateAnnouncementDto / UpdateAnnouncementDto subset)
+export type AdminAnnouncementFormValues = {
+  title: string;
+  body: string;
+  audience: "ALL" | "PARENTS" | "STAFF";
+  sendMode: "draft" | "now" | "schedule";
+  scheduledAt?: string;
+  channels?: string[];
+  tenantId?: string;
 };
 
 export type AdminAttendanceRow = {
@@ -252,6 +272,17 @@ export type AdminLessonDetail = {
   resources: { id: string; label: string; type?: string | null }[];
 };
 
+// LESSON FORMS (CreateLessonDto / UpdateLessonDto subset)
+export type AdminLessonFormValues = {
+  title: string;
+  description?: string;
+  weekOf?: string;
+  groupId?: string;
+  fileKey?: string;
+  tenantId?: string;
+  resources?: { label: string }[];
+};
+
 function buildAuthHeaders(): HeadersInit {
   // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
   // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
@@ -266,6 +297,11 @@ function buildAuthHeaders(): HeadersInit {
 
   return headers;
 }
+
+const getDefaultTenantId = () =>
+  process.env.NEXT_PUBLIC_DEV_TENANT_ID ||
+  process.env.NEXT_PUBLIC_TENANT_ID ||
+  undefined;
 
 const mapSessionStatus = (
   startsAt?: string,
@@ -633,6 +669,67 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     leadStaff: undefined,
     supportStaff: undefined,
   }));
+}
+
+// CreateSessionDto fields: tenantId (server will enforce), groupId?, startsAt, endsAt, title?
+export async function createSession(
+  input: AdminSessionFormValues,
+): Promise<AdminSessionDetail> {
+  const payload = {
+    tenantId: input.tenantId ?? getDefaultTenantId(),
+    groupId: input.groupId || undefined,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    title: input.title?.trim() || undefined,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/sessions`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create session (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiSessionDetail;
+  return mapApiSessionDetailToAdmin(json);
+}
+
+// UpdateSessionDto fields: tenantId?, groupId?, startsAt?, endsAt?, title?
+export async function updateSession(
+  id: string,
+  input: Partial<AdminSessionFormValues>,
+): Promise<AdminSessionDetail> {
+  const payload = {
+    ...(input.title ? { title: input.title.trim() } : {}),
+    ...(input.startsAt ? { startsAt: input.startsAt } : {}),
+    ...(input.endsAt ? { endsAt: input.endsAt } : {}),
+    ...(input.groupId ? { groupId: input.groupId } : {}),
+    ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update session (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiSessionDetail;
+  return mapApiSessionDetailToAdmin(json);
 }
 
 // ROTA: assignments are staff + session metadata only.
@@ -1404,6 +1501,86 @@ export async function fetchAnnouncementById(
   return mapApiAnnouncementToAdminDetail(json);
 }
 
+// CreateAnnouncementDto fields: tenantId, title, body, audience, publishedAt?
+export async function createAnnouncement(
+  input: AdminAnnouncementFormValues,
+): Promise<AdminAnnouncementDetail> {
+  const publishedAt =
+    input.sendMode === "now"
+      ? new Date().toISOString()
+      : input.sendMode === "schedule"
+        ? input.scheduledAt
+        : undefined;
+
+  const payload = {
+    tenantId: input.tenantId ?? getDefaultTenantId(),
+    title: input.title?.trim(),
+    body: input.body?.trim(),
+    audience: input.audience,
+    ...(publishedAt ? { publishedAt } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/announcements`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create announcement (${res.status}): ${
+        body || res.statusText
+      }`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAnnouncement;
+  return mapApiAnnouncementToAdminDetail(json);
+}
+
+// UpdateAnnouncementDto fields: title?, body?, audience?, publishedAt?
+export async function updateAnnouncement(
+  id: string,
+  input: Partial<AdminAnnouncementFormValues>,
+): Promise<AdminAnnouncementDetail> {
+  const publishedAt =
+    input.sendMode === "now"
+      ? new Date().toISOString()
+      : input.sendMode === "schedule"
+        ? input.scheduledAt
+        : input.sendMode === "draft"
+          ? null
+          : undefined;
+
+  const payload = {
+    ...(input.title ? { title: input.title.trim() } : {}),
+    ...(input.body ? { body: input.body.trim() } : {}),
+    ...(input.audience ? { audience: input.audience } : {}),
+    ...(typeof publishedAt !== "undefined" ? { publishedAt } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/announcements/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update announcement (${res.status}): ${
+        body || res.statusText
+      }`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAnnouncement;
+  return mapApiAnnouncementToAdminDetail(json);
+}
+
 // REPORTS: this helper must only aggregate counts/ratios from existing endpoints; no raw safeguarding text or provider payloads.
 export async function fetchAdminKpis(): Promise<AdminKpis> {
   const results = await Promise.allSettled([
@@ -1576,6 +1753,68 @@ export async function fetchLessonById(
     const body = await res.text().catch(() => "");
     throw new Error(
       `Failed to fetch lesson: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiLesson;
+  return mapApiLessonToAdminDetail(json);
+}
+
+// CreateLessonDto fields: tenantId, title, description?, fileKey?, groupId?, weekOf (date)
+export async function createLesson(
+  input: AdminLessonFormValues,
+): Promise<AdminLessonDetail> {
+  const payload = {
+    tenantId: input.tenantId ?? getDefaultTenantId(),
+    title: input.title?.trim(),
+    description: input.description?.trim() || undefined,
+    fileKey: input.fileKey || undefined,
+    groupId: input.groupId || undefined,
+    weekOf: input.weekOf,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/lessons`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create lesson (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiLesson;
+  return mapApiLessonToAdminDetail(json);
+}
+
+// UpdateLessonDto fields: title?, description?, fileKey?, groupId?, weekOf?
+export async function updateLesson(
+  id: string,
+  input: Partial<AdminLessonFormValues>,
+): Promise<AdminLessonDetail> {
+  const payload = {
+    ...(input.title ? { title: input.title.trim() } : {}),
+    ...(input.description ? { description: input.description.trim() } : {}),
+    ...(input.fileKey ? { fileKey: input.fileKey } : {}),
+    ...(input.groupId ? { groupId: input.groupId } : {}),
+    ...(input.weekOf ? { weekOf: input.weekOf } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/lessons/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update lesson (${res.status}): ${body || res.statusText}`,
     );
   }
 

@@ -201,7 +201,9 @@ export default function SessionDetailPage() {
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm">Edit session</Button>
+          <Button asChild size="sm">
+            <Link href={`/sessions/${sessionId}/edit`}>Edit session</Link>
+          </Button>
         </div>
       </div>
 
