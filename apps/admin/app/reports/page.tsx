@@ -1,11 +1,14 @@
 "use client";
 
+// Reports guardrails:
+// - High-level metadata snapshot only.
+// - Do NOT surface safeguarding note text, DSAR exports, raw logs, or secrets.
+// - Use counts, statuses, and plan/usage summaries only.
+
 import React from "react";
 import Link from "next/link";
 import { Badge, Button, Card } from "@pathway/ui";
 import { fetchAdminKpis, type AdminKpis } from "../../lib/api-client";
-
-// REPORTS: high-level overview only – do not render safeguarding note text, DSAR exports, raw JSON, or secrets here.
 
 const numberOrDash = (value?: number | null) =>
   typeof value === "number" ? value : "—";

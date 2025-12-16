@@ -2074,6 +2074,13 @@ type ApiConcern = {
   category?: string | null;
   summary?: string | null;
   details?: string | null;
+  reportedByLabel?: string | null;
+};
+
+const safeReporterLabel = (label?: string | null) => {
+  if (!label) return "Staff member";
+  if (label.includes("@")) return "Staff member";
+  return label;
 };
 
 const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
@@ -2087,7 +2094,7 @@ const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
   category: c.category ?? null,
   // SAFEGUARDING: show initials/generic labels only, never full names or free text.
   childLabel: safeChildLabel(c.childId, c.child ?? null),
-  reportedByLabel: null, // TODO: map reporter role/title when backend exposes a safe label.
+  reportedByLabel: safeReporterLabel(c.reportedByLabel),
 });
 
 export async function fetchOpenConcerns(): Promise<AdminConcernRow[]> {

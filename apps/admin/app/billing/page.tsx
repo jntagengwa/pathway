@@ -1,6 +1,11 @@
 "use client";
 
+// Billing UI guardrails:
+// - Do NOT display payment card details, billing addresses, or provider payloads.
+// - This page focuses on plan, limits, and usage metadata only.
+
 import React from "react";
+import Link from "next/link";
 import { Badge, Button, Card } from "@pathway/ui";
 import { AdminBillingOverview, fetchBillingOverview } from "../../lib/api-client";
 
@@ -99,9 +104,11 @@ export default function BillingPage() {
           </p>
           {data.cancelAtPeriodEnd ? (
             <p className="text-xs text-warning-strong">
-              Cancelled at period end
+              Cancels at the end of this period.
             </p>
-          ) : null}
+          ) : (
+            <p className="text-xs text-text-muted">Renews automatically at period end.</p>
+          )}
         </div>
       ) : (
         <p className="text-sm text-text-muted">
@@ -180,6 +187,9 @@ export default function BillingPage() {
               {data.maxSites ?? "—"}
             </p>
           </div>
+          <p className="col-span-full text-xs text-text-muted">
+            Some limits may be unset; contact support if these look incomplete.
+          </p>
         </div>
       ) : (
         <p className="text-sm text-text-muted">No limits available.</p>
@@ -195,7 +205,7 @@ export default function BillingPage() {
             Billing & Usage
           </h1>
           <p className="text-sm text-text-muted">
-            Current plan, AV30 usage, and key limits for this organisation.
+            Plan and usage overview for this organisation. Payment details stay in your billing provider.
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={load}>
@@ -207,6 +217,14 @@ export default function BillingPage() {
         {planCard}
         {av30Card}
         {limitsCard}
+      </div>
+      <div className="text-sm text-text-muted">
+        <Link
+          href="/reports"
+          className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
+        >
+          View detailed reports
+        </Link>
       </div>
     </div>
   );
