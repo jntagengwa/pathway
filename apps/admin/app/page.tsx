@@ -149,23 +149,34 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-xl font-semibold text-text-primary">Dashboard</h1>
+        <p className="text-sm text-text-muted">
+          A quick overview of today’s sessions, attendance, notices, and safeguarding
+          metadata.
+        </p>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <Card title="Today’s Sessions">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm text-text-muted">What’s on today.</p>
-            <Link
-              href="/sessions"
-              className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
-            >
+            <p className="text-sm text-text-muted">
+              Sessions happening today for this organisation.
+            </p>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/sessions" className="focus-visible:outline-none">
               View all
             </Link>
+            </Button>
           </div>
           {isLoadingSessions ? (
             <SkeletonRows />
           ) : sessionError ? (
             <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-3 text-sm text-status-danger">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">Unable to load today’s sessions</span>
+                <span className="font-semibold">
+                  Unable to load today’s sessions
+                </span>
                 <Button size="xs" variant="secondary" onClick={loadSessions}>
                   Retry
                 </Button>
@@ -173,7 +184,9 @@ export default function DashboardPage() {
               <p className="text-xs text-text-muted">{sessionError}</p>
             </div>
           ) : todaysSessions.length === 0 ? (
-            <p className="text-sm text-text-muted">No sessions scheduled for today.</p>
+              <p className="text-sm text-text-muted">
+                No sessions scheduled for today.
+              </p>
           ) : (
             <div className="space-y-3">
               {todaysSessions.map((session) => {
@@ -210,6 +223,16 @@ export default function DashboardPage() {
         </Card>
 
         <Card title="Pending Attendance">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="text-sm text-text-muted">
+              Sessions where attendance still needs review.
+            </p>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/attendance" className="focus-visible:outline-none">
+                Open attendance
+              </Link>
+            </Button>
+          </div>
           {isLoadingSessions ? (
             <SkeletonRows rows={2} />
           ) : sessionError ? (
@@ -249,15 +272,13 @@ export default function DashboardPage() {
               })}
             </ul>
           )}
-          <p className="mt-3 text-xs text-text-muted">
-            {/* TODO: replace heuristic with API-provided attendance completion field. */}
-            TODO: replace heuristic with API-provided attendance completion field.
-          </p>
         </Card>
 
         <Card title="Open Concerns">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm text-text-muted">Safeguarding summary only.</p>
+            <p className="text-sm text-text-muted">
+              Safeguarding overview (metadata only).
+            </p>
             <Link
               href="/safeguarding"
               className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
@@ -265,24 +286,27 @@ export default function DashboardPage() {
               View in Safeguarding
             </Link>
           </div>
+          <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            Open concerns count to come from safeguarding API (aggregate only).
+              Open concerns count will come from the safeguarding service (aggregate
+              only; no child-level detail).
           </p>
           <p className="text-xs text-text-muted">
-            {/* TODO: add open concerns count from safeguarding endpoint (aggregate only). */}
-            TODO: add open concerns count from safeguarding endpoint (aggregate only).
+              TODO: pull aggregate open concerns count from safeguarding endpoint.
           </p>
+          </div>
         </Card>
 
         <Card title="Recent Announcements">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm text-text-muted">Latest notices.</p>
-            <Link
-              href="/notices"
-              className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
-            >
+            <p className="text-sm text-text-muted">
+              Latest notices sent to parents and staff.
+            </p>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/notices" className="focus-visible:outline-none">
               View all
             </Link>
+            </Button>
           </div>
           {isLoadingAnnouncements ? (
             <SkeletonRows />

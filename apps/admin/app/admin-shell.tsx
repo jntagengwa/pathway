@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   SidebarNav,
@@ -47,12 +48,15 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
         items={navItems}
         currentPath={pathname}
         header={
-          <div className="flex items-center gap-3 px-3 py-3">
+          <Link
+            href="/"
+            className="group flex items-center gap-3 rounded-md px-4 py-4 transition hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60"
+          >
             <Image
               src="/pathwayLogo.png"
               alt="PathWay"
-              width={40}
-              height={40}
+              width={48}
+              height={48}
               className="rounded-md shadow-sm"
               priority
             />
@@ -62,7 +66,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
               </span>
               <span className="text-xs text-text-muted">Admin</span>
             </div>
-          </div>
+          </Link>
         }
         footer={
           <p className="px-2 text-xs text-text-muted">

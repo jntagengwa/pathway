@@ -245,25 +245,25 @@ export default function NewNoticePage() {
               <div className="flex flex-col gap-2 text-sm text-text-primary">
                 <StyledRadio
                   id="send-draft"
-                  name="sendMode"
+                    name="sendMode"
                   label="Save as draft"
-                  checked={form.sendMode === "draft"}
+                    checked={form.sendMode === "draft"}
                   onChange={() => handleFieldChange("sendMode", "draft")}
-                />
+                  />
                 <StyledRadio
                   id="send-now"
-                  name="sendMode"
+                    name="sendMode"
                   label="Send now"
-                  checked={form.sendMode === "now"}
+                    checked={form.sendMode === "now"}
                   onChange={() => handleFieldChange("sendMode", "now")}
-                />
+                  />
                 <StyledRadio
                   id="send-schedule"
-                  name="sendMode"
+                    name="sendMode"
                   label="Schedule"
-                  checked={form.sendMode === "schedule"}
+                    checked={form.sendMode === "schedule"}
                   onChange={() => handleFieldChange("sendMode", "schedule")}
-                />
+                  />
                 {form.sendMode === "schedule" ? (
                   <Input
                     type="datetime-local"
@@ -288,31 +288,31 @@ export default function NewNoticePage() {
               <StyledCheckbox
                 id="channel-email"
                 label="Email"
-                checked={form.channels?.includes("email") ?? false}
+                  checked={form.channels?.includes("email") ?? false}
                 onChange={(checked) =>
-                  setForm((prev) => {
-                    const next = new Set(prev.channels ?? []);
+                    setForm((prev) => {
+                      const next = new Set(prev.channels ?? []);
                     if (checked) next.add("email");
-                    else next.delete("email");
+                      else next.delete("email");
                     setFieldErrors((fe) => ({ ...fe, channels: undefined }));
-                    return { ...prev, channels: Array.from(next) };
-                  })
-                }
-              />
+                      return { ...prev, channels: Array.from(next) };
+                    })
+                  }
+                />
               <StyledCheckbox
                 id="channel-inapp"
                 label="In-app"
-                checked={form.channels?.includes("in-app") ?? true}
+                  checked={form.channels?.includes("in-app") ?? true}
                 onChange={(checked) =>
-                  setForm((prev) => {
-                    const next = new Set(prev.channels ?? []);
+                    setForm((prev) => {
+                      const next = new Set(prev.channels ?? []);
                     if (checked) next.add("in-app");
-                    else next.delete("in-app");
+                      else next.delete("in-app");
                     setFieldErrors((fe) => ({ ...fe, channels: undefined }));
-                    return { ...prev, channels: Array.from(next) };
-                  })
-                }
-              />
+                      return { ...prev, channels: Array.from(next) };
+                    })
+                  }
+                />
               <span className="text-xs text-text-muted">
                 Channels are advisory; backend delivery rules still apply.
               </span>

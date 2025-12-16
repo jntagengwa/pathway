@@ -117,10 +117,10 @@ export default function NewSessionPage() {
             {fieldErrors.title ? (
               <p className="text-xs text-status-danger">{fieldErrors.title}</p>
             ) : (
-              <p className="text-xs text-text-muted">
+            <p className="text-xs text-text-muted">
                 A short label shown to staff when scheduling and marking
                 attendance.
-              </p>
+            </p>
             )}
           </div>
 
@@ -157,17 +157,17 @@ export default function NewSessionPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="group">Group / class</Label>
-            <Input
-              id="group"
-              value={form.groupId ?? ""}
-              onChange={(e) => handleChange("groupId", e.target.value)}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="group">Group / class</Label>
+              <Input
+                id="group"
+                value={form.groupId ?? ""}
+                onChange={(e) => handleChange("groupId", e.target.value)}
               placeholder="e.g. Willow class"
-            />
-            <p className="text-xs text-text-muted">
+              />
+              <p className="text-xs text-text-muted">
               TODO: replace with a group picker when the API exposes classes.
-            </p>
+              </p>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">

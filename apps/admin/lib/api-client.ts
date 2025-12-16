@@ -1016,22 +1016,22 @@ export async function updateAssignment(
     userLookup?: Record<string, { name?: string | null }>;
   },
 ): Promise<AdminAssignmentRow> {
+  const rawStatus = input.status as string | undefined;
+  const normalizedStatus = rawStatus
+    ? rawStatus === "confirmed"
+      ? "CONFIRMED"
+      : rawStatus === "pending"
+        ? "PENDING"
+        : rawStatus === "declined"
+          ? "DECLINED"
+          : rawStatus.toUpperCase()
+    : undefined;
+
   const payload = {
     ...(input.sessionId ? { sessionId: input.sessionId } : {}),
     ...(input.staffId ? { userId: input.staffId } : {}),
     ...(input.role ? { role: input.role } : {}),
-    ...(input.status
-      ? {
-          status:
-            input.status === "confirmed"
-              ? "CONFIRMED"
-              : input.status === "pending"
-                ? "PENDING"
-                : input.status === "declined"
-                  ? "DECLINED"
-                  : input.status.toUpperCase(),
-        }
-      : {}),
+    ...(normalizedStatus ? { status: normalizedStatus } : {}),
   };
 
   const res = await fetch(`${API_BASE_URL}/assignments/${id}`, {
@@ -2338,11 +2338,11 @@ const mapUserToStaffRow = (u: ApiUser): AdminStaffRow => {
     email: u.email,
     rolesLabel: roles.length ? roles.join(", ") : "—",
     status:
-      u.status && u.status !== "active"
-        ? u.status
-        : u.hasServeAccess === false
-          ? "inactive"
-          : "active", // TODO: BLOCKED – map real user status when API exposes it.
+      u.status === "inactive"
+        ? "inactive"
+        : u.status === "active" || u.status === undefined || u.status === null
+          ? "active"
+          : "unknown", // TODO: BLOCKED – map real user status when API exposes it.
   };
 };
 
@@ -2361,11 +2361,11 @@ const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
     roles,
     primaryRoleLabel: roles[0] ?? null,
     status:
-      u.status && u.status !== "active"
-        ? u.status
-        : u.hasServeAccess === false
-          ? "inactive"
-          : "active", // TODO: BLOCKED – map real user status when API exposes it.
+      u.status === "inactive"
+        ? "inactive"
+        : u.status === "active" || u.status === undefined || u.status === null
+          ? "active"
+          : "unknown", // TODO: BLOCKED – map real user status when API exposes it.
     groups: undefined, // TODO: map staff groups/classes when API exposes them.
     sessionsCount: undefined, // TODO: derive from assignments when available.
   };
