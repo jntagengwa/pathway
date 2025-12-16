@@ -135,7 +135,7 @@ export default function ChildrenPage() {
             data={data}
             columns={columns}
             isLoading={isLoading}
-            emptyMessage="No children found."
+            emptyMessage="No children are registered for this organisation yet."
             onRowClick={(row) => router.push(`/children/${row.id}`)}
           />
         )}

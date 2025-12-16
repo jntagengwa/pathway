@@ -73,6 +73,7 @@ export default function NoticesPage() {
           </span>
         ),
         width: "160px",
+        align: "right",
       },
       {
         id: "scheduled",
@@ -83,6 +84,7 @@ export default function NoticesPage() {
           </span>
         ),
         width: "180px",
+        align: "right",
       },
     ],
     [],

@@ -101,6 +101,7 @@ export default function LessonsPage() {
           </span>
         ),
         width: "140px",
+        align: "right",
       },
     ],
     [],

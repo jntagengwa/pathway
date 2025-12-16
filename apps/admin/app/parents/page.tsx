@@ -71,6 +71,7 @@ export default function ParentsPage() {
               : "—"}
           </span>
         ),
+        align: "right",
         width: "140px",
       },
       {

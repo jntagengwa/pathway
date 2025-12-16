@@ -244,7 +244,7 @@ export default function SessionsPage() {
           data={sessions}
           columns={columns}
           isLoading={isLoadingSessions}
-          emptyMessage="No sessions scheduled."
+            emptyMessage="No sessions have been scheduled yet."
           onRowClick={(row) => {
             router.push(`/sessions/${row.id}`);
           }}

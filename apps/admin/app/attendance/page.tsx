@@ -82,6 +82,7 @@ export default function AttendancePage() {
           </span>
         ),
         width: "140px",
+        align: "right",
       },
       {
         id: "status",
