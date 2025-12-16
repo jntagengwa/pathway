@@ -71,6 +71,7 @@ export default function ParentsPage() {
               : "—"}
           </span>
         ),
+        align: "right",
         width: "140px",
       },
       {
@@ -91,46 +92,45 @@ export default function ParentsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="p-0">
-        <div className="flex items-start justify-between border-b border-border-subtle px-6 py-4">
-          <div className="space-y-1">
-            <h1 className="text-xl font-semibold text-text-primary font-heading">
-              Parents & Guardians
-            </h1>
-            <p className="text-sm text-text-muted">
-              Contacts with family access for this organisation.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={load}>
-              Refresh
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              New parent
-            </Button>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary font-heading">
+            Parents & Guardians
+          </h1>
+          <p className="text-sm text-text-muted">
+            Contacts with family access for this organisation.
+          </p>
         </div>
-        <div className="px-6 pb-6 pt-4">
-          {error ? (
-            <div className="flex flex-col gap-2 rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
-              <span className="font-semibold">Couldn’t load parents yet.</span>
-              <span className="text-text-muted">{error}</span>
-              <div>
-                <Button size="sm" variant="secondary" onClick={load}>
-                  Retry
-                </Button>
-              </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={load}>
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" disabled>
+            New parent
+          </Button>
+        </div>
+      </div>
+
+      <Card title="Parents & Guardians">
+        {error ? (
+          <div className="flex flex-col gap-2 rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
+            <span className="font-semibold">Couldn’t load parents yet.</span>
+            <span className="text-text-muted">{error}</span>
+            <div>
+              <Button size="sm" variant="secondary" onClick={load}>
+                Retry
+              </Button>
             </div>
-          ) : (
-            <DataTable
-              data={data}
-              columns={columns}
-              isLoading={isLoading}
-              emptyMessage="No parents or guardians found for this organisation yet."
-              onRowClick={(row) => router.push(`/parents/${row.id}`)}
-            />
-          )}
-        </div>
+          </div>
+        ) : (
+          <DataTable
+            data={data}
+            columns={columns}
+            isLoading={isLoading}
+            emptyMessage="No parents or guardians found for this organisation yet."
+            onRowClick={(row) => router.push(`/parents/${row.id}`)}
+          />
+        )}
       </Card>
     </div>
   );

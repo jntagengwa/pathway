@@ -227,28 +227,32 @@ export default function SafeguardingPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card
-        title="Safeguarding & Wellbeing"
-        description="High-level overview for safeguarding leads and admins."
-      >
-        <div className="mb-4 text-xs text-text-muted">
-          {/* SAFEGUARDING: metadata-only. Do NOT show free-text concern/note content here. */}
-          SAFEGUARDING: metadata-only. Do NOT show free-text concern/note content
-          in this overview.
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary font-heading">
+            Safeguarding & Wellbeing
+          </h1>
+          <p className="text-sm text-text-muted">
+            High-level overview for safeguarding leads and admins.
+          </p>
+          <p className="mt-1 text-xs text-text-muted">
+            SAFEGUARDING: metadata-only. Do NOT show free-text concern/note content in this overview.
+          </p>
         </div>
-        <div className="flex flex-col gap-4">
-          <Card title="Open Concerns">
-            {concernContent()}
-          </Card>
-          <Card title="Positive Notes & Wellbeing Summary">
-            {notesContent()}
-            <p className="mt-3 text-xs text-text-muted">
-              {/* TODO: Wire richer notes summary once backend exposes aggregate-friendly fields. */}
-              TODO: Wire richer notes summary once backend exposes aggregate-friendly fields.
-            </p>
-          </Card>
-        </div>
-      </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card title="Open Concerns">
+          {concernContent()}
+        </Card>
+        <Card title="Positive Notes & Wellbeing Summary">
+          {notesContent()}
+          <p className="mt-3 text-xs text-text-muted">
+            {/* TODO: Wire richer notes summary once backend exposes aggregate-friendly fields. */}
+            TODO: Wire richer notes summary once backend exposes aggregate-friendly fields.
+          </p>
+        </Card>
+      </div>
     </div>
   );
 }

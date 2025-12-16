@@ -20,4 +20,8 @@ export {
   type DataTableProps,
   type ColumnDef,
 } from "./components/ui/data-table";
+export { Input, type InputProps } from "./components/ui/input";
+export { Label, type LabelProps } from "./components/ui/label";
+export { Textarea, type TextareaProps } from "./components/ui/textarea";
+export { Select, type SelectProps } from "./components/ui/select";
 export { cn } from "./lib/cn";

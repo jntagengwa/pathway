@@ -46,6 +46,15 @@ export type AdminSessionDetail = AdminSessionRow & {
   assignments?: AdminAssignmentRow[];
 };
 
+// SESSION FORMS (CreateSessionDto / UpdateSessionDto subset)
+export type AdminSessionFormValues = {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  groupId?: string;
+  tenantId?: string;
+};
+
 export type AdminChildRow = {
   id: string;
   fullName: string;
@@ -112,6 +121,17 @@ export type AdminAnnouncementDetail = {
   publishedAt: string | null;
   channels?: string[] | null;
   targetsSummary?: string | null;
+};
+
+// ANNOUNCEMENTS FORMS (CreateAnnouncementDto / UpdateAnnouncementDto subset)
+export type AdminAnnouncementFormValues = {
+  title: string;
+  body: string;
+  audience: "ALL" | "PARENTS" | "STAFF";
+  sendMode: "draft" | "now" | "schedule";
+  scheduledAt?: string;
+  channels?: string[];
+  tenantId?: string;
 };
 
 export type AdminAttendanceRow = {
@@ -249,7 +269,19 @@ export type AdminLessonDetail = {
   groupLabel: string | null;
   status: "draft" | "published" | "archived" | "unknown";
   updatedAt: string | null;
+  weekOf?: string | null;
   resources: { id: string; label: string; type?: string | null }[];
+};
+
+// LESSON FORMS (CreateLessonDto / UpdateLessonDto subset)
+export type AdminLessonFormValues = {
+  title: string;
+  description?: string;
+  weekOf?: string;
+  groupId?: string;
+  fileKey?: string;
+  tenantId?: string;
+  resources?: { label: string }[];
 };
 
 function buildAuthHeaders(): HeadersInit {
@@ -266,6 +298,11 @@ function buildAuthHeaders(): HeadersInit {
 
   return headers;
 }
+
+const getDefaultTenantId = () =>
+  process.env.NEXT_PUBLIC_DEV_TENANT_ID ||
+  process.env.NEXT_PUBLIC_TENANT_ID ||
+  undefined;
 
 const mapSessionStatus = (
   startsAt?: string,
@@ -502,8 +539,11 @@ type ApiSessionDetail = {
   startsAt: string;
   endsAt: string;
   ageGroup?: string | null;
+  ageGroupLabel?: string | null;
   room?: string | null;
+  roomName?: string | null;
   groupId?: string | null;
+  groupLabel?: string | null;
   attendanceMarked?: number | null;
   attendanceTotal?: number | null;
   presentCount?: number | null;
@@ -520,15 +560,19 @@ const mapApiSessionDetailToAdmin = (
   title: s.title ?? "Session",
   startsAt: s.startsAt,
   endsAt: s.endsAt,
-  ageGroup: s.ageGroup ?? "—", // TODO: map to age group label once API exposes it
-  room: s.room ?? s.groupId ?? "—", // TODO: map to room/group name when available
+  ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "—",
+  room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "—",
   status: mapSessionStatus(s.startsAt, s.endsAt),
   attendanceMarked:
     s.attendanceMarked ??
-    (typeof s.presentCount === "number" ? s.presentCount : 0),
+    (typeof s.presentCount === "number" ? s.presentCount : 0) +
+      (typeof s.absentCount === "number" ? s.absentCount : 0) +
+      (typeof s.lateCount === "number" ? s.lateCount : 0),
   attendanceTotal:
     s.attendanceTotal ??
-    (typeof s.attendanceMarked === "number" ? s.attendanceMarked : 0),
+    (typeof s.presentCount === "number" ? s.presentCount : 0) +
+      (typeof s.absentCount === "number" ? s.absentCount : 0) +
+      (typeof s.lateCount === "number" ? s.lateCount : 0),
   presentCount: typeof s.presentCount === "number" ? s.presentCount : undefined,
   absentCount: typeof s.absentCount === "number" ? s.absentCount : undefined,
   lateCount: typeof s.lateCount === "number" ? s.lateCount : undefined,
@@ -615,6 +659,16 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     startsAt: string;
     endsAt: string;
     groupId: string | null;
+    groupLabel?: string | null;
+    ageGroup?: string | null;
+    ageGroupLabel?: string | null;
+    room?: string | null;
+    roomName?: string | null;
+    attendanceMarked?: number | null;
+    attendanceTotal?: number | null;
+    presentCount?: number | null;
+    absentCount?: number | null;
+    lateCount?: number | null;
     tenantId: string;
   };
 
@@ -625,14 +679,83 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     title: s.title ?? "Session",
     startsAt: s.startsAt,
     endsAt: s.endsAt,
-    ageGroup: "—", // TODO: enrich with group/age info once API returns it
-    room: s.groupId ?? "—", // TODO: map to room/group name when available
+    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "—",
+    room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "—",
     status: mapSessionStatus(s.startsAt, s.endsAt),
-    attendanceMarked: 0, // TODO: replace with real attendance summary once available
-    attendanceTotal: 0,
+    attendanceMarked:
+      s.attendanceMarked ??
+      (typeof s.presentCount === "number" ? s.presentCount : 0) +
+        (typeof s.absentCount === "number" ? s.absentCount : 0) +
+        (typeof s.lateCount === "number" ? s.lateCount : 0),
+    attendanceTotal:
+      s.attendanceTotal ??
+      (typeof s.presentCount === "number" ? s.presentCount : 0) +
+        (typeof s.absentCount === "number" ? s.absentCount : 0) +
+        (typeof s.lateCount === "number" ? s.lateCount : 0), // TODO: BLOCKED – awaiting attendance totals from API.
     leadStaff: undefined,
     supportStaff: undefined,
   }));
+}
+
+// CreateSessionDto fields: tenantId (server will enforce), groupId?, startsAt, endsAt, title?
+export async function createSession(
+  input: AdminSessionFormValues,
+): Promise<AdminSessionDetail> {
+  const payload = {
+    tenantId: input.tenantId ?? getDefaultTenantId(),
+    groupId: input.groupId || undefined,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    title: input.title?.trim() || undefined,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/sessions`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create session (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiSessionDetail;
+  return mapApiSessionDetailToAdmin(json);
+}
+
+// UpdateSessionDto fields: tenantId?, groupId?, startsAt?, endsAt?, title?
+export async function updateSession(
+  id: string,
+  input: Partial<AdminSessionFormValues>,
+): Promise<AdminSessionDetail> {
+  const payload = {
+    ...(input.title ? { title: input.title.trim() } : {}),
+    ...(input.startsAt ? { startsAt: input.startsAt } : {}),
+    ...(input.endsAt ? { endsAt: input.endsAt } : {}),
+    ...(input.groupId ? { groupId: input.groupId } : {}),
+    ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update session (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiSessionDetail;
+  return mapApiSessionDetailToAdmin(json);
 }
 
 // ROTA: assignments are staff + session metadata only.
@@ -1001,13 +1124,11 @@ type ApiChild = {
   photoKey: string | null;
   allergies: string[] | null;
   disabilities: string[] | null;
+  additionalNeeds?: string[] | null;
   groupId: string | null;
   tenantId: string;
   createdAt: string;
   updatedAt: string;
-};
-
-type ApiChildDetail = ApiChild & {
   preferredName?: string | null;
   ageGroup?: string | null;
   ageGroupLabel?: string | null;
@@ -1017,17 +1138,20 @@ type ApiChildDetail = ApiChild & {
   status?: string | null;
 };
 
+type ApiChildDetail = ApiChild & {};
+
 const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
   id: c.id,
   fullName: `${c.firstName} ${c.lastName}`.trim(),
-  preferredName: null, // TODO: populate when API exposes preferredName
-  ageGroup: "—", // TODO: map when API exposes age/room/group name
-  primaryGroup: c.groupId ?? "—",
-  hasPhotoConsent: false, // TODO: derive from consent flag when available (do not assume photoKey implies consent)
+  preferredName: c.preferredName ?? null,
+  ageGroup: c.ageGroupLabel ?? c.ageGroup ?? "—",
+  primaryGroup: c.primaryGroupLabel ?? c.primaryGroup ?? c.groupId ?? "—",
+  hasPhotoConsent: Boolean(c.hasPhotoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:
-    Array.isArray(c.disabilities) && c.disabilities.length > 0,
-  status: "active", // TODO: map from API status/archived flag when available
+    (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
+    (Array.isArray(c.additionalNeeds) && c.additionalNeeds.length > 0),
+  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs child.status from API to reflect archived/deactivated children.
 });
 
 const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
@@ -1039,8 +1163,9 @@ const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
   hasPhotoConsent: Boolean(c.hasPhotoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:
-    Array.isArray(c.disabilities) && c.disabilities.length > 0,
-  status: c.status === "inactive" ? "inactive" : "active",
+    (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
+    (Array.isArray(c.additionalNeeds) && c.additionalNeeds.length > 0),
+  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs child.status from API to reflect archived/deactivated children.
 });
 
 export async function fetchChildById(
@@ -1140,6 +1265,8 @@ type ApiParentSummary = {
   fullName: string;
   email: string | null;
   childrenCount: number;
+  status?: string | null;
+  isPrimaryContact?: boolean | null;
 };
 
 type ApiParentDetail = {
@@ -1147,7 +1274,13 @@ type ApiParentDetail = {
   fullName?: string | null;
   email?: string | null;
   phone?: string | null;
-  children?: { id: string; fullName?: string | null; name?: string | null }[];
+  children?: {
+    id: string;
+    fullName?: string | null;
+    name?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }[];
   isPrimaryContact?: boolean | null;
   status?: string | null;
 };
@@ -1158,11 +1291,11 @@ const mapApiParentToAdminParentRow = (
   id: api.id,
   fullName: api.fullName || "Unknown parent",
   email: api.email ?? "",
-  phone: null, // TODO: map phone when backend exposes it
-  children: [], // TODO: map child summaries when list endpoint exposes them
+  phone: null, // TODO: BLOCKED – requires phone field from parents list API.
+  children: [], // TODO: BLOCKED – list endpoint does not include child summaries yet.
   childrenCount: api.childrenCount,
-  isPrimaryContact: false, // TODO: map when API exposes primary-contact flag
-  status: "active", // TODO: map real status/archival when available
+  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED – needs primaryContact flag from API list.
+  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs parent.status to reflect archived/deactivated parents.
 });
 
 const mapApiParentDetailToAdmin = (
@@ -1171,15 +1304,18 @@ const mapApiParentDetailToAdmin = (
   id: api.id,
   fullName: api.fullName || "Unknown parent",
   email: api.email ?? "",
-  phone: api.phone ?? null,
+  phone: api.phone ?? null, // TODO: BLOCKED – requires phone from API.
   children:
     api.children?.map((child) => ({
       id: child.id,
-      fullName: child.fullName ?? child.name ?? "Child",
+      fullName:
+        child.fullName ??
+        child.name ??
+        (`${child.firstName ?? ""} ${child.lastName ?? ""}`.trim() || "Child"),
     })) ?? [],
   childrenCount: api.children?.length ?? undefined,
-  isPrimaryContact: Boolean(api.isPrimaryContact),
-  status: api.status === "inactive" ? "inactive" : "active",
+  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED – needs primaryContact flag from API.
+  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs parent.status to reflect archived/deactivated parents.
 });
 
 export async function fetchParentById(
@@ -1404,6 +1540,86 @@ export async function fetchAnnouncementById(
   return mapApiAnnouncementToAdminDetail(json);
 }
 
+// CreateAnnouncementDto fields: tenantId, title, body, audience, publishedAt?
+export async function createAnnouncement(
+  input: AdminAnnouncementFormValues,
+): Promise<AdminAnnouncementDetail> {
+  const publishedAt =
+    input.sendMode === "now"
+      ? new Date().toISOString()
+      : input.sendMode === "schedule"
+        ? input.scheduledAt
+        : undefined;
+
+  const payload = {
+    tenantId: input.tenantId ?? getDefaultTenantId(),
+    title: input.title?.trim(),
+    body: input.body?.trim(),
+    audience: input.audience,
+    ...(publishedAt ? { publishedAt } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/announcements`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create announcement (${res.status}): ${
+        body || res.statusText
+      }`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAnnouncement;
+  return mapApiAnnouncementToAdminDetail(json);
+}
+
+// UpdateAnnouncementDto fields: title?, body?, audience?, publishedAt?
+export async function updateAnnouncement(
+  id: string,
+  input: Partial<AdminAnnouncementFormValues>,
+): Promise<AdminAnnouncementDetail> {
+  const publishedAt =
+    input.sendMode === "now"
+      ? new Date().toISOString()
+      : input.sendMode === "schedule"
+        ? input.scheduledAt
+        : input.sendMode === "draft"
+          ? null
+          : undefined;
+
+  const payload = {
+    ...(input.title ? { title: input.title.trim() } : {}),
+    ...(input.body ? { body: input.body.trim() } : {}),
+    ...(input.audience ? { audience: input.audience } : {}),
+    ...(typeof publishedAt !== "undefined" ? { publishedAt } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/announcements/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update announcement (${res.status}): ${
+        body || res.statusText
+      }`,
+    );
+  }
+
+  const json = (await res.json()) as ApiAnnouncement;
+  return mapApiAnnouncementToAdminDetail(json);
+}
+
 // REPORTS: this helper must only aggregate counts/ratios from existing endpoints; no raw safeguarding text or provider payloads.
 export async function fetchAdminKpis(): Promise<AdminKpis> {
   const results = await Promise.allSettled([
@@ -1456,6 +1672,8 @@ type ApiLesson = {
   title: string;
   description?: string | null;
   groupId?: string | null;
+  groupLabel?: string | null;
+  ageGroupLabel?: string | null;
   tenantId?: string;
   weekOf?: string | null;
   fileKey?: string | null;
@@ -1481,20 +1699,21 @@ const resourceLabelFromKey = (key?: string | null) => {
 const mapApiLessonToAdminRow = (api: ApiLesson): AdminLessonRow => ({
   id: api.id,
   title: api.title,
-  ageGroupLabel: api.weekOf ?? null, // TODO: map to age group when available
-  groupLabel: api.groupId ?? null, // TODO: map group name when API exposes it
+  ageGroupLabel: api.ageGroupLabel ?? api.weekOf ?? null, // TODO: map age group when backend exposes a dedicated label.
+  groupLabel: api.groupLabel ?? api.groupId ?? null, // TODO: map group/class name when API exposes it.
   status: mapLessonStatus(api.status),
-  updatedAt: api.updatedAt ?? null,
+  updatedAt: api.updatedAt ?? api.createdAt ?? null,
 });
 
 const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
   id: api.id,
   title: api.title,
   description: api.description ?? null,
-  ageGroupLabel: api.weekOf ?? null, // TODO: map to age group when available
-  groupLabel: api.groupId ?? null, // TODO: map group name when API exposes it
+  ageGroupLabel: api.ageGroupLabel ?? api.weekOf ?? null, // TODO: map age group when backend exposes a dedicated label.
+  groupLabel: api.groupLabel ?? api.groupId ?? null, // TODO: map group/class name when API exposes it.
   status: mapLessonStatus(api.status),
-  updatedAt: api.updatedAt ?? null,
+  updatedAt: api.updatedAt ?? api.createdAt ?? null,
+  weekOf: api.weekOf ?? null,
   resources: api.fileKey
     ? [
         {
@@ -1503,7 +1722,7 @@ const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
           type: null,
         },
       ]
-    : [],
+    : [], // NOTE: resources are label-only here; do not expose storage keys or URLs.
 });
 
 // LESSONS: content/curriculum only – no safeguarding notes or secrets. Do not expose raw S3 URLs or provider payloads; show safe labels only.
@@ -1576,6 +1795,68 @@ export async function fetchLessonById(
     const body = await res.text().catch(() => "");
     throw new Error(
       `Failed to fetch lesson: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiLesson;
+  return mapApiLessonToAdminDetail(json);
+}
+
+// CreateLessonDto fields: tenantId, title, description?, fileKey?, groupId?, weekOf (date)
+export async function createLesson(
+  input: AdminLessonFormValues,
+): Promise<AdminLessonDetail> {
+  const payload = {
+    tenantId: input.tenantId ?? getDefaultTenantId(),
+    title: input.title?.trim(),
+    description: input.description?.trim() || undefined,
+    fileKey: input.fileKey || undefined,
+    groupId: input.groupId || undefined,
+    weekOf: input.weekOf,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/lessons`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create lesson (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiLesson;
+  return mapApiLessonToAdminDetail(json);
+}
+
+// UpdateLessonDto fields: title?, description?, fileKey?, groupId?, weekOf?
+export async function updateLesson(
+  id: string,
+  input: Partial<AdminLessonFormValues>,
+): Promise<AdminLessonDetail> {
+  const payload = {
+    ...(input.title ? { title: input.title.trim() } : {}),
+    ...(input.description ? { description: input.description.trim() } : {}),
+    ...(input.fileKey ? { fileKey: input.fileKey } : {}),
+    ...(input.groupId ? { groupId: input.groupId } : {}),
+    ...(input.weekOf ? { weekOf: input.weekOf } : {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/lessons/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update lesson (${res.status}): ${body || res.statusText}`,
     );
   }
 
@@ -2035,8 +2316,11 @@ type ApiUser = {
   id: string;
   email: string | null;
   name: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   hasServeAccess?: boolean | null;
   hasFamilyAccess?: boolean | null;
+  status?: string | null;
   createdAt?: string;
 };
 
@@ -2044,12 +2328,21 @@ const mapUserToStaffRow = (u: ApiUser): AdminStaffRow => {
   const roles: string[] = [];
   if (u.hasServeAccess) roles.push("Staff access");
   if (u.hasFamilyAccess) roles.push("Family access");
+  const fullName =
+    u.name ||
+    `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() ||
+    "Unknown user";
   return {
     id: u.id,
-    fullName: u.name || "Unknown user",
+    fullName,
     email: u.email,
     rolesLabel: roles.length ? roles.join(", ") : "—",
-    status: u.hasServeAccess === false ? "inactive" : "active",
+    status:
+      u.status && u.status !== "active"
+        ? u.status
+        : u.hasServeAccess === false
+          ? "inactive"
+          : "active", // TODO: BLOCKED – map real user status when API exposes it.
   };
 };
 
@@ -2057,13 +2350,22 @@ const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
   const roles: string[] = [];
   if (u.hasServeAccess) roles.push("Staff access");
   if (u.hasFamilyAccess) roles.push("Family access");
+  const fullName =
+    u.name ||
+    `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() ||
+    "Unknown user";
   return {
     id: u.id,
-    fullName: u.name || "Unknown user",
+    fullName,
     email: u.email,
     roles,
     primaryRoleLabel: roles[0] ?? null,
-    status: u.hasServeAccess === false ? "inactive" : "active",
+    status:
+      u.status && u.status !== "active"
+        ? u.status
+        : u.hasServeAccess === false
+          ? "inactive"
+          : "active", // TODO: BLOCKED – map real user status when API exposes it.
     groups: undefined, // TODO: map staff groups/classes when API exposes them.
     sessionsCount: undefined, // TODO: derive from assignments when available.
   };

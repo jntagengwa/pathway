@@ -101,6 +101,7 @@ export default function LessonsPage() {
           </span>
         ),
         width: "140px",
+        align: "right",
       },
     ],
     [],
@@ -121,8 +122,8 @@ export default function LessonsPage() {
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm" disabled>
-            New lesson (soon)
+          <Button asChild size="sm">
+            <a href="/lessons/new">New lesson</a>
           </Button>
         </div>
       </div>

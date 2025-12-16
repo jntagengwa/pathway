@@ -78,9 +78,14 @@ export default function PeoplePage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary font-heading">
-          People & Staff
-        </h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary font-heading">
+            People & Staff
+          </h1>
+          <p className="text-sm text-text-muted">
+            Staff and volunteers with access to PathWay in this organisation.
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
@@ -90,10 +95,7 @@ export default function PeoplePage() {
           </Button>
         </div>
       </div>
-      <Card
-        title="People & Staff"
-        description="Staff and volunteers with access to PathWay in this organisation."
-      >
+      <Card title="People & Staff">
         {error ? (
           <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
             <div className="flex items-center justify-between gap-2">

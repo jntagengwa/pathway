@@ -47,12 +47,12 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
         items={navItems}
         currentPath={pathname}
         header={
-          <div className="flex items-center gap-2 px-2">
+          <div className="flex items-center gap-3 px-3 py-3">
             <Image
               src="/pathwayLogo.png"
               alt="PathWay"
-              width={28}
-              height={28}
+              width={40}
+              height={40}
               className="rounded-md shadow-sm"
               priority
             />

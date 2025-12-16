@@ -72,9 +72,14 @@ export default function LessonDetailPage() {
             Back to lessons
           </Link>
         </Button>
-        <Button variant="secondary" size="sm" onClick={load}>
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={load}>
+            Refresh
+          </Button>
+          <Button asChild size="sm">
+            <Link href={`/lessons/${lessonId}/edit`}>Edit lesson</Link>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

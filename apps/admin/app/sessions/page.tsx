@@ -223,7 +223,9 @@ export default function SessionsPage() {
           <Button variant="secondary" size="sm" onClick={loadSessions}>
             Refresh
           </Button>
-          <Button size="sm">Create session</Button>
+          <Button asChild size="sm">
+            <a href="/sessions/new">New session</a>
+          </Button>
         </div>
       }
     >
@@ -242,7 +244,7 @@ export default function SessionsPage() {
           data={sessions}
           columns={columns}
           isLoading={isLoadingSessions}
-          emptyMessage="No sessions scheduled."
+            emptyMessage="No sessions have been scheduled yet."
           onRowClick={(row) => {
             router.push(`/sessions/${row.id}`);
           }}
