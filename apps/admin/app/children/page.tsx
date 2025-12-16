@@ -101,9 +101,14 @@ export default function ChildrenPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary font-heading">
-          Children
-        </h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary font-heading">
+            Children
+          </h1>
+          <p className="text-sm text-text-muted">
+            Child records for this organisation (photo consent and needs awareness).
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
