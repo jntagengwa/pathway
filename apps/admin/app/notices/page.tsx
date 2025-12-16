@@ -3,7 +3,15 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Select,
+  type ColumnDef,
+} from "@pathway/ui";
 import { AdminAnnouncementRow, fetchAnnouncements } from "../../lib/api-client";
 
 function formatDate(value?: string | null) {
@@ -22,6 +30,13 @@ export default function NoticesPage() {
   const [data, setData] = React.useState<AdminAnnouncementRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | "draft" | "scheduled" | "sent"
+  >("all");
+  const [audienceFilter, setAudienceFilter] = React.useState<
+    "all" | "parents" | "staff"
+  >("all");
   const router = useRouter();
 
   const load = React.useCallback(async () => {
@@ -42,6 +57,31 @@ export default function NoticesPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const filteredData = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return data.filter((row) => {
+      const matchesQuery = query
+        ? (row.title?.toLowerCase() ?? "").includes(query)
+        : true;
+      const statusLabel = row.statusLabel?.toLowerCase() ?? "";
+      const audienceLabel = row.audienceLabel?.toLowerCase() ?? "";
+
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusLabel.includes(statusFilter === "sent" ? "sent" : statusFilter);
+
+      const matchesAudience =
+        audienceFilter === "all"
+          ? true
+          : audienceFilter === "parents"
+            ? audienceLabel.includes("parent")
+            : audienceLabel.includes("staff");
+
+      return matchesQuery && matchesStatus && matchesAudience;
+    });
+  }, [data, searchQuery, statusFilter, audienceFilter]);
 
   const columns = React.useMemo<ColumnDef<AdminAnnouncementRow>[]>(
     () => [
@@ -122,13 +162,51 @@ export default function NoticesPage() {
             </div>
           </div>
         ) : (
-          <DataTable
-            data={data}
-            columns={columns}
-            isLoading={isLoading}
-            emptyMessage="No announcements have been created for this organisation yet."
-            onRowClick={(row) => router.push(`/notices/${row.id}`)}
-          />
+          <>
+            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search notices…"
+                className="md:max-w-xs"
+                aria-label="Search notices"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as typeof statusFilter)
+                  }
+                  className="md:w-40"
+                  aria-label="Filter by status"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="draft">Draft</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="sent">Sent</option>
+                </Select>
+                <Select
+                  value={audienceFilter}
+                  onChange={(e) =>
+                    setAudienceFilter(e.target.value as typeof audienceFilter)
+                  }
+                  className="md:w-40"
+                  aria-label="Filter by audience"
+                >
+                  <option value="all">All audiences</option>
+                  <option value="parents">Parents / guardians</option>
+                  <option value="staff">Staff</option>
+                </Select>
+              </div>
+            </div>
+            <DataTable
+              data={filteredData}
+              columns={columns}
+              isLoading={isLoading}
+              emptyMessage="No announcements have been created for this organisation yet."
+              onRowClick={(row) => router.push(`/notices/${row.id}`)}
+            />
+          </>
         )}
         <p className="mt-3 text-xs text-text-muted">
           {/* Safeguarding note: content not displayed here; this list shows metadata only. */}

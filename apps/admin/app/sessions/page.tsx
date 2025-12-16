@@ -2,7 +2,15 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Select,
+  type ColumnDef,
+} from "@pathway/ui";
 import {
   AdminAssignmentRow,
   AdminRotaDay,
@@ -94,6 +102,10 @@ export default function SessionsPage() {
   const [sessions, setSessions] = React.useState<AdminSessionRow[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = React.useState(true);
   const [sessionsError, setSessionsError] = React.useState<string | null>(null);
+  const [sessionSearch, setSessionSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | "not_started" | "in_progress" | "completed"
+  >("all");
 
   const [weekStart, setWeekStart] = React.useState<Date>(
     () => startOfWeek(new Date()),
@@ -204,6 +216,17 @@ export default function SessionsPage() {
     [],
   );
 
+  const filteredSessions = React.useMemo(() => {
+    const query = sessionSearch.trim().toLowerCase();
+    return sessions.filter((s) => {
+      const matchesQuery = query
+        ? s.title.toLowerCase().includes(query)
+        : true;
+      const matchesStatus = statusFilter === "all" ? true : s.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [sessions, sessionSearch, statusFilter]);
+
   const weekDates = React.useMemo(
     () => Array.from({ length: 7 }, (_, idx) => addDays(weekStart, idx)),
     [weekStart],
@@ -240,15 +263,41 @@ export default function SessionsPage() {
           </div>
         </div>
       ) : (
-        <DataTable
-          data={sessions}
-          columns={columns}
-          isLoading={isLoadingSessions}
+        <>
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <Input
+              value={sessionSearch}
+              onChange={(e) => setSessionSearch(e.target.value)}
+              placeholder="Search sessions…"
+              className="md:max-w-xs"
+              aria-label="Search sessions"
+            />
+            <div className="flex items-center gap-2">
+              <Select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as typeof statusFilter)
+                }
+                className="md:w-44"
+                aria-label="Filter by status"
+              >
+                <option value="all">All statuses</option>
+                <option value="not_started">Upcoming</option>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+              </Select>
+            </div>
+          </div>
+          <DataTable
+            data={filteredSessions}
+            columns={columns}
+            isLoading={isLoadingSessions}
             emptyMessage="No sessions have been scheduled yet."
-          onRowClick={(row) => {
-            router.push(`/sessions/${row.id}`);
-          }}
-        />
+            onRowClick={(row) => {
+              router.push(`/sessions/${row.id}`);
+            }}
+          />
+        </>
       )}
     </Card>
   );

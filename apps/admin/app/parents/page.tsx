@@ -2,13 +2,25 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Select,
+  type ColumnDef,
+} from "@pathway/ui";
 import { AdminParentRow, fetchParents } from "../../lib/api-client";
 
 export default function ParentsPage() {
   const [data, setData] = React.useState<AdminParentRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [childrenFilter, setChildrenFilter] = React.useState<
+    "all" | "with" | "without"
+  >("all");
   const router = useRouter();
 
   const load = React.useCallback(async () => {
@@ -27,6 +39,25 @@ export default function ParentsPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const filteredData = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return data.filter((row) => {
+      const matchesQuery = query
+        ? (row.fullName?.toLowerCase() ?? "").includes(query) ||
+          (row.email?.toLowerCase() ?? "").includes(query)
+        : true;
+      const hasChildren =
+        typeof row.childrenCount === "number" ? row.childrenCount > 0 : true;
+      const matchesChildren =
+        childrenFilter === "all"
+          ? true
+          : childrenFilter === "with"
+            ? hasChildren
+            : !hasChildren;
+      return matchesQuery && matchesChildren;
+    });
+  }, [data, searchQuery, childrenFilter]);
 
   const columns = React.useMemo<ColumnDef<AdminParentRow>[]>(
     () => [
@@ -123,13 +154,36 @@ export default function ParentsPage() {
             </div>
           </div>
         ) : (
-          <DataTable
-            data={data}
-            columns={columns}
-            isLoading={isLoading}
-            emptyMessage="No parents or guardians found for this organisation yet."
-            onRowClick={(row) => router.push(`/parents/${row.id}`)}
-          />
+          <>
+            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search parents or guardians…"
+                className="md:max-w-xs"
+                aria-label="Search parents or guardians"
+              />
+              <Select
+                value={childrenFilter}
+                onChange={(e) =>
+                  setChildrenFilter(e.target.value as typeof childrenFilter)
+                }
+                className="md:w-52"
+                aria-label="Filter by children count"
+              >
+                <option value="all">All</option>
+                <option value="with">With children</option>
+                <option value="without">Without children</option>
+              </Select>
+            </div>
+            <DataTable
+              data={filteredData}
+              columns={columns}
+              isLoading={isLoading}
+              emptyMessage="No parents or guardians found for this organisation yet."
+              onRowClick={(row) => router.push(`/parents/${row.id}`)}
+            />
+          </>
         )}
       </Card>
     </div>
