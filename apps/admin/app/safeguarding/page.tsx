@@ -1,9 +1,8 @@
 "use client";
 
-// Safeguarding UI guardrails:
-// - This page must remain metadata-only (counts, statuses, de-identified child labels).
-// - Do NOT render safeguarding note or concern text here.
-// - Do NOT show full child names linked to specific concerns.
+// Safeguarding overview is intentionally metadata-only.
+// Do NOT render concern/note free text or DSAR-level data here.
+// Any change that exposes more detail must go through a safeguarding review.
 
 import React from "react";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
@@ -254,8 +253,7 @@ export default function SafeguardingPage() {
         <Card title="Positive Notes & Wellbeing Summary">
           {notesContent()}
           <p className="mt-3 text-xs text-text-muted">
-            {/* TODO: Wire richer notes summary once backend exposes aggregate-friendly fields. */}
-            TODO: Wire richer notes summary once backend exposes aggregate-friendly fields.
+            High-level counts only; note text stays in safeguarding workflows.
           </p>
         </Card>
       </div>

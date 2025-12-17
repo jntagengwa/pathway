@@ -1,8 +1,7 @@
 "use client";
 
-// Billing UI guardrails:
-// - Do NOT display payment card details, billing addresses, or provider payloads.
-// - This page focuses on plan, limits, and usage metadata only.
+// Billing page shows plan and usage metadata only.
+// Do NOT render card details, billing addresses, or raw provider payloads here.
 
 import React from "react";
 import Link from "next/link";

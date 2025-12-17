@@ -1620,7 +1620,7 @@ export async function updateAnnouncement(
   return mapApiAnnouncementToAdminDetail(json);
 }
 
-// REPORTS: this helper must only aggregate counts/ratios from existing endpoints; no raw safeguarding text or provider payloads.
+// REPORTS: aggregate safe metrics only (counts/ratios). Do NOT surface safeguarding text or provider payloads.
 export async function fetchAdminKpis(): Promise<AdminKpis> {
   const results = await Promise.allSettled([
     fetchChildren(),
@@ -2097,6 +2097,7 @@ const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
   reportedByLabel: safeReporterLabel(c.reportedByLabel),
 });
 
+// SAFEGUARDING: used for metadata-only overviews. Never expose concern/note free text to admin UI.
 export async function fetchOpenConcerns(): Promise<AdminConcernRow[]> {
   const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
   if (useMock) {
@@ -2143,6 +2144,7 @@ type ApiNote = {
   visibleToParents?: boolean;
 };
 
+// SAFEGUARDING: used for counts only; do not surface note text in admin UI.
 export async function fetchNotesSummary(): Promise<AdminNotesSummary> {
   const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
   if (useMock) {
@@ -2210,8 +2212,8 @@ const mapApiEntitlementsToAdmin = (
   maxSites: api.maxSites ?? null,
 });
 
+// BILLING: high-level entitlements only. Do NOT surface card details or billing addresses.
 export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
-  // BILLING: high-level entitlements only. Do NOT surface card details or billing addresses.
   const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
   if (useMock) {
     return {
