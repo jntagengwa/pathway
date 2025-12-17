@@ -11,6 +11,12 @@ import {
   defaultSidebarItems,
 } from "@pathway/ui";
 
+const getDevRuntimeState = () => {
+  const isMockApi = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const hasDevToken = Boolean(process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN);
+  return { isMockApi, hasDevToken };
+};
+
 const navItems: SidebarNavItem[] = defaultSidebarItems;
 
 const titleMap: Record<string, string> = {
@@ -41,6 +47,9 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const pathname = usePathname() || "/";
   const title = resolveTitle(pathname);
+  const { isMockApi, hasDevToken } = getDevRuntimeState();
+  const showMockBanner = isMockApi;
+  const showMissingTokenBanner = !isMockApi && !hasDevToken;
 
   return (
     <div className="flex min-h-screen bg-shell text-text-primary">
@@ -78,7 +87,19 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
       <div className="flex min-w-0 flex-1 flex-col bg-shell">
         <TopBar title={title} />
         <main className="flex-1 px-8 py-6">
-          <div className="mx-auto w-full max-w-5xl">{children}</div>
+          <div className="mx-auto w-full max-w-5xl space-y-4">
+            {showMockBanner && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                Running in mock API mode – some data is sample only.
+              </div>
+            )}
+            {showMissingTokenBanner && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                No dev auth token configured – some API calls may fail.
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
     </div>
