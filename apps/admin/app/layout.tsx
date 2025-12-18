@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: "PathWay Admin",
   description: "PathWay admin console for schools and youth organisations.",
   icons: {
-    icon: "/pathwayLogo.png",
-    shortcut: "/pathwayLogo.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
   },
 };
 

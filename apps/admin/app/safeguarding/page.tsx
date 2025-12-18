@@ -1,5 +1,9 @@
 "use client";
 
+// Safeguarding overview is intentionally metadata-only.
+// Do NOT render concern/note free text or DSAR-level data here.
+// Any change that exposes more detail must go through a safeguarding review.
+
 import React from "react";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
 import {
@@ -230,13 +234,11 @@ export default function SafeguardingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary font-heading">
-            Safeguarding & Wellbeing
+            Safeguarding & pastoral
           </h1>
           <p className="text-sm text-text-muted">
-            High-level overview for safeguarding leads and admins.
-          </p>
-          <p className="mt-1 text-xs text-text-muted">
-            SAFEGUARDING: metadata-only. Do NOT show free-text concern/note content in this overview.
+            Overview of concerns and positive notes. This page is metadata-only; detailed
+            records stay in safeguarding workflows.
           </p>
         </div>
       </div>
@@ -244,12 +246,14 @@ export default function SafeguardingPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Open Concerns">
           {concernContent()}
+          <p className="mt-3 text-xs text-text-muted">
+            Metadata only — open safeguarding details in the dedicated workflow.
+          </p>
         </Card>
         <Card title="Positive Notes & Wellbeing Summary">
           {notesContent()}
           <p className="mt-3 text-xs text-text-muted">
-            {/* TODO: Wire richer notes summary once backend exposes aggregate-friendly fields. */}
-            TODO: Wire richer notes summary once backend exposes aggregate-friendly fields.
+            High-level counts only; note text stays in safeguarding workflows.
           </p>
         </Card>
       </div>

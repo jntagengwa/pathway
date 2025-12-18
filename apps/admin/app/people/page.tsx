@@ -3,7 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Select,
+  type ColumnDef,
+} from "@pathway/ui";
 import { AdminStaffRow, fetchStaff } from "../../lib/api-client";
 
 const statusTone: Record<AdminStaffRow["status"], "success" | "default" | "warning"> = {
@@ -17,6 +25,10 @@ export default function PeoplePage() {
   const [data, setData] = React.useState<AdminStaffRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [roleFilter, setRoleFilter] = React.useState<
+    "all" | "teacher" | "staff" | "admin" | "coordinator"
+  >("all");
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -34,6 +46,34 @@ export default function PeoplePage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const filteredData = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesRole = (row: AdminStaffRow) => {
+      if (roleFilter === "all") return true;
+      const rolesText = row.rolesLabel?.toLowerCase() ?? "";
+      switch (roleFilter) {
+        case "teacher":
+          return rolesText.includes("teacher");
+        case "staff":
+          return rolesText.includes("staff");
+        case "admin":
+          return rolesText.includes("admin");
+        case "coordinator":
+          return rolesText.includes("coordinator");
+        default:
+          return true;
+      }
+    };
+
+    return data.filter((row) => {
+      const matchesQuery = query
+        ? (row.fullName?.toLowerCase() ?? "").includes(query)
+        : true;
+      return matchesQuery && matchesRole(row);
+    });
+  }, [data, searchQuery, roleFilter]);
 
   const columns = React.useMemo<ColumnDef<AdminStaffRow>[]>(
     () => [
@@ -107,13 +147,38 @@ export default function PeoplePage() {
             <p className="text-xs text-text-muted">{error}</p>
           </div>
         ) : (
-          <DataTable
-            data={data}
-            columns={columns}
-            isLoading={isLoading}
-            emptyMessage="No staff or volunteers found for this organisation yet."
-            onRowClick={(row) => router.push(`/people/${row.id}`)}
-          />
+          <>
+            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search staff…"
+                className="md:max-w-xs"
+                aria-label="Search staff"
+              />
+              <Select
+                value={roleFilter}
+                onChange={(e) =>
+                  setRoleFilter(e.target.value as typeof roleFilter)
+                }
+                className="md:w-48"
+                aria-label="Filter by role"
+              >
+                <option value="all">All roles</option>
+                <option value="teacher">Teacher</option>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+                <option value="coordinator">Coordinator</option>
+              </Select>
+            </div>
+            <DataTable
+              data={filteredData}
+              columns={columns}
+              isLoading={isLoading}
+              emptyMessage="No staff or volunteers found for this organisation yet."
+              onRowClick={(row) => router.push(`/people/${row.id}`)}
+            />
+          </>
         )}
       </Card>
     </div>

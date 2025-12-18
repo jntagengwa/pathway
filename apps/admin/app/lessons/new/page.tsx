@@ -148,9 +148,9 @@ export default function NewLessonPage() {
               {fieldErrors.weekOf ? (
                 <p className="text-xs text-status-danger">{fieldErrors.weekOf}</p>
               ) : (
-                <p className="text-xs text-text-muted">
+              <p className="text-xs text-text-muted">
                   Use the week’s start date. Maps to lesson weekOf.
-                </p>
+              </p>
               )}
             </div>
             <div className="flex flex-col gap-2">

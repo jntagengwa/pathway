@@ -1,5 +1,15 @@
+// Admin API client supports two modes:
+// - Real API: NEXT_PUBLIC_API_BASE_URL set -> all key flows hit the backend.
+// - Mock mode: base URL missing -> safe, local-only mock data for development.
+// Production environments MUST set NEXT_PUBLIC_API_BASE_URL so mocks are disabled.
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3333";
+
+const isUsingMockApi = (): boolean => {
+  // Dev convenience: returns true when admin runs without a real API base URL.
+  // Production deployments should always set NEXT_PUBLIC_API_BASE_URL so this stays false.
+  return !process.env.NEXT_PUBLIC_API_BASE_URL;
+};
 
 export type AdminSessionRow = {
   id: string;
@@ -284,16 +294,18 @@ export type AdminLessonFormValues = {
   resources?: { label: string }[];
 };
 
+// Dev-only auth header builder.
+// Uses NEXT_PUBLIC_DEV_BEARER_TOKEN for local development.
+// Replace with real Auth0/Pathway session wiring before production.
+// Never log the token or expose it in UI.
 function buildAuthHeaders(): HeadersInit {
-  // TODO: integrate with real Auth0 auth flow and PathwayRequestContext-friendly tokens.
-  // TODO: ensure tenant/org scoping comes from JWT, not user-provided values.
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
 
-  if (process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN) {
-    headers["Authorization"] =
-      `Bearer ${process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN}`;
+  const devToken = process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN;
+  if (devToken) {
+    headers["Authorization"] = `Bearer ${devToken}`;
   }
 
   return headers;
@@ -583,7 +595,7 @@ const mapApiSessionDetailToAdmin = (
 export async function fetchSessionById(
   id: string,
 ): Promise<AdminSessionDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     const all = await fetchSessionsMock();
     const session = all.find((s) => s.id === id);
@@ -638,7 +650,7 @@ export async function fetchSessionById(
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchSessions(): Promise<AdminSessionRow[]> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) return fetchSessionsMock();
 
   const res = await fetch(`${API_BASE_URL}/sessions`, {
@@ -783,7 +795,7 @@ export async function fetchAssignmentsForOrg(
     sessionLookup: providedSessionLookup,
     userLookup: providedUserLookup,
   } = params;
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
 
   if (useMock) {
     const mockSessions = [
@@ -1016,22 +1028,22 @@ export async function updateAssignment(
     userLookup?: Record<string, { name?: string | null }>;
   },
 ): Promise<AdminAssignmentRow> {
+  const rawStatus = input.status as string | undefined;
+  const normalizedStatus = rawStatus
+    ? rawStatus === "confirmed"
+      ? "CONFIRMED"
+      : rawStatus === "pending"
+        ? "PENDING"
+        : rawStatus === "declined"
+          ? "DECLINED"
+          : rawStatus.toUpperCase()
+    : undefined;
+
   const payload = {
     ...(input.sessionId ? { sessionId: input.sessionId } : {}),
     ...(input.staffId ? { userId: input.staffId } : {}),
     ...(input.role ? { role: input.role } : {}),
-    ...(input.status
-      ? {
-          status:
-            input.status === "confirmed"
-              ? "CONFIRMED"
-              : input.status === "pending"
-                ? "PENDING"
-                : input.status === "declined"
-                  ? "DECLINED"
-                  : input.status.toUpperCase(),
-        }
-      : {}),
+    ...(normalizedStatus ? { status: normalizedStatus } : {}),
   };
 
   const res = await fetch(`${API_BASE_URL}/assignments/${id}`, {
@@ -1171,7 +1183,7 @@ const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
 export async function fetchChildById(
   id: string,
 ): Promise<AdminChildDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     const all = await fetchChildrenMock();
     const match = all.find((c) => c.id === id);
@@ -1208,7 +1220,7 @@ export async function fetchChildById(
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchChildren(): Promise<AdminChildRow[]> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) return fetchChildrenMock();
 
   const res = await fetch(`${API_BASE_URL}/children`, {
@@ -1321,7 +1333,7 @@ const mapApiParentDetailToAdmin = (
 export async function fetchParentById(
   id: string,
 ): Promise<AdminParentDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     const all = await fetchParentsMock();
@@ -1365,7 +1377,7 @@ export async function fetchParentById(
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchParents(): Promise<AdminParentRow[]> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) return fetchParentsMock(); // Fallback to mock data when API base URL is not configured.
 
   const res = await fetch(`${API_BASE_URL}/parents`, {
@@ -1446,7 +1458,7 @@ const mapApiAnnouncementToAdminDetail = (
 });
 
 export async function fetchAnnouncements(): Promise<AdminAnnouncementRow[]> {
-  if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+  if (isUsingMockApi()) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return [
       {
@@ -1501,7 +1513,7 @@ export async function fetchRecentAnnouncements(
 export async function fetchAnnouncementById(
   id: string,
 ): Promise<AdminAnnouncementDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     const mock = await fetchAnnouncements();
@@ -1620,7 +1632,7 @@ export async function updateAnnouncement(
   return mapApiAnnouncementToAdminDetail(json);
 }
 
-// REPORTS: this helper must only aggregate counts/ratios from existing endpoints; no raw safeguarding text or provider payloads.
+// REPORTS: aggregate safe metrics only (counts/ratios). Do NOT surface safeguarding text or provider payloads.
 export async function fetchAdminKpis(): Promise<AdminKpis> {
   const results = await Promise.allSettled([
     fetchChildren(),
@@ -1727,7 +1739,7 @@ const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
 
 // LESSONS: content/curriculum only – no safeguarding notes or secrets. Do not expose raw S3 URLs or provider payloads; show safe labels only.
 export async function fetchLessons(): Promise<AdminLessonRow[]> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return [
@@ -1767,7 +1779,7 @@ export async function fetchLessons(): Promise<AdminLessonRow[]> {
 export async function fetchLessonById(
   lessonId: string,
 ): Promise<AdminLessonDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return {
@@ -1884,7 +1896,7 @@ const mapAttendanceStatus = (
 export async function fetchAttendanceSummariesForToday(): Promise<
   AdminAttendanceRow[]
 > {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return [
@@ -1975,7 +1987,7 @@ export async function fetchAttendanceSummariesForToday(): Promise<
 export async function fetchAttendanceDetailBySessionId(
   sessionId: string,
 ): Promise<AdminAttendanceDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return {
@@ -2074,6 +2086,13 @@ type ApiConcern = {
   category?: string | null;
   summary?: string | null;
   details?: string | null;
+  reportedByLabel?: string | null;
+};
+
+const safeReporterLabel = (label?: string | null) => {
+  if (!label) return "Staff member";
+  if (label.includes("@")) return "Staff member";
+  return label;
 };
 
 const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
@@ -2087,11 +2106,12 @@ const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
   category: c.category ?? null,
   // SAFEGUARDING: show initials/generic labels only, never full names or free text.
   childLabel: safeChildLabel(c.childId, c.child ?? null),
-  reportedByLabel: null, // TODO: map reporter role/title when backend exposes a safe label.
+  reportedByLabel: safeReporterLabel(c.reportedByLabel),
 });
 
+// SAFEGUARDING: used for metadata-only overviews. Never expose concern/note free text to admin UI.
 export async function fetchOpenConcerns(): Promise<AdminConcernRow[]> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return [
@@ -2136,8 +2156,9 @@ type ApiNote = {
   visibleToParents?: boolean;
 };
 
+// SAFEGUARDING: used for counts only; do not surface note text in admin UI.
 export async function fetchNotesSummary(): Promise<AdminNotesSummary> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return { totalNotes: 2, visibleToParents: 0, staffOnly: 2 };
@@ -2203,9 +2224,9 @@ const mapApiEntitlementsToAdmin = (
   maxSites: api.maxSites ?? null,
 });
 
+// BILLING: high-level entitlements only. Do NOT surface card details or billing addresses.
 export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
-  // BILLING: high-level entitlements only. Do NOT surface card details or billing addresses.
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     return {
       orgId: "demo-org",
@@ -2267,7 +2288,7 @@ const mapApiOrgToAdmin = (org: ApiOrg): AdminOrgOverview => ({
 
 // SETTINGS: org overview is metadata-only; do not surface secrets or API keys here.
 export async function fetchOrgOverview(): Promise<AdminOrgOverview> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock once admin env is always configured.
     return {
@@ -2338,11 +2359,11 @@ const mapUserToStaffRow = (u: ApiUser): AdminStaffRow => {
     email: u.email,
     rolesLabel: roles.length ? roles.join(", ") : "—",
     status:
-      u.status && u.status !== "active"
-        ? u.status
-        : u.hasServeAccess === false
-          ? "inactive"
-          : "active", // TODO: BLOCKED – map real user status when API exposes it.
+      u.status === "inactive"
+        ? "inactive"
+        : u.status === "active" || u.status === undefined || u.status === null
+          ? "active"
+          : "unknown", // TODO: BLOCKED – map real user status when API exposes it.
   };
 };
 
@@ -2361,11 +2382,11 @@ const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
     roles,
     primaryRoleLabel: roles[0] ?? null,
     status:
-      u.status && u.status !== "active"
-        ? u.status
-        : u.hasServeAccess === false
-          ? "inactive"
-          : "active", // TODO: BLOCKED – map real user status when API exposes it.
+      u.status === "inactive"
+        ? "inactive"
+        : u.status === "active" || u.status === undefined || u.status === null
+          ? "active"
+          : "unknown", // TODO: BLOCKED – map real user status when API exposes it.
     groups: undefined, // TODO: map staff groups/classes when API exposes them.
     sessionsCount: undefined, // TODO: derive from assignments when available.
   };
@@ -2373,7 +2394,7 @@ const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
 
 // PEOPLE: high-level staff metadata only. No auth tokens or logs.
 export async function fetchStaff(): Promise<AdminStaffRow[]> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return [
@@ -2411,7 +2432,7 @@ export async function fetchStaff(): Promise<AdminStaffRow[]> {
 export async function fetchStaffById(
   userId: string,
 ): Promise<AdminStaffDetail | null> {
-  const useMock = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const useMock = isUsingMockApi();
   if (useMock) {
     // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return {
