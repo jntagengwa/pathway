@@ -8,18 +8,31 @@ import { EntitlementsEnforcementService } from "./entitlements-enforcement.servi
 import { PlanPreviewController } from "./plan-preview.controller";
 import { PlanPreviewService } from "./plan-preview.service";
 import {
+  BuyNowProvider,
+  FakeBuyNowProvider,
+} from "./buy-now.provider";
+import { BuyNowService } from "./buy-now.service";
+import { BuyNowController } from "./buy-now.controller";
+import {
   BillingWebhookController,
   billingWebhookProviderBinding,
 } from "./webhook.controller";
 
 @Module({
   imports: [PathwayAuthModule, CommonModule],
-  controllers: [BillingController, BillingWebhookController, PlanPreviewController],
+  controllers: [
+    BillingController,
+    BillingWebhookController,
+    PlanPreviewController,
+    BuyNowController,
+  ],
   providers: [
     BillingService,
     EntitlementsService,
     EntitlementsEnforcementService,
     PlanPreviewService,
+    BuyNowService,
+    { provide: BuyNowProvider, useClass: FakeBuyNowProvider },
     billingWebhookProviderBinding,
   ],
   exports: [
