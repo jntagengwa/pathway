@@ -5,6 +5,8 @@ import { BillingService } from "./billing.service";
 import { BillingController } from "./billing.controller";
 import { EntitlementsService } from "./entitlements.service";
 import { EntitlementsEnforcementService } from "./entitlements-enforcement.service";
+import { PlanPreviewController } from "./plan-preview.controller";
+import { PlanPreviewService } from "./plan-preview.service";
 import {
   BillingWebhookController,
   billingWebhookProviderBinding,
@@ -12,11 +14,12 @@ import {
 
 @Module({
   imports: [PathwayAuthModule, CommonModule],
-  controllers: [BillingController, BillingWebhookController],
+  controllers: [BillingController, BillingWebhookController, PlanPreviewController],
   providers: [
     BillingService,
     EntitlementsService,
     EntitlementsEnforcementService,
+    PlanPreviewService,
     billingWebhookProviderBinding,
   ],
   exports: [
