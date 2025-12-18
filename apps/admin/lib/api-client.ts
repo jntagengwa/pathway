@@ -236,6 +236,55 @@ export type AdminBillingOverview = {
   maxSites?: number | null;
 };
 
+export type AdminPlanPreviewRequest = {
+  planCode: string;
+  extraAv30Blocks?: number | null;
+  extraStorageGb?: number | null;
+  extraSmsMessages?: number | null;
+  extraLeaderSeats?: number | null;
+  extraSites?: number | null;
+};
+
+export type AdminPlanPreview = {
+  planCode: string | null;
+  planTier: "starter" | "growth" | "enterprise" | null;
+  baseAv30Included: number | null;
+  effectiveAv30Cap: number | null;
+  baseSitesIncluded: number | null;
+  effectiveSitesCap: number | null;
+  baseStorageGbIncluded: number | null;
+  effectiveStorageGbCap: number | null;
+  baseSmsMessagesIncluded: number | null;
+  effectiveSmsMessagesCap: number | null;
+  baseLeaderSeatsIncluded: number | null;
+  effectiveLeaderSeatsIncluded: number | null;
+  warnings: string[];
+};
+
+export type AdminBuyNowCheckoutRequest = {
+  planCode: string;
+  extraAv30Blocks?: number | null;
+  extraStorageGb?: number | null;
+  extraSmsMessages?: number | null;
+  extraLeaderSeats?: number | null;
+  extraSites?: number | null;
+  successUrl?: string | null;
+  cancelUrl?: string | null;
+  org: {
+    orgName: string;
+    contactName: string;
+    contactEmail: string;
+    notes?: string | null;
+  };
+};
+
+export type AdminBuyNowCheckoutResponse = {
+  sessionId: string;
+  sessionUrl: string;
+  warnings: string[];
+  preview?: AdminPlanPreview;
+};
+
 export type AdminOrgOverview = {
   id: string;
   name: string;
@@ -2266,6 +2315,250 @@ export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
 
   const json = (await res.json()) as ApiEntitlements;
   return mapApiEntitlementsToAdmin(json);
+}
+
+const mapPreviewToAdmin = (api: {
+  planCode: string | null;
+  planTier: "starter" | "growth" | "enterprise" | null;
+  base?: {
+    av30Cap: number | null;
+    maxSites: number | null;
+    storageGbCap: number | null;
+    smsMessagesCap: number | null;
+    leaderSeatsIncluded: number | null;
+  } | null;
+  effectiveCaps?: {
+    av30Cap: number | null;
+    maxSites: number | null;
+    storageGbCap: number | null;
+    smsMessagesCap: number | null;
+    leaderSeatsIncluded: number | null;
+  } | null;
+  warnings?: string[];
+}): AdminPlanPreview => ({
+  planCode: api.planCode ?? null,
+  planTier: api.planTier ?? null,
+  baseAv30Included: api.base?.av30Cap ?? null,
+  effectiveAv30Cap: api.effectiveCaps?.av30Cap ?? null,
+  baseSitesIncluded: api.base?.maxSites ?? null,
+  effectiveSitesCap: api.effectiveCaps?.maxSites ?? null,
+  baseStorageGbIncluded: api.base?.storageGbCap ?? null,
+  effectiveStorageGbCap: api.effectiveCaps?.storageGbCap ?? null,
+  baseSmsMessagesIncluded: api.base?.smsMessagesCap ?? null,
+  effectiveSmsMessagesCap: api.effectiveCaps?.smsMessagesCap ?? null,
+  baseLeaderSeatsIncluded: api.base?.leaderSeatsIncluded ?? null,
+  effectiveLeaderSeatsIncluded: api.effectiveCaps?.leaderSeatsIncluded ?? null,
+  warnings: api.warnings ?? [],
+});
+
+export async function previewPlanSelection(
+  input: AdminPlanPreviewRequest,
+): Promise<AdminPlanPreview> {
+  const useMock = isUsingMockApi();
+  if (useMock) {
+    const planMeta: Record<
+      string,
+      {
+        av30: number | null;
+        sites: number | null;
+        tier: AdminPlanPreview["planTier"];
+      }
+    > = {
+      STARTER_MONTHLY: { av30: 50, sites: 1, tier: "starter" },
+      STARTER_YEARLY: { av30: 50, sites: 1, tier: "starter" },
+      GROWTH_MONTHLY: { av30: 200, sites: 3, tier: "growth" },
+      GROWTH_YEARLY: { av30: 200, sites: 3, tier: "growth" },
+      ENTERPRISE_CONTACT: { av30: null, sites: null, tier: "enterprise" },
+    };
+    const meta = planMeta[input.planCode] ?? {
+      av30: null,
+      sites: null,
+      tier: null,
+    };
+    const blocks = Math.max(0, Math.trunc(input.extraAv30Blocks ?? 0));
+    const addonsAv30 = meta.av30 !== null ? blocks * 25 : null;
+    return {
+      planCode: input.planCode ?? null,
+      planTier: meta.tier,
+      baseAv30Included: meta.av30,
+      effectiveAv30Cap:
+        meta.av30 === null ? addonsAv30 : (meta.av30 ?? 0) + (addonsAv30 ?? 0),
+      baseSitesIncluded: meta.sites,
+      effectiveSitesCap:
+        meta.sites === null
+          ? Math.max(0, Math.trunc(input.extraSites ?? 0)) || null
+          : (meta.sites ?? 0) + Math.max(0, Math.trunc(input.extraSites ?? 0)),
+      baseStorageGbIncluded: null,
+      effectiveStorageGbCap:
+        input.extraStorageGb !== null && input.extraStorageGb !== undefined
+          ? Math.max(0, Math.trunc(input.extraStorageGb))
+          : null,
+      baseSmsMessagesIncluded: null,
+      effectiveSmsMessagesCap:
+        input.extraSmsMessages !== null && input.extraSmsMessages !== undefined
+          ? Math.max(0, Math.trunc(input.extraSmsMessages))
+          : null,
+      baseLeaderSeatsIncluded: null,
+      effectiveLeaderSeatsIncluded:
+        input.extraLeaderSeats !== null && input.extraLeaderSeats !== undefined
+          ? Math.max(0, Math.trunc(input.extraLeaderSeats))
+          : null,
+      warnings: ["mock_mode", "price_not_included"],
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/billing/plan-preview`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({
+      planCode: input.planCode,
+      addons: {
+        extraAv30Blocks: input.extraAv30Blocks ?? 0,
+        extraStorageGb: input.extraStorageGb ?? 0,
+        extraSmsMessages: input.extraSmsMessages ?? 0,
+        extraLeaderSeats: input.extraLeaderSeats ?? 0,
+        extraSites: input.extraSites ?? 0,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to preview plan: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as {
+    planCode: string | null;
+    planTier: "starter" | "growth" | "enterprise" | null;
+    billingPeriod: string | null;
+    base: {
+      av30Cap: number | null;
+      storageGbCap: number | null;
+      smsMessagesCap: number | null;
+      leaderSeatsIncluded: number | null;
+      maxSites: number | null;
+    };
+    effectiveCaps: {
+      av30Cap: number | null;
+      storageGbCap: number | null;
+      smsMessagesCap: number | null;
+      leaderSeatsIncluded: number | null;
+      maxSites: number | null;
+    };
+    notes?: { warnings?: string[] };
+  };
+
+  return mapPreviewToAdmin({
+    planCode: json.planCode,
+    planTier: json.planTier,
+    base: {
+      av30Cap: json.base?.av30Cap ?? null,
+      maxSites: json.base?.maxSites ?? null,
+      storageGbCap: json.base?.storageGbCap ?? null,
+      smsMessagesCap: json.base?.smsMessagesCap ?? null,
+      leaderSeatsIncluded: json.base?.leaderSeatsIncluded ?? null,
+    },
+    effectiveCaps: {
+      av30Cap: json.effectiveCaps?.av30Cap ?? null,
+      maxSites: json.effectiveCaps?.maxSites ?? null,
+      storageGbCap: json.effectiveCaps?.storageGbCap ?? null,
+      smsMessagesCap: json.effectiveCaps?.smsMessagesCap ?? null,
+      leaderSeatsIncluded: json.effectiveCaps?.leaderSeatsIncluded ?? null,
+    },
+    warnings: json.notes?.warnings ?? [],
+  });
+}
+
+export async function createBuyNowCheckout(
+  input: AdminBuyNowCheckoutRequest,
+): Promise<AdminBuyNowCheckoutResponse> {
+  const useMock = isUsingMockApi();
+  if (useMock) {
+    return {
+      sessionId: "mock-session",
+      sessionUrl: "https://example.test/checkout/mock",
+      warnings: ["mock_mode", "price_not_included"],
+      preview: await previewPlanSelection(input),
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/billing/buy-now/checkout`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({
+      plan: {
+        planCode: input.planCode,
+        av30AddonBlocks: input.extraAv30Blocks ?? 0,
+        extraStorageGb: input.extraStorageGb ?? 0,
+        extraSmsMessages: input.extraSmsMessages ?? 0,
+        extraLeaderSeats: input.extraLeaderSeats ?? 0,
+        extraSites: input.extraSites ?? 0,
+      },
+      org: {
+        orgName: input.org.orgName,
+        contactName: input.org.contactName,
+        contactEmail: input.org.contactEmail,
+        source: input.org.notes ?? undefined,
+      },
+      successUrl: input.successUrl ?? undefined,
+      cancelUrl: input.cancelUrl ?? undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to start checkout: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as {
+    sessionId: string;
+    sessionUrl: string;
+    warnings?: string[];
+    preview?: {
+      planCode: string | null;
+      planTier: "starter" | "growth" | "enterprise" | null;
+      billingPeriod: string | null;
+      av30Cap: number | null;
+      maxSites: number | null;
+      storageGbCap: number | null;
+      smsMessagesCap: number | null;
+      leaderSeatsIncluded: number | null;
+      source: string | null;
+    };
+  };
+
+  return {
+    sessionId: json.sessionId,
+    sessionUrl: json.sessionUrl,
+    warnings: json.warnings ?? [],
+    preview: json.preview
+      ? mapPreviewToAdmin({
+          planCode: json.preview.planCode,
+          planTier: json.preview.planTier,
+          base: {
+            av30Cap: null,
+            maxSites: null,
+            storageGbCap: null,
+            smsMessagesCap: null,
+            leaderSeatsIncluded: null,
+          },
+          effectiveCaps: {
+            av30Cap: json.preview.av30Cap,
+            maxSites: json.preview.maxSites,
+            storageGbCap: json.preview.storageGbCap,
+            smsMessagesCap: json.preview.smsMessagesCap,
+            leaderSeatsIncluded: json.preview.leaderSeatsIncluded,
+          },
+          warnings: json.warnings ?? [],
+        })
+      : undefined,
+  };
 }
 
 type ApiOrg = {
