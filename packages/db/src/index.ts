@@ -44,6 +44,7 @@ export async function resetDatabase() {
     await prisma.$executeRawUnsafe(`
       TRUNCATE TABLE
         "BillingEvent",
+        "PendingOrder",
         "UsageCounters",
         "StaffActivity",
         "OrgEntitlementSnapshot",
@@ -73,6 +74,7 @@ export async function resetDatabase() {
         "UsageCounters",
         "StaffActivity",
         "OrgEntitlementSnapshot",
+        "PendingOrder",
         "Subscription",
         "Announcement",
         "Lesson",
@@ -104,6 +106,7 @@ export {
   SwapStatus,
   SubscriptionStatus,
   BillingProvider,
+  PendingOrderStatus,
 } from "@prisma/client";
 export { Prisma };
 

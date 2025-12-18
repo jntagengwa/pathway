@@ -11,6 +11,7 @@ export interface BuyNowCheckoutParams {
   preview: BuyNowCheckoutPreview;
   successUrl?: string;
   cancelUrl?: string;
+  pendingOrderId: string;
 }
 
 export interface BuyNowCheckoutResult {

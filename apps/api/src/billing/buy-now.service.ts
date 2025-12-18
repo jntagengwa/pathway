@@ -1,4 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
+import { PathwayRequestContext } from "@pathway/auth";
+import { prisma, BillingProvider, PendingOrderStatus } from "@pathway/db";
 import { getPlanDefinition } from "./billing-plans";
 import { PlanPreviewService } from "./plan-preview.service";
 import type { PlanPreviewAddons } from "./plan-preview.types";
@@ -17,6 +19,7 @@ export class BuyNowService {
   constructor(
     private readonly planPreviewService: PlanPreviewService,
     private readonly provider: BuyNowProvider,
+    @Optional() private readonly requestContext?: PathwayRequestContext,
   ) {}
 
   async checkout(request: BuyNowCheckoutRequest): Promise<BuyNowCheckoutResponse> {
@@ -61,15 +64,48 @@ export class BuyNowService {
       source: planDefinition ? "plan_catalogue" : "fallback",
     };
 
+    const orgId = this.requestContext?.currentOrgId;
+    const tenantId = this.requestContext?.currentTenantId;
+    if (!orgId || !tenantId) {
+      throw new Error("orgId and tenantId are required for checkout");
+    }
+
+    const pendingOrder = await prisma.pendingOrder.create({
+      data: {
+        tenantId,
+        orgId,
+        planCode: sanitisedPlan.planCode,
+        av30Cap: previewResult.effectiveCaps.av30Cap ?? undefined,
+        storageGbCap: previewResult.effectiveCaps.storageGbCap ?? undefined,
+        smsMessagesCap: previewResult.effectiveCaps.smsMessagesCap ?? undefined,
+        leaderSeatsIncluded:
+          previewResult.effectiveCaps.leaderSeatsIncluded ?? undefined,
+        maxSites: previewResult.effectiveCaps.maxSites ?? undefined,
+        flags:
+          previewResult.notes?.source === "plan_catalogue"
+            ? undefined
+            : { source: previewResult.notes?.source },
+        warnings: previewResult.notes?.warnings ?? [],
+        provider: BillingProvider.STRIPE,
+        status: PendingOrderStatus.PENDING,
+      },
+    });
+
     const providerParams: BuyNowCheckoutParams = {
       plan: sanitisedPlan,
       org: request.org,
       preview,
       successUrl: request.successUrl,
       cancelUrl: request.cancelUrl,
+      pendingOrderId: pendingOrder.id,
     };
 
     const session = await this.provider.createCheckoutSession(providerParams);
+
+    await prisma.pendingOrder.update({
+      where: { id: pendingOrder.id },
+      data: { providerCheckoutId: session.sessionId },
+    });
 
     const warnings = ["price_not_included"];
     if (!planDefinition) warnings.push("unknown_plan_code");

@@ -14,6 +14,8 @@ export type ParsedBillingWebhookEvent = {
   kind: BillingEventKind;
   orgId: string;
   subscriptionId: string;
+  pendingOrderId?: string | null;
+  providerCheckoutId?: string | null;
   planCode?: string | null;
   status?: SubscriptionStatus | null;
   periodStart?: Date | null;
@@ -84,6 +86,14 @@ export class FakeBillingWebhookProvider implements BillingWebhookProvider {
       cancelAtPeriodEnd:
         payload.cancelAtPeriodEnd !== undefined
           ? Boolean(payload.cancelAtPeriodEnd)
+          : null,
+      pendingOrderId:
+        payload.pendingOrderId !== undefined
+          ? String(payload.pendingOrderId)
+          : null,
+      providerCheckoutId:
+        payload.providerCheckoutId !== undefined
+          ? String(payload.providerCheckoutId)
           : null,
       entitlements: payload.entitlements,
     };

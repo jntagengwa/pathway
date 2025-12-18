@@ -6,12 +6,34 @@ import {
 } from "../billing-webhook.provider";
 import { EntitlementsService } from "../entitlements.service";
 import { LoggingService } from "../../common/logging/logging.service";
-import { BillingProvider, SubscriptionStatus } from "@pathway/db";
+import {
+  BillingProvider,
+  SubscriptionStatus,
+  PendingOrderStatus,
+} from "@pathway/db";
 
-const prismaMock = {
+const prismaMock: {
+  billingEvent: { findFirst: jest.Mock; create: jest.Mock };
+  subscription: { upsert: jest.Mock };
+  orgEntitlementSnapshot: { create: jest.Mock };
+  pendingOrder: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    update: jest.Mock;
+  };
+  $transaction: jest.Mock;
+} = {
   billingEvent: { findFirst: jest.fn(), create: jest.fn() },
   subscription: { upsert: jest.fn() },
   orgEntitlementSnapshot: { create: jest.fn() },
+  pendingOrder: {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    update: jest.fn(),
+  },
+  $transaction: jest.fn((cb: (tx: typeof prismaMock) => unknown) =>
+    Promise.resolve(cb(prismaMock)),
+  ),
 };
 
 jest.mock("@pathway/db", () => {
@@ -51,6 +73,8 @@ describe("BillingWebhookController", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prismaMock.pendingOrder.findUnique.mockResolvedValue(null);
+    prismaMock.pendingOrder.findFirst.mockResolvedValue(null);
 
     provider = {
       verifyAndParse: jest.fn().mockResolvedValue(baseEvent),
@@ -129,6 +153,61 @@ describe("BillingWebhookController", () => {
     expect(prismaMock.subscription.upsert).not.toHaveBeenCalled();
     expect(prismaMock.orgEntitlementSnapshot.create).not.toHaveBeenCalled();
     expect(prismaMock.billingEvent.create).toHaveBeenCalled();
+  });
+
+  it("applies pending order caps and completes the order", async () => {
+    const pending = {
+      id: "po_1",
+      orgId: baseEvent.orgId,
+      tenantId: "tenant_1",
+      planCode: "pro",
+      av30Cap: 75,
+      storageGbCap: 100,
+      smsMessagesCap: 500,
+      leaderSeatsIncluded: 5,
+      maxSites: 2,
+      flags: { note: "from preview" },
+      warnings: ["price_not_included"],
+      provider: BillingProvider.STRIPE,
+      providerCheckoutId: "co_1",
+      providerSubscriptionId: null,
+      status: PendingOrderStatus.PENDING,
+    };
+    const eventWithPending: ParsedBillingWebhookEvent = {
+      ...baseEvent,
+      pendingOrderId: pending.id,
+    };
+    prismaMock.pendingOrder.findUnique.mockResolvedValue(pending);
+    prismaMock.billingEvent.findFirst.mockResolvedValue(null);
+    (provider.verifyAndParse as jest.Mock).mockResolvedValue(eventWithPending);
+
+    const result = await controller.handleWebhook(
+      { dummy: true },
+      "test-signature",
+    );
+
+    expect(result.status).toBe("ok");
+    expect(prismaMock.subscription.upsert).toHaveBeenCalled();
+    expect(prismaMock.orgEntitlementSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orgId: baseEvent.orgId,
+          av30Included: pending.av30Cap,
+          maxSites: pending.maxSites,
+          storageGbIncluded: pending.storageGbCap,
+          leaderSeatsIncluded: pending.leaderSeatsIncluded,
+        }),
+      }),
+    );
+    expect(prismaMock.pendingOrder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: pending.id },
+        data: expect.objectContaining({
+          status: PendingOrderStatus.COMPLETED,
+          providerSubscriptionId: baseEvent.subscriptionId,
+        }),
+      }),
+    );
   });
 });
 
