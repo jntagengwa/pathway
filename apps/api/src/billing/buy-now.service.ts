@@ -1,6 +1,6 @@
-import { Injectable, Optional } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import { PathwayRequestContext } from "@pathway/auth";
-import { prisma, BillingProvider, PendingOrderStatus } from "@pathway/db";
+import { prisma, PendingOrderStatus } from "@pathway/db";
 import { getPlanDefinition } from "./billing-plans";
 import { PlanPreviewService } from "./plan-preview.service";
 import type { PlanPreviewAddons } from "./plan-preview.types";
@@ -12,7 +12,13 @@ import {
 import {
   BuyNowProvider,
   type BuyNowCheckoutParams,
+  type BuyNowProviderContext,
 } from "./buy-now.provider";
+import {
+  BILLING_PROVIDER_CONFIG,
+  activeProviderToPrismaProvider,
+  type BillingProviderConfig,
+} from "./billing-provider.config";
 
 @Injectable()
 export class BuyNowService {
@@ -20,6 +26,8 @@ export class BuyNowService {
     private readonly planPreviewService: PlanPreviewService,
     private readonly provider: BuyNowProvider,
     @Optional() private readonly requestContext?: PathwayRequestContext,
+    @Inject(BILLING_PROVIDER_CONFIG)
+    private readonly providerConfig?: BillingProviderConfig,
   ) {}
 
   async checkout(request: BuyNowCheckoutRequest): Promise<BuyNowCheckoutResponse> {
@@ -70,6 +78,10 @@ export class BuyNowService {
       throw new Error("orgId and tenantId are required for checkout");
     }
 
+    const prismaProvider = activeProviderToPrismaProvider(
+      this.providerConfig?.activeProvider ?? "FAKE",
+    );
+
     const pendingOrder = await prisma.pendingOrder.create({
       data: {
         tenantId,
@@ -86,7 +98,7 @@ export class BuyNowService {
             ? undefined
             : { source: previewResult.notes?.source },
         warnings: previewResult.notes?.warnings ?? [],
-        provider: BillingProvider.STRIPE,
+        provider: prismaProvider,
         status: PendingOrderStatus.PENDING,
       },
     });
@@ -100,7 +112,12 @@ export class BuyNowService {
       pendingOrderId: pendingOrder.id,
     };
 
-    const session = await this.provider.createCheckoutSession(providerParams);
+    const providerCtx: BuyNowProviderContext = { tenantId, orgId };
+
+    const session = await this.provider.createCheckoutSession(
+      providerParams,
+      providerCtx,
+    );
 
     await prisma.pendingOrder.update({
       where: { id: pendingOrder.id },

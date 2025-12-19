@@ -37,7 +37,7 @@ export type BuyNowCheckoutPreview = {
 
 export type BuyNowCheckoutResponse = {
   preview: BuyNowCheckoutPreview;
-  provider: "fake";
+  provider: "fake" | "stripe" | "gocardless";
   sessionId: string;
   sessionUrl: string;
   warnings?: string[];

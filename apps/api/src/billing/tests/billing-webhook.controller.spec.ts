@@ -77,7 +77,11 @@ describe("BillingWebhookController", () => {
     prismaMock.pendingOrder.findFirst.mockResolvedValue(null);
 
     provider = {
-      verifyAndParse: jest.fn().mockResolvedValue(baseEvent),
+      verifyAndParse: jest
+        .fn()
+        .mockResolvedValue(baseEvent) as jest.MockedFunction<
+        BillingWebhookProvider["verifyAndParse"]
+      >,
     };
     entitlements = {
       resolve: jest.fn().mockResolvedValue(baseEvent),

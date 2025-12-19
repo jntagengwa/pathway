@@ -14,8 +14,13 @@ export interface BuyNowCheckoutParams {
   pendingOrderId: string;
 }
 
+export interface BuyNowProviderContext {
+  tenantId: string;
+  orgId: string;
+}
+
 export interface BuyNowCheckoutResult {
-  provider: "fake";
+  provider: "fake" | "stripe" | "gocardless";
   sessionId: string;
   sessionUrl: string;
 }
@@ -23,6 +28,7 @@ export interface BuyNowCheckoutResult {
 export abstract class BuyNowProvider {
   abstract createCheckoutSession(
     params: BuyNowCheckoutParams,
+    ctx: BuyNowProviderContext,
   ): Promise<BuyNowCheckoutResult>;
 }
 
@@ -32,7 +38,9 @@ export class FakeBuyNowProvider extends BuyNowProvider {
 
   async createCheckoutSession(
     params: BuyNowCheckoutParams,
+    _ctx?: BuyNowProviderContext,
   ): Promise<BuyNowCheckoutResult> {
+    void _ctx;
     const sessionId = `fake_${Date.now()}`;
     const sessionUrl = `https://example.test/checkout/${sessionId}`;
 

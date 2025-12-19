@@ -14,7 +14,7 @@ import {
   ValidateNested,
   IsUrl,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 import { PathwayAuthGuard } from "@pathway/auth";
 import { BuyNowService } from "./buy-now.service";
 import type {
@@ -81,10 +81,12 @@ class BuyNowCheckoutRequestDto {
   org!: BuyNowOrgDetailsDto;
 
   @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
   @IsUrl()
   successUrl?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
   @IsUrl()
   cancelUrl?: string;
 }

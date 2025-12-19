@@ -34,6 +34,7 @@ export interface BillingWebhookProvider {
   verifyAndParse(
     body: unknown,
     signature?: string,
+    rawBody?: Buffer,
   ): Promise<ParsedBillingWebhookEvent>;
 }
 
@@ -48,7 +49,9 @@ export class FakeBillingWebhookProvider implements BillingWebhookProvider {
   async verifyAndParse(
     body: unknown,
     signature?: string,
+    _rawBody?: Buffer,
   ): Promise<ParsedBillingWebhookEvent> {
+    void _rawBody;
     if (!signature || signature !== "test-signature") {
       throw new BadRequestException("Invalid webhook signature");
     }

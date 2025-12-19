@@ -16,7 +16,6 @@ import { EntitlementsService } from "./entitlements.service";
 import {
   BILLING_WEBHOOK_PROVIDER,
   BillingWebhookProvider,
-  FakeBillingWebhookProvider,
   ParsedBillingWebhookEvent,
 } from "./billing-webhook.provider";
 import { LoggingService, StructuredLogger } from "../common/logging/logging.service";
@@ -48,8 +47,10 @@ export class BillingWebhookController {
   async handleWebhook(
     @Body() body: unknown,
     @Headers("x-billing-signature") signature?: string,
+    @Headers("stripe-signature") stripeSignature?: string,
   ): Promise<WebhookResult> {
-    const event = await this.provider.verifyAndParse(body, signature);
+    const sig = signature ?? stripeSignature;
+    const event = await this.provider.verifyAndParse(body, sig);
 
     const alreadyHandled = await prisma.billingEvent.findFirst({
       where: {
@@ -269,10 +270,4 @@ export class BillingWebhookController {
     });
   }
 }
-
-// Provider binding for the Nest DI container (kept here to avoid a separate module file)
-export const billingWebhookProviderBinding = {
-  provide: BILLING_WEBHOOK_PROVIDER,
-  useClass: FakeBillingWebhookProvider,
-};
 

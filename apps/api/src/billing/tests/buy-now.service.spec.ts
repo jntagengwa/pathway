@@ -2,6 +2,7 @@ import { BuyNowService } from "../buy-now.service";
 import { PlanPreviewService } from "../plan-preview.service";
 import { BuyNowProvider } from "../buy-now.provider";
 import { BillingProvider } from "@pathway/db";
+import { type BillingProviderConfig } from "../billing-provider.config";
 import type { PathwayRequestContext } from "@pathway/auth";
 
 const prismaMock = {
@@ -21,11 +22,17 @@ jest.mock("@pathway/db", () => {
 describe("BuyNowService", () => {
   const previewService = new PlanPreviewService();
   const providerMock: jest.Mocked<BuyNowProvider> = {
-    createCheckoutSession: jest.fn(),
+    createCheckoutSession:
+      jest.fn() as jest.MockedFunction<BuyNowProvider["createCheckoutSession"]>,
   };
   const contextMock: Partial<PathwayRequestContext> = {
     currentOrgId: "org_1",
     currentTenantId: "tenant_1",
+  };
+  const providerConfig: BillingProviderConfig = {
+    activeProvider: "FAKE",
+    stripe: {},
+    goCardless: {},
   };
 
   const baseRequest = {
@@ -58,6 +65,7 @@ describe("BuyNowService", () => {
       previewService,
       providerMock,
       contextMock as PathwayRequestContext,
+      providerConfig,
     );
 
     const result = await service.checkout({
@@ -68,6 +76,7 @@ describe("BuyNowService", () => {
     expect(providerMock.createCheckoutSession).toHaveBeenCalledTimes(1);
     expect(providerMock.createCheckoutSession).toHaveBeenCalledWith(
       expect.objectContaining({ pendingOrderId: "po_1" }),
+      expect.objectContaining({ orgId: "org_1", tenantId: "tenant_1" }),
     );
     expect(prismaMock.pendingOrder.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -96,6 +105,7 @@ describe("BuyNowService", () => {
       previewService,
       providerMock,
       contextMock as PathwayRequestContext,
+      providerConfig,
     );
 
     const result = await service.checkout({
@@ -116,6 +126,7 @@ describe("BuyNowService", () => {
       previewService,
       providerMock,
       contextMock as PathwayRequestContext,
+      providerConfig,
     );
 
     const result = await service.checkout({
