@@ -6,6 +6,7 @@ export type BillingEventKind =
   | "subscription.created"
   | "subscription.canceled"
   | "invoice.paid"
+  | "invoice.payment_failed"
   | "unknown";
 
 export type ParsedBillingWebhookEvent = {
@@ -16,6 +17,7 @@ export type ParsedBillingWebhookEvent = {
   subscriptionId: string;
   pendingOrderId?: string | null;
   providerCheckoutId?: string | null;
+  providerCustomerId?: string | null;
   planCode?: string | null;
   status?: SubscriptionStatus | null;
   periodStart?: Date | null;

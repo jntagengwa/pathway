@@ -29,6 +29,10 @@ type PendingOrderRecord = Prisma.PendingOrderGetPayload<
   Record<string, never>
 >;
 
+// Core billing webhook controller. For Stripe, this endpoint is the SNAPSHOT
+// webhook: it handles checkout.session.completed, customer.subscription.* and
+// invoice.* events verified with STRIPE_WEBHOOK_SECRET_SNAPSHOT and feeds the
+// PendingOrder -> Subscription -> OrgEntitlementSnapshot pipeline.
 @Controller("billing")
 export class BillingWebhookController {
   private readonly logger: StructuredLogger;
@@ -108,6 +112,13 @@ export class BillingWebhookController {
         await this.handleSubscriptionEvent(
           event,
           event.status ?? SubscriptionStatus.ACTIVE,
+        );
+        return true;
+      case "invoice.payment_failed":
+        // Mark subscription as at-risk (past due) without applying pending orders.
+        await this.upsertSubscription(
+          event,
+          event.status ?? SubscriptionStatus.PAST_DUE,
         );
         return true;
       case "subscription.canceled":
@@ -193,6 +204,7 @@ export class BillingWebhookController {
             pendingOrder.providerCheckoutId ??
             event.providerCheckoutId ??
             undefined,
+          providerCustomerId: event.providerCustomerId ?? undefined,
         },
       });
     });

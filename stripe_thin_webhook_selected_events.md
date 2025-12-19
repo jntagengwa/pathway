@@ -9,6 +9,8 @@ Captured on: **19 Dec 2025 (GMT)**
 
 This document lists **all events currently selected** for the *Thin* webhook destination, exactly as shown in the Stripe dashboard.
 
+**PathWay usage:** The Thin webhook is **not used for billing/entitlements**. All core billing events are handled by the Stripe snapshot webhook (see `stripe_snapshot_webhook_selected_events.md`).
+
 ---
 
 ## Billing Meter (v1)

@@ -8,7 +8,7 @@ import { FakeBuyNowProvider } from "../buy-now.provider";
 import { FakeBillingWebhookProvider } from "../billing-webhook.provider";
 
 const baseConfig = {
-  stripe: { secretKey: "sk_test_123", webhookSecret: "whsec_test" },
+  stripe: { secretKey: "sk_test_123", webhookSecretSnapshot: "whsec_test" },
   goCardless: {},
 };
 

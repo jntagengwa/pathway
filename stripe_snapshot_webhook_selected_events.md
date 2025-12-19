@@ -9,14 +9,19 @@ Captured on: **19 Dec 2025 (GMT)**
 > Stripe shows **“Selected events: 99”** for this destination.  
 > This file lists **all event types visible in the page content provided**. If additional categories/events are selected further down the page (not included in the captured content), they won’t appear here.
 
+**PathWay usage:** This snapshot webhook is the **only** Stripe endpoint that drives billing/entitlements. Configure Stripe to send these six events here and verify with `STRIPE_WEBHOOK_SECRET_SNAPSHOT`:  
+`checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
+
 ---
 
 ## Billing Portal
+
 - `billing_portal.configuration.created` — Occurs whenever a portal configuration is created.
 - `billing_portal.configuration.updated` — Occurs whenever a portal configuration is updated.
 - `billing_portal.session.created` — Occurs whenever a portal session is created.
 
 ## Billing
+
 - `billing.alert.triggered` — Occurs whenever your custom alert threshold is met.
 - `billing.credit_balance_transaction.created` — Occurs when a credit balance transaction is created.
 - `billing.credit_grant.created` — Occurs when a credit grant is created.
@@ -27,6 +32,7 @@ Captured on: **19 Dec 2025 (GMT)**
 - `billing.meter.updated` — Occurs when a meter is updated.
 
 ## Charge
+
 - `charge.captured` — Occurs whenever a previously uncaptured charge is captured.
 - `charge.expired` — Occurs whenever an uncaptured charge expires.
 - `charge.failed` — Occurs whenever a failed charge attempt occurs.
@@ -42,11 +48,13 @@ Captured on: **19 Dec 2025 (GMT)**
 - `charge.refund.updated` — Occurs whenever a refund is updated on selected payment methods. For updates on all refunds, listen to `refund.updated` instead.
 
 ## Coupon
+
 - `coupon.created` — Occurs whenever a coupon is created.
 - `coupon.deleted` — Occurs whenever a coupon is deleted.
 - `coupon.updated` — Occurs whenever a coupon is updated.
 
 ## Customer
+
 - `customer.created` — Occurs whenever a new customer is created.
 - `customer.deleted` — Occurs whenever a customer is deleted.
 - `customer.updated` — Occurs whenever any property of a customer changes.
@@ -70,9 +78,11 @@ Captured on: **19 Dec 2025 (GMT)**
 - `customer.tax_id.updated` — Occurs whenever a customer’s tax ID is updated.
 
 ## Invoice Payment
+
 - `invoice_payment.paid` — Occurs when an InvoicePayment is successfully paid.
 
 ## Invoice
+
 - `invoice.created` — Occurs whenever a new invoice is created.
 - `invoice.deleted` — Occurs whenever a draft invoice is deleted.
 - `invoice.finalization_failed` — Occurs whenever a draft invoice cannot be finalized.
@@ -92,37 +102,44 @@ Captured on: **19 Dec 2025 (GMT)**
 - `invoice.will_be_due` — Occurs X days before an invoice becomes due (X determined by Automations).
 
 ## Payment Method
+
 - `payment_method.attached` — Occurs whenever a new payment method is attached to a customer.
 - `payment_method.automatically_updated` — Occurs whenever a payment method’s details are automatically updated by the network.
 - `payment_method.detached` — Occurs whenever a payment method is detached from a customer.
 - `payment_method.updated` — Occurs whenever a payment method is updated via the PaymentMethod update API.
 
 ## Person
+
 - `person.created` — Occurs whenever a person associated with an account is created.
 - `person.deleted` — Occurs whenever a person associated with an account is deleted.
 - `person.updated` — Occurs whenever a person associated with an account is updated.
 
 ## Plan
+
 - `plan.created` — Occurs whenever a plan is created.
 - `plan.deleted` — Occurs whenever a plan is deleted.
 - `plan.updated` — Occurs whenever a plan is updated.
 
 ## Product
+
 - `product.created` — Occurs whenever a product is created.
 - `product.deleted` — Occurs whenever a product is deleted.
 - `product.updated` — Occurs whenever a product is updated.
 
 ## Refund
+
 - `refund.created` — Occurs whenever a refund is created.
 - `refund.failed` — Occurs whenever a refund has failed.
 - `refund.updated` — Occurs whenever a refund is updated.
 
 ## Reporting
+
 - `reporting.report_type.updated` — Occurs whenever a ReportType is updated (typically indicates a new day’s data is available).
 - `reporting.report_run.failed` — Occurs whenever a requested ReportRun failed to complete.
 - `reporting.report_run.succeeded` — Occurs whenever a requested ReportRun completed successfully.
 
 ## Subscription Schedule
+
 - `subscription_schedule.aborted` — Occurs whenever a subscription schedule is canceled due to the underlying subscription being canceled because of delinquency.
 - `subscription_schedule.canceled` — Occurs whenever a subscription schedule is canceled.
 - `subscription_schedule.completed` — Occurs whenever a new subscription schedule is completed.

@@ -9,7 +9,8 @@ export type BillingProviderConfig = {
   activeProvider: ActiveBillingProvider;
   stripe: {
     secretKey?: string;
-    webhookSecret?: string;
+    webhookSecretSnapshot?: string;
+    webhookSecretThin?: string;
     priceMap?: StripePriceMap;
     successUrlDefault?: string;
     cancelUrlDefault?: string;
@@ -54,7 +55,8 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
 
   const stripeConfig = {
     secretKey: process.env.STRIPE_SECRET_KEY,
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    webhookSecretSnapshot: process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT,
+    webhookSecretThin: process.env.STRIPE_WEBHOOK_SECRET_THIN,
     priceMap: parsePriceMap(process.env.STRIPE_PRICE_MAP),
     successUrlDefault: process.env.STRIPE_SUCCESS_URL ?? fallbackSuccess,
     cancelUrlDefault: process.env.STRIPE_CANCEL_URL ?? fallbackCancel,
@@ -77,9 +79,9 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
   };
 
   if (active === "STRIPE" && isProd) {
-    if (!stripeConfig.secretKey || !stripeConfig.webhookSecret) {
+    if (!stripeConfig.secretKey || !stripeConfig.webhookSecretSnapshot) {
       throw new Error(
-        "Stripe billing provider requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in production",
+        "Stripe billing provider requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET_SNAPSHOT in production",
       );
     }
   }

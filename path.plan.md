@@ -792,8 +792,13 @@ Define one internal catalogue and map it to provider-specific product/price IDs:
 - Store `stripeCustomerId` on Org and create or update `Subscription` records on webhook confirmation.
 - Entitlements update on:
   - `checkout.session.completed`
-  - `invoice.paid` / `invoice.payment_failed`
+  - `customer.subscription.created`
   - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+  - `invoice.paid`
+  - `invoice.payment_failed` (flag at-risk; do not auto-cancel)
+    All six events are processed via the **Stripe snapshot webhook** only, verified with `STRIPE_WEBHOOK_SECRET_SNAPSHOT`.
+    `STRIPE_PUBLISHABLE_KEY` is client-side only (admin/mobile) to initialise Stripe; do not log it server-side.
     This is already called out in the brief as the invalidation triggers for the entitlements cache. [oai_citation:8‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
 
 ### GoCardless flow (Suite Direct Debit)
@@ -809,9 +814,8 @@ Define one internal catalogue and map it to provider-specific product/price IDs:
 
 ## Webhook handling (both providers)
 
-- Two separate webhook endpoints:
-  - `POST /billing/webhooks/stripe`
-  - `POST /billing/webhooks/gocardless`
+- Stripe: **single SNAPSHOT webhook endpoint** (currently `POST /billing/webhook` in API) handling the six billing events above, verified with `STRIPE_WEBHOOK_SECRET_SNAPSHOT`. The Thin webhook does not participate in billing and may be removed later.
+- GoCardless: placeholder endpoint may exist for DD, but is not yet wired for billing in this epic.
 - Hard requirements:
   - Verify signature (provider-specific).
   - Persist raw event payload as `BillingEvent` first.

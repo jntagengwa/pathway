@@ -32,7 +32,10 @@ export function createBillingWebhookProvider(
 ): BillingWebhookProvider {
   switch (config.activeProvider) {
     case "STRIPE":
-      if (!config.stripe.secretKey || !config.stripe.webhookSecret) {
+      if (
+        !config.stripe.secretKey ||
+        !config.stripe.webhookSecretSnapshot
+      ) {
         return new FakeBillingWebhookProvider();
       }
       return new StripeBillingWebhookProvider(config);
