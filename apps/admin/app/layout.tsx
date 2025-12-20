@@ -4,8 +4,8 @@ import { AdminShell } from "./admin-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PathWay Admin",
-  description: "PathWay admin console for schools and youth organisations.",
+  title: "Nexsteps Admin",
+  description: "Nexsteps admin console for schools and youth organisations.",
   icons: {
     icon: "/icon.png",
     shortcut: "/icon.png",

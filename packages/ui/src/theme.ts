@@ -13,6 +13,7 @@ export type ColorTokens = {
     primary: string;
     subtle: string;
     strong: string;
+    secondary: string;
   };
   border: {
     subtle: string;
@@ -95,6 +96,7 @@ export const theme: Theme = {
       primary: "#17b89e",
       subtle: "#d7f5ee",
       strong: "#0f9d82",
+      secondary: "#f7ca68",
     },
     border: {
       subtle: "#e2e8f0",

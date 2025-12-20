@@ -6,6 +6,7 @@ export type BillingEventKind =
   | "subscription.created"
   | "subscription.canceled"
   | "invoice.paid"
+  | "invoice.payment_failed"
   | "unknown";
 
 export type ParsedBillingWebhookEvent = {
@@ -14,6 +15,9 @@ export type ParsedBillingWebhookEvent = {
   kind: BillingEventKind;
   orgId: string;
   subscriptionId: string;
+  pendingOrderId?: string | null;
+  providerCheckoutId?: string | null;
+  providerCustomerId?: string | null;
   planCode?: string | null;
   status?: SubscriptionStatus | null;
   periodStart?: Date | null;
@@ -32,6 +36,7 @@ export interface BillingWebhookProvider {
   verifyAndParse(
     body: unknown,
     signature?: string,
+    rawBody?: Buffer,
   ): Promise<ParsedBillingWebhookEvent>;
 }
 
@@ -46,7 +51,9 @@ export class FakeBillingWebhookProvider implements BillingWebhookProvider {
   async verifyAndParse(
     body: unknown,
     signature?: string,
+    _rawBody?: Buffer,
   ): Promise<ParsedBillingWebhookEvent> {
+    void _rawBody;
     if (!signature || signature !== "test-signature") {
       throw new BadRequestException("Invalid webhook signature");
     }
@@ -84,6 +91,14 @@ export class FakeBillingWebhookProvider implements BillingWebhookProvider {
       cancelAtPeriodEnd:
         payload.cancelAtPeriodEnd !== undefined
           ? Boolean(payload.cancelAtPeriodEnd)
+          : null,
+      pendingOrderId:
+        payload.pendingOrderId !== undefined
+          ? String(payload.pendingOrderId)
+          : null,
+      providerCheckoutId:
+        payload.providerCheckoutId !== undefined
+          ? String(payload.providerCheckoutId)
           : null,
       entitlements: payload.entitlements,
     };

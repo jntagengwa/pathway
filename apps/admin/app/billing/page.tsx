@@ -5,6 +5,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card } from "@pathway/ui";
 import { AdminBillingOverview, fetchBillingOverview } from "../../lib/api-client";
 
@@ -42,6 +43,7 @@ const ratioPercent = (current?: number | null, cap?: number | null) => {
 };
 
 export default function BillingPage() {
+  const router = useRouter();
   const [data, setData] = React.useState<AdminBillingOverview | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -217,6 +219,21 @@ export default function BillingPage() {
         {av30Card}
         {limitsCard}
       </div>
+      <Card title="Self-serve plans">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-text-muted">
+            Upgrade from Starter to Growth or explore Enterprise options using our Buy Now flow.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={() => router.push("/billing/buy-now")}>
+              Open Buy Now
+            </Button>
+            <p className="text-xs text-text-muted">
+              Plan and capacity only; pricing appears in checkout.
+            </p>
+          </div>
+        </div>
+      </Card>
       <div className="text-sm text-text-muted">
         <Link
           href="/reports"

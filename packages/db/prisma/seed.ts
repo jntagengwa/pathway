@@ -13,11 +13,16 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding PathWay suite demo data…");
 
+  // Deterministic IDs so dev JWTs can target them
+  const ORG_ID = "00000000-0000-0000-0000-000000000001";
+  const TENANT_ID = "00000000-0000-0000-0000-000000000002";
+
   // 0) Org (billing owner / suite)
   const org = await prisma.org.upsert({
     where: { slug: "demo-org" },
     update: {},
     create: {
+      id: ORG_ID,
       name: "Demo Organisation",
       slug: "demo-org",
       planCode: "trial",
@@ -29,7 +34,7 @@ async function main() {
   const tenant = await prisma.tenant.upsert({
     where: { slug: "demo-church" },
     update: {},
-    create: { name: "Demo Church", slug: "demo-church", orgId: org.id },
+    create: { id: TENANT_ID, name: "Demo Church", slug: "demo-church", orgId: org.id },
   });
 
   // 2) Age Groups (Group)

@@ -5,25 +5,65 @@ import { BillingService } from "./billing.service";
 import { BillingController } from "./billing.controller";
 import { EntitlementsService } from "./entitlements.service";
 import { EntitlementsEnforcementService } from "./entitlements-enforcement.service";
+import { PlanPreviewController } from "./plan-preview.controller";
+import { PlanPreviewService } from "./plan-preview.service";
+import { BuyNowProvider } from "./buy-now.provider";
+import { BuyNowService } from "./buy-now.service";
+import { BuyNowController } from "./buy-now.controller";
+import { BillingPricingController } from "./pricing.controller";
+import { BillingPricingService } from "./pricing.service";
 import {
   BillingWebhookController,
-  billingWebhookProviderBinding,
 } from "./webhook.controller";
+import {
+  BILLING_PROVIDER_CONFIG,
+  loadBillingProviderConfig,
+  type BillingProviderConfig,
+} from "./billing-provider.config";
+import {
+  createBillingWebhookProvider,
+  createBuyNowProvider,
+} from "./providers/provider.factory";
+import { BILLING_WEBHOOK_PROVIDER } from "./billing-webhook.provider";
 
 @Module({
   imports: [PathwayAuthModule, CommonModule],
-  controllers: [BillingController, BillingWebhookController],
+  controllers: [
+    BillingController,
+    BillingWebhookController,
+    PlanPreviewController,
+    BuyNowController,
+    BillingPricingController,
+  ],
   providers: [
     BillingService,
     EntitlementsService,
     EntitlementsEnforcementService,
-    billingWebhookProviderBinding,
+    PlanPreviewService,
+    BuyNowService,
+    BillingPricingService,
+    {
+      provide: BILLING_PROVIDER_CONFIG,
+      useFactory: () => loadBillingProviderConfig(),
+    },
+    {
+      provide: BuyNowProvider,
+      useFactory: (config: BillingProviderConfig) =>
+        createBuyNowProvider(config),
+      inject: [BILLING_PROVIDER_CONFIG],
+    },
+    {
+      provide: BILLING_WEBHOOK_PROVIDER,
+      useFactory: (config: BillingProviderConfig) =>
+        createBillingWebhookProvider(config),
+      inject: [BILLING_PROVIDER_CONFIG],
+    },
   ],
   exports: [
     BillingService,
     EntitlementsService,
     EntitlementsEnforcementService,
-    billingWebhookProviderBinding,
+    BILLING_WEBHOOK_PROVIDER,
   ],
 })
 export class BillingModule {}

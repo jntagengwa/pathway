@@ -6,12 +6,16 @@ import {
   Inject,
   Post,
 } from "@nestjs/common";
-import { prisma, SubscriptionStatus, Prisma } from "@pathway/db";
+import {
+  prisma,
+  SubscriptionStatus,
+  Prisma,
+  PendingOrderStatus,
+} from "@pathway/db";
 import { EntitlementsService } from "./entitlements.service";
 import {
   BILLING_WEBHOOK_PROVIDER,
   BillingWebhookProvider,
-  FakeBillingWebhookProvider,
   ParsedBillingWebhookEvent,
 } from "./billing-webhook.provider";
 import { LoggingService, StructuredLogger } from "../common/logging/logging.service";
@@ -21,6 +25,14 @@ type WebhookResult =
   | { status: "ignored_duplicate"; eventId: string }
   | { status: "ignored_unknown"; eventId: string };
 
+type PendingOrderRecord = Prisma.PendingOrderGetPayload<
+  Record<string, never>
+>;
+
+// Core billing webhook controller. For Stripe, this endpoint is the SNAPSHOT
+// webhook: it handles checkout.session.completed, customer.subscription.* and
+// invoice.* events verified with STRIPE_WEBHOOK_SECRET_SNAPSHOT and feeds the
+// PendingOrder -> Subscription -> OrgEntitlementSnapshot pipeline.
 @Controller("billing")
 export class BillingWebhookController {
   private readonly logger: StructuredLogger;
@@ -39,8 +51,10 @@ export class BillingWebhookController {
   async handleWebhook(
     @Body() body: unknown,
     @Headers("x-billing-signature") signature?: string,
+    @Headers("stripe-signature") stripeSignature?: string,
   ): Promise<WebhookResult> {
-    const event = await this.provider.verifyAndParse(body, signature);
+    const sig = signature ?? stripeSignature;
+    const event = await this.provider.verifyAndParse(body, sig);
 
     const alreadyHandled = await prisma.billingEvent.findFirst({
       where: {
@@ -95,12 +109,20 @@ export class BillingWebhookController {
       case "subscription.updated":
       case "subscription.created":
       case "invoice.paid":
-        await this.upsertSubscription(event, event.status ?? SubscriptionStatus.ACTIVE);
-        await this.maybeSnapshotEntitlements(event);
+        await this.handleSubscriptionEvent(
+          event,
+          event.status ?? SubscriptionStatus.ACTIVE,
+        );
+        return true;
+      case "invoice.payment_failed":
+        // Mark subscription as at-risk (past due) without applying pending orders.
+        await this.upsertSubscription(
+          event,
+          event.status ?? SubscriptionStatus.PAST_DUE,
+        );
         return true;
       case "subscription.canceled":
-        await this.upsertSubscription(event, SubscriptionStatus.CANCELED);
-        await this.maybeSnapshotEntitlements(event);
+        await this.handleSubscriptionEvent(event, SubscriptionStatus.CANCELED);
         return true;
       case "unknown":
       default:
@@ -108,12 +130,30 @@ export class BillingWebhookController {
     }
   }
 
-  private async upsertSubscription(
+  private async handleSubscriptionEvent(
     event: ParsedBillingWebhookEvent,
     status: SubscriptionStatus,
   ) {
+    const pendingOrder = await this.findPendingOrder(event);
+    if (pendingOrder) {
+      await this.upsertSubscription(event, status);
+      if (pendingOrder.status !== PendingOrderStatus.COMPLETED) {
+        await this.applyPendingOrder(event, status, pendingOrder);
+      }
+      return;
+    }
+
+    await this.upsertSubscription(event, status);
+    await this.maybeSnapshotEntitlements(event);
+  }
+
+  private async upsertSubscription(
+    event: ParsedBillingWebhookEvent,
+    status: SubscriptionStatus,
+    tx: Prisma.TransactionClient | typeof prisma = prisma,
+  ) {
     const now = new Date();
-    await prisma.subscription.upsert({
+    await tx.subscription.upsert({
       where: { providerSubId: event.subscriptionId },
       update: {
         planCode: event.planCode ?? undefined,
@@ -133,6 +173,86 @@ export class BillingWebhookController {
         cancelAtPeriodEnd: event.cancelAtPeriodEnd ?? false,
       },
     });
+  }
+
+  private async applyPendingOrder(
+    event: ParsedBillingWebhookEvent,
+    status: SubscriptionStatus,
+    pendingOrder: PendingOrderRecord,
+  ) {
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      await this.upsertSubscription(event, status, tx);
+      await tx.orgEntitlementSnapshot.create({
+        data: {
+          orgId: pendingOrder.orgId,
+          maxSites: pendingOrder.maxSites ?? 0,
+          av30Included: pendingOrder.av30Cap ?? 0,
+          leaderSeatsIncluded: pendingOrder.leaderSeatsIncluded ?? 0,
+          storageGbIncluded: pendingOrder.storageGbCap ?? 0,
+          flagsJson: this.buildFlagsFromPending(pendingOrder),
+          source: "pending_order",
+        },
+      });
+      await tx.pendingOrder.update({
+        where: { id: pendingOrder.id },
+        data: {
+          status: PendingOrderStatus.COMPLETED,
+          completedAt: now,
+          providerSubscriptionId: event.subscriptionId ?? undefined,
+          providerCheckoutId:
+            pendingOrder.providerCheckoutId ??
+            event.providerCheckoutId ??
+            undefined,
+          providerCustomerId: event.providerCustomerId ?? undefined,
+        },
+      });
+    });
+  }
+
+  private buildFlagsFromPending(
+    pendingOrder: PendingOrderRecord,
+  ): Prisma.InputJsonValue | undefined {
+    const flags: Record<string, unknown> = {};
+    if (pendingOrder.smsMessagesCap !== null && pendingOrder.smsMessagesCap !== undefined) {
+      flags.smsMessagesCap = pendingOrder.smsMessagesCap;
+    }
+    if (pendingOrder.flags) {
+      flags.pendingOrderFlags = pendingOrder.flags;
+    }
+    if (pendingOrder.warnings) {
+      flags.pendingOrderWarnings = pendingOrder.warnings;
+    }
+    return Object.keys(flags).length ? (flags as Prisma.InputJsonValue) : undefined;
+  }
+
+  private async findPendingOrder(
+    event: ParsedBillingWebhookEvent,
+  ): Promise<PendingOrderRecord | null> {
+    if (event.pendingOrderId) {
+      const direct = await prisma.pendingOrder.findUnique({
+        where: { id: event.pendingOrderId },
+      });
+      if (direct) return direct;
+    }
+
+    if (event.providerCheckoutId) {
+      const byCheckout = await prisma.pendingOrder.findFirst({
+        where: {
+          provider: event.provider,
+          providerCheckoutId: event.providerCheckoutId,
+        },
+      });
+      if (byCheckout) return byCheckout;
+    }
+
+    const bySubscription = await prisma.pendingOrder.findFirst({
+      where: {
+        provider: event.provider,
+        providerSubscriptionId: event.subscriptionId,
+      },
+    });
+    return bySubscription;
   }
 
   private async maybeSnapshotEntitlements(event: ParsedBillingWebhookEvent) {
@@ -162,10 +282,4 @@ export class BillingWebhookController {
     });
   }
 }
-
-// Provider binding for the Nest DI container (kept here to avoid a separate module file)
-export const billingWebhookProviderBinding = {
-  provide: BILLING_WEBHOOK_PROVIDER,
-  useClass: FakeBillingWebhookProvider,
-};
 

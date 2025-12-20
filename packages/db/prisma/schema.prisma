@@ -66,6 +66,12 @@ enum SubscriptionStatus {
   INCOMPLETE
 }
 
+enum PendingOrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
 enum AuditAction {
   CREATED
   UPDATED
@@ -97,6 +103,7 @@ model Org {
   userOrgRoles     UserOrgRole[]
   auditEvents      AuditEvent[]
   staffActivities  StaffActivity[]
+  pendingOrders    PendingOrder[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -120,6 +127,7 @@ model Tenant {
   preferences   VolunteerPreference[]
   auditEvents   AuditEvent[]
   staffActivities StaffActivity[]
+  pendingOrders PendingOrder[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -442,6 +450,33 @@ model BillingEvent {
   createdAt DateTime @default(now())
 
   @@index([orgId, createdAt])
+}
+
+model PendingOrder {
+  id                     String              @id @default(uuid())
+  tenantId               String
+  tenant                 Tenant              @relation(fields: [tenantId], references: [id])
+  orgId                  String
+  org                    Org                 @relation(fields: [orgId], references: [id])
+  planCode               String
+  av30Cap                Int?
+  storageGbCap           Int?
+  smsMessagesCap         Int?
+  leaderSeatsIncluded    Int?
+  maxSites               Int?
+  flags                  Json?
+  warnings               Json?
+  provider               BillingProvider
+  providerCheckoutId     String?
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  status                 PendingOrderStatus  @default(PENDING)
+  createdAt              DateTime            @default(now())
+  completedAt            DateTime?
+  updatedAt              DateTime            @updatedAt
+
+  @@index([tenantId, orgId, provider, providerCheckoutId])
+  @@index([provider, providerSubscriptionId])
 }
 
 model OrgRetentionPolicy {

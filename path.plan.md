@@ -718,6 +718,164 @@ Light weight instrumentation and a basic launch plan for the self serve flow.
 
 ---
 
+### 8.7 Billing and Payments (Stripe + GoCardless)
+
+> Update: Standardise on Stripe Billing for card-based subscriptions and add-ons, with GoCardless Direct Debit reserved for Suite (multi-site) customers that require UK Direct Debit. This matches the existing billing brief (Stripe for plans and add-ons, GoCardless for Suite DD) and keeps entitlement updates webhook-driven. [oai_citation:0‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG) [oai_citation:1‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+## Goals
+
+- Support monthly and annual subscriptions for Starter, Growth, and Pro via Stripe.
+- Support Suite plans via Direct Debit using GoCardless (primary), with optional Stripe fallback for card.
+- Support add-on packs (AV30 blocks, SMS bundles, storage packs) and deterministic entitlement snapshots.
+- Ensure all entitlement changes are driven by provider webhooks with strict idempotency and auditability. [oai_citation:2‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+## Provider strategy
+
+- Default provider: Stripe (all non-Suite orgs).
+- Suite orgs:
+  - Payment method choice: Direct Debit (GoCardless) by default.
+  - Optional: allow card via Stripe if a Suite customer needs it (feature-flag).
+- A single Org can have multiple historical subscriptions, but only one active “billing source of truth” at a time.
+
+## Data model adjustments (Prisma)
+
+Current schema already has:
+
+- `BillingProvider { STRIPE, GOCARDLESS }`
+- `Subscription` with `provider`, `providerSubId`, `status`, `periodStart`, `periodEnd`
+- `Org` includes `stripeCustomerId`
+- `BillingEvent` for storing provider payloads and an audit trail [oai_citation:3‡schema.prisma](file-service://file-HAy8A1eVbthkpQxTWTu9o5) [oai_citation:4‡schema.prisma](file-service://file-HAy8A1eVbthkpQxTWTu9o5)
+
+### Recommended additions to fit Stripe + GoCardless cleanly
+
+1. Extend `Org` with GoCardless identifiers:
+
+- `goCardlessCustomerId String? @unique`
+- `goCardlessMandateId String? @unique`
+- `goCardlessSubscriptionId String? @unique` (if you want a direct pointer to the active GC sub)
+  Rationale: Suite DD onboarding is mandate-driven and you will routinely need to fetch and reconcile state from GoCardless. [oai_citation:5‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+2. Improve `BillingEvent` idempotency:
+
+- Add `externalId String` (provider event id) and `@@unique([provider, externalId])`
+- Add `processedAt DateTime?`
+  Rationale: prevents double-processing during webhook retries and makes reconciliation simpler.
+
+3. Snapshot provenance and reconciliation:
+
+- Ensure `OrgEntitlementSnapshot.source` uses stable values like:
+  - `subscription(stripe:<subId>)`
+  - `subscription(gocardless:<subId>)`
+  - `manual_override`
+    Rationale: makes it obvious which provider state last wrote entitlements. [oai_citation:6‡schema.prisma](file-service://file-HAy8A1eVbthkpQxTWTu9o5)
+
+## Products, prices, and SKUs
+
+Define one internal catalogue and map it to provider-specific product/price IDs:
+
+- Base plans:
+  - Starter, Growth, Pro (monthly + annual)
+- Suite plans:
+  - Suite Starter, Suite Growth, Suite Pro (monthly for GoCardless; annual optional, see improvements below)
+  - Extra Site as a separate recurring price
+- Add-ons:
+  - AV30 packs (+25, +100 for single-site; +100/+250/+500 for Suite)
+  - SMS bundle (1k)
+  - Storage packs (or metered later)
+    This is aligned with the existing billing implementation brief. [oai_citation:7‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+## Checkout and subscription lifecycle
+
+### Stripe flow (non-Suite, and optionally Suite-card)
+
+- Use Stripe Checkout for initial purchase and upgrades (Buy Now page).
+- Store `stripeCustomerId` on Org and create or update `Subscription` records on webhook confirmation.
+- Entitlements update on:
+  - `checkout.session.completed`
+  - `customer.subscription.created`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+  - `invoice.paid`
+  - `invoice.payment_failed` (flag at-risk; do not auto-cancel)
+    All six events are processed via the **Stripe snapshot webhook** only, verified with `STRIPE_WEBHOOK_SECRET_SNAPSHOT`.
+    `STRIPE_PUBLISHABLE_KEY` is client-side only (admin/mobile) to initialise Stripe; do not log it server-side.
+    This is already called out in the brief as the invalidation triggers for the entitlements cache. [oai_citation:8‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+### GoCardless flow (Suite Direct Debit)
+
+- Step 1: create GoCardless customer and redirect flow to collect mandate.
+- Step 2: on mandate activation, create GoCardless subscription (Suite plan + extras).
+- Step 3: update internal `Subscription` row for provider = GOCARDLESS and persist mandate/sub ids.
+- Entitlements update on GoCardless webhook events:
+  - mandate activated
+  - subscription created/updated/cancelled
+  - payment confirmed/failed
+    The brief explicitly states “GoCardless Direct Debit for Suites; sync via webhooks.” [oai_citation:9‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+## Webhook handling (both providers)
+
+- Stripe: **single SNAPSHOT webhook endpoint** (currently `POST /billing/webhook` in API) handling the six billing events above, verified with `STRIPE_WEBHOOK_SECRET_SNAPSHOT`. The Thin webhook does not participate in billing and may be removed later.
+- GoCardless: placeholder endpoint may exist for DD, but is not yet wired for billing in this epic.
+- Hard requirements:
+  - Verify signature (provider-specific).
+  - Persist raw event payload as `BillingEvent` first.
+  - Enforce idempotency using `(provider, externalId)` uniqueness.
+  - Process in a transaction:
+    - Upsert `Subscription` state
+    - Write `OrgEntitlementSnapshot` based on internal plan preview rules
+- Always recompute entitlements from internal rules, never from arbitrary provider metadata.
+
+## Entitlements, usage, and enforcement linkage
+
+- Keep the entitlement service and enforcement rules unchanged, but ensure it invalidates and recomputes on both Stripe and GoCardless events. [oai_citation:10‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+- Continue using AV30 calculation and usage counters as described. [oai_citation:11‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+- Ensure “hard cap” enforcement blocks write actions (publish rota, announcements) but still allows viewing, as in the brief. [oai_citation:12‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+## Improvements to fit PathWay perfectly (recommended adjustments)
+
+1. One “billing state machine” layer
+
+- Implement an internal canonical status model:
+  - `ACTIVE`, `PAST_DUE`, `CANCELED`, `INCOMPLETE`
+- Map Stripe and GoCardless statuses into this model.
+  Benefit: the rest of the platform depends on one interpretation of “paid and active”.
+
+2. Reconciliation job
+
+- Nightly (or hourly) job that:
+  - pulls the current subscription status from Stripe / GoCardless for orgs with active subs
+  - heals any drift (missed webhook, out-of-order events)
+    Benefit: billing becomes self-healing and reduces support load.
+
+3. GoCardless annual billing decision
+
+- Recommendation: ship Suite Direct Debit as monthly first.
+- Add annual DD only if you confirm GoCardless supports the commercial requirement cleanly (some customers will accept monthly DD even if you position “annual discount” as card/invoice).
+  Benefit: reduces edge-case complexity early while still serving the UK school preference for DD.
+
+4. Provider abstraction boundaries
+
+- Keep `BillingProvider` adapters strict:
+  - `createCheckoutSession`, `createMandateFlow`, `createOrUpdateSubscription`, `cancelSubscription`, `getSubscription`
+- Everything else (entitlements, caps, AV30, warnings) stays provider-agnostic.
+
+## Testing and observability
+
+- Integration tests:
+  - Stripe webhook sequence updates entitlements
+  - GoCardless mandate + subscription + payment events update entitlements
+  - Idempotency: replay the same webhook twice and assert no double snapshots/events
+- Telemetry:
+  - counters for webhook processed, webhook duplicates rejected
+  - gauges for entitlement caps and AV30 usage (already in the brief) [oai_citation:13‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
+## Acceptance criteria
+
+- A non-Suite org can buy monthly or annual and immediately receives correct entitlements after `invoice.paid`.
+- A Suite org can complete DD mandate, become ACTIVE after first successful payment event, and receives correct pooled entitlements.
+- Replaying webhooks does not create duplicate `BillingEvent` rows or duplicate entitlement snapshots.
+- Entitlement enforcement gates core actions when hard caps are exceeded, as defined. [oai_citation:14‡PathWay_Billing_Entitlements_Implementation_Brief.docx](file-service://file-NafcoCY33u7eWm53Y4TNRG)
+
 ## Recommended Next Steps
 
 1. Keep Epic 4 and Epic 7 green – backend safety and observability are foundational.

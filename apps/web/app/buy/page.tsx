@@ -1,0 +1,684 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import clsx from "clsx";
+import {
+  PLAN_PRICES,
+  type PlanCode,
+  type BuyNowSelection,
+  calculateCartTotals,
+  mergeBillingPrices,
+} from "../../lib/buy-now-pricing";
+import {
+  createCheckoutSession,
+  previewPlanSelection,
+  type PlanPreviewResponse,
+  fetchPublicBillingPrices,
+} from "../../lib/buy-now-client";
+
+type PlanTier = "starter" | "growth" | "enterprise";
+type BillingFrequency = "monthly" | "yearly";
+
+const MAX_QTY = 20;
+
+const tierToPlanCode = (
+  tier: PlanTier,
+  frequency: BillingFrequency,
+): PlanCode | null => {
+  if (tier === "starter") return frequency === "monthly" ? "STARTER_MONTHLY" : "STARTER_YEARLY";
+  if (tier === "growth") return frequency === "monthly" ? "GROWTH_MONTHLY" : "GROWTH_YEARLY";
+  return null;
+};
+
+const formatAmount = (amount: number) => {
+  const hasFraction = Math.abs(amount % 1) > 0.000001;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  }).format(amount);
+};
+
+export default function BuyNowPage() {
+  const [planTier, setPlanTier] = useState<PlanTier>("starter");
+  const [frequency, setFrequency] = useState<BillingFrequency>("monthly");
+
+  const [av30Blocks, setAv30Blocks] = useState(0);
+  const [storageChoice, setStorageChoice] = useState<"none" | "100" | "200" | "1000">("none");
+  const [smsBundles, setSmsBundles] = useState(0);
+  const [planPriceOverrides, setPlanPriceOverrides] = useState<Partial<Record<PlanCode, typeof PLAN_PRICES[PlanCode]>>>({});
+  const [addonPriceOverrides, setAddonPriceOverrides] = useState<
+    Partial<
+      Record<
+        | "AV30_BLOCK_25_MONTHLY"
+        | "AV30_BLOCK_25_YEARLY"
+        | "AV30_BLOCK_50_MONTHLY"
+        | "AV30_BLOCK_50_YEARLY"
+        | "STORAGE_100GB_YEARLY"
+        | "STORAGE_200GB_YEARLY"
+        | "STORAGE_1TB_YEARLY"
+        | "SMS_1000_MONTHLY"
+        | "SMS_1000_YEARLY",
+        { amountMajor: number; label: string }
+      >
+    >
+  >({});
+
+  const [orgName, setOrgName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+
+  const [preview, setPreview] = useState<PlanPreviewResponse | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+
+  const planCode = useMemo(
+    () => tierToPlanCode(planTier, frequency),
+    [planTier, frequency],
+  );
+
+  useEffect(() => {
+    const loadPrices = async () => {
+      try {
+        const res = await fetchPublicBillingPrices();
+        if (res?.prices?.length) {
+          const { planPrices, addonPrices } = mergeBillingPrices(
+            res.prices.map((p) => ({
+              code: p.code,
+              unitAmount: p.unitAmount,
+              interval: p.interval,
+            })),
+          );
+          setPlanPriceOverrides(planPrices);
+          setAddonPriceOverrides(addonPrices);
+        }
+      } catch (error) {
+        console.error("[buy-now] public pricing fetch failed", error);
+        // fallback to static prices on error
+      }
+    };
+    void loadPrices();
+  }, []);
+
+  const selection: BuyNowSelection | null = planCode
+    ? {
+        planCode,
+        frequency,
+        av30AddonBlocks25:
+          planTier === "starter" ? av30Blocks : 0,
+        av30AddonBlocks50:
+          planTier === "growth" ? av30Blocks : 0,
+        storageAddon100Gb: storageChoice === "100" ? 1 : 0,
+        storageAddon200Gb: storageChoice === "200" ? 1 : 0,
+        storageAddon1Tb: storageChoice === "1000" ? 1 : 0,
+        smsBundles1000: smsBundles,
+      }
+    : null;
+
+  const mergedPlanPrices: Record<PlanCode, StripePriceMeta> = {
+    ...PLAN_PRICES,
+    ...planPriceOverrides,
+  };
+  const mergedAddonPrices: Record<AddonCode, StripePriceMeta> = {
+    ...ADDON_PRICES,
+    ...addonPriceOverrides,
+  };
+  const totals = selection
+    ? calculateCartTotals(selection, {
+        planPrices: mergedPlanPrices,
+        addonPrices: mergedAddonPrices,
+      })
+    : null;
+
+  useEffect(() => {
+    if (!planCode) {
+      setPreview(null);
+      setPreviewError("Please choose a plan to see entitlements.");
+      return;
+    }
+    setPreviewError(null);
+    const controller = new AbortController();
+    setIsPreviewLoading(true);
+    const handle = setTimeout(async () => {
+      try {
+        const extraAv30Blocks =
+          planTier === "growth"
+            ? Math.max(0, av30Blocks) * 2 // +50 blocks -> backend 25-size
+            : Math.max(0, av30Blocks);
+        const extraStorageGb =
+          storageChoice === "100"
+            ? 100
+            : storageChoice === "200"
+              ? 200
+              : storageChoice === "1000"
+                ? 1000
+                : 0;
+        const extraSmsMessages = Math.max(0, smsBundles * 1000);
+
+        const result = await previewPlanSelection(
+          {
+            planCode,
+            addons: {
+              extraAv30Blocks,
+              extraStorageGb,
+              extraSmsMessages,
+            },
+          },
+          { signal: controller.signal },
+        );
+        if (!controller.signal.aborted) {
+          setPreview(result);
+        }
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setPreview(null);
+        setPreviewError(
+          err instanceof Error ? err.message : "We couldn’t load the plan preview.",
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsPreviewLoading(false);
+        }
+      }
+    }, 250);
+    return () => {
+      controller.abort();
+      clearTimeout(handle);
+    };
+  }, [
+    planCode,
+    frequency,
+    av30Blocks,
+    storageChoice,
+    smsBundles,
+  ]);
+
+  const clampQty = (value: number) =>
+    Math.min(MAX_QTY, Math.max(0, Number.isFinite(value) ? Math.trunc(value) : 0));
+
+  const handleCheckout = async () => {
+    setCheckoutError(null);
+    if (!planCode || planTier === "enterprise") {
+      setCheckoutError("Please choose Starter or Growth to continue.");
+      return;
+    }
+    if (!orgName || !contactName || !contactEmail) {
+      setCheckoutError("Please complete organisation and contact details.");
+      return;
+    }
+    setIsCheckoutLoading(true);
+    try {
+      const buildRedirectUrl = (path: string) => {
+        if (typeof window === "undefined" || !window.location) return null;
+        const url = new URL(path, window.location.href);
+        // class-validator requires a URL with TLD; localhost can fail, so normalise to 127.0.0.1
+        if (url.hostname === "localhost") {
+          url.hostname = "127.0.0.1";
+        }
+        return url.toString();
+      };
+
+      const successUrl = buildRedirectUrl("/buy/thanks");
+      const cancelUrl = buildRedirectUrl("/buy/cancelled");
+      if (!successUrl || !cancelUrl) {
+        setCheckoutError("Unable to determine redirect URLs; please try again in the browser.");
+        setIsCheckoutLoading(false);
+        return;
+      }
+      const { sessionUrl } = await createCheckoutSession({
+        planCode,
+        billingPeriod: frequency,
+        av30AddonBlocks25: planTier === "starter" ? av30Blocks : 0,
+        av30AddonBlocks50: planTier === "growth" ? av30Blocks : 0,
+        storageAddon100Gb: frequency === "yearly" ? storage100 : 0,
+        storageAddon200Gb: frequency === "yearly" ? storage200 : 0,
+        storageAddon1Tb: frequency === "yearly" ? storage1tb : 0,
+        smsBundles1000: smsBundles,
+        orgName,
+        contactName,
+        contactEmail,
+        successUrl,
+        cancelUrl,
+      });
+      window.location.href = sessionUrl;
+    } catch (err) {
+      setCheckoutError(
+        err instanceof Error
+          ? err.message
+          : "We couldn’t start checkout. Please try again.",
+      );
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  };
+
+  const smsAddon =
+    frequency === "yearly"
+      ? mergedAddonPrices["SMS_1000_YEARLY"]
+      : mergedAddonPrices["SMS_1000_MONTHLY"];
+  const smsHelper =
+    smsAddon?.amountMajor !== undefined
+      ? `${formatAmount(smsAddon.amountMajor)} per 1k SMS (${frequency}).`
+      : frequency === "monthly"
+        ? "£15/mo"
+        : "£150/yr";
+
+  const storageOptions = [
+    { value: "none", label: "No additional storage" },
+    {
+      value: "100",
+      label:
+        mergedAddonPrices.STORAGE_100GB_YEARLY !== undefined
+          ? `+100GB — ${formatAmount(
+              mergedAddonPrices.STORAGE_100GB_YEARLY?.amountMajor ?? 250,
+            )} / year`
+          : "+100GB — £250 / year",
+    },
+    {
+      value: "200",
+      label:
+        mergedAddonPrices.STORAGE_200GB_YEARLY !== undefined
+          ? `+200GB — ${formatAmount(
+              mergedAddonPrices.STORAGE_200GB_YEARLY?.amountMajor ?? 450,
+            )} / year`
+          : "+200GB — £450 / year",
+    },
+    {
+      value: "1000",
+      label:
+        mergedAddonPrices.STORAGE_1TB_YEARLY !== undefined
+          ? `+1TB — ${formatAmount(
+              mergedAddonPrices.STORAGE_1TB_YEARLY?.amountMajor ?? 1500,
+            )} / year`
+          : "+1TB — £1,500 / year",
+    },
+  ];
+
+  return (
+    <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:py-16">
+      <div className="flex flex-col gap-2">
+        <p className="text-sm uppercase tracking-wide text-pw-primary">Nexsteps</p>
+        <h1 className="text-3xl font-semibold text-pw-text">Choose your Nexsteps plan</h1>
+        <p className="max-w-3xl text-base text-pw-text-muted">
+          Select a plan, choose any add-ons, and complete your purchase on our secure
+          Stripe checkout. Snapshot webhooks keep subscriptions and entitlements in sync.
+        </p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+        <section className="flex flex-col gap-4">
+          <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-semibold">Plan</h2>
+            <p className="text-sm text-pw-text-muted">
+              Starter and Growth are self-serve. Enterprise is contact-only.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {[
+                {
+                  tier: "starter" as PlanTier,
+                  title: "Starter",
+                  desc: "For single-site organisations getting started.",
+                  included: "Includes 50 Active People and 1 site",
+                },
+                {
+                  tier: "growth" as PlanTier,
+                  title: "Growth",
+                  desc: "For growing orgs with multiple groups/sites.",
+                  included: "Includes 200 Active People and 3 sites",
+                },
+                {
+                  tier: "enterprise" as PlanTier,
+                  title: "Enterprise",
+                  desc: "Custom plan and onboarding. Talk to us.",
+                  included: "Contact our team for a tailored quote.",
+                },
+              ].map((plan) => {
+                const isActive = planTier === plan.tier;
+                const cardPlanCode = tierToPlanCode(plan.tier, frequency);
+                const cardPriceLabel = cardPlanCode
+                  ? mergedPlanPrices[cardPlanCode]?.label
+                  : null;
+                return (
+                  <button
+                    key={plan.tier}
+                    type="button"
+                    onClick={() => setPlanTier(plan.tier)}
+                    className={clsx(
+                      "flex flex-col rounded-lg border p-4 text-left transition",
+                      isActive
+                        ? "border-pw-primary bg-pw-primary-soft"
+                        : "border-pw-border hover:border-pw-primary/60",
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-base font-semibold">{plan.title}</p>
+                        <p className="text-sm text-pw-text-muted">{plan.desc}</p>
+                      </div>
+                      {plan.tier === "enterprise" ? (
+                        <span className="rounded-full bg-pw-border px-2 py-1 text-xs text-pw-text-muted">
+                          Contact
+                        </span>
+                      ) : cardPriceLabel ? (
+                        <span className="text-sm font-medium">{cardPriceLabel}</span>
+                      ) : (
+                        <span className="text-sm text-pw-text-muted">
+                          Price shown in summary
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-pw-text-muted">{plan.included}</p>
+                    {plan.tier === "enterprise" && (
+                      <Link
+                        href="mailto:hello@pathway.app?subject=Nexsteps%20Enterprise%20plan"
+                        className="mt-3 inline-flex w-fit rounded-md border border-pw-primary px-3 py-1 text-sm text-pw-primary transition hover:bg-pw-primary-soft"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Contact sales
+                      </Link>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <p className="text-sm font-medium text-pw-text">Billing frequency:</p>
+              <div className="relative flex h-11 items-center rounded-full border border-pw-primary bg-pw-surface px-1">
+                <span
+                  className="absolute inset-y-1 left-1 w-[50%] rounded-full bg-pw-primary text-white shadow-sm transition-transform duration-150 ease-out"
+                  style={{
+                    transform: frequency === "monthly" ? "translateX(0%)" : "translateX(100%)",
+                  }}
+                />
+                {(["monthly", "yearly"] as BillingFrequency[]).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setFrequency(option)}
+                    className={clsx(
+                      "relative z-10 w-24 rounded-full px-3 py-2 text-sm font-semibold transition",
+                      frequency === option
+                        ? "text-white"
+                        : "text-pw-text-muted hover:text-pw-text",
+                    )}
+                  >
+                    {option === "monthly" ? "Monthly" : "Yearly"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-pw-text-muted">
+                Yearly is billed upfront. Final price confirmed on the Stripe checkout page.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-semibold">Add-ons</h2>
+            <p className="text-sm text-pw-text-muted">
+              Adjust capacity now or leave at zero—you can add more later.
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <AddonInput
+                label={`Extra ${planTier === "growth" ? "+50" : "+25"} Active People`}
+                helper={
+                  planTier === "growth"
+                    ? "£59/mo or £590/yr"
+                    : "£39/mo or £390/yr"
+                }
+                value={av30Blocks}
+                onChange={(v) => setAv30Blocks(clampQty(v))}
+              />
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Storage (billed yearly)</label>
+                <select
+                  value={storageChoice}
+                  onChange={(e) => setStorageChoice(e.target.value as typeof storageChoice)}
+                  className="rounded-md border border-pw-border bg-white px-3 py-2 text-sm text-pw-text focus:border-pw-primary focus:outline-none"
+                >
+                  {storageOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs text-pw-text-muted">
+                  Storage add-ons are charged as yearly line items at checkout.
+                </span>
+              </div>
+              <AddonInput
+                label="SMS bundles (1,000 per bundle)"
+                helper={smsHelper}
+                value={smsBundles}
+                onChange={(v) => setSmsBundles(clampQty(v))}
+              />
+            </div>
+            {frequency === "monthly" && (
+              <p className="mt-3 text-xs text-pw-text-muted">
+                Storage packs are yearly only. Switch to yearly billing to include them.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-semibold">Organisation & contact</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <Field
+                label="Organisation name"
+                required
+                value={orgName}
+                onChange={setOrgName}
+              />
+              <Field
+                label="Your name"
+                required
+                value={contactName}
+                onChange={setContactName}
+              />
+              <Field
+                label="Work email"
+                type="email"
+                required
+                value={contactEmail}
+                onChange={setContactEmail}
+              />
+            </div>
+          </div>
+        </section>
+
+        <aside className="flex flex-col gap-4">
+          <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold">Pricing summary</h2>
+              <span className="text-xs text-pw-text-muted">Stripe prices</span>
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+              {totals?.lines?.length ? (
+                totals.lines.map((line) => (
+                  <div key={line.label} className="flex items-center justify-between">
+                    <span className="text-sm text-pw-text">{line.label}</span>
+                    <span className="text-sm font-medium">
+                      {formatAmount(line.amountMajor)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-pw-text-muted">
+                  Select a plan to see totals.
+                </p>
+              )}
+            </div>
+            <div className="my-3 h-px bg-pw-border" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  Total per {frequency === "monthly" ? "month" : "year"}
+                </p>
+                <p className="text-xs text-pw-text-muted">
+                  Final price and tax confirmed on Stripe checkout.
+                </p>
+              </div>
+              <p className="text-xl font-semibold">
+                {formatAmount(totals?.totalMajor ?? 0)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={
+                isCheckoutLoading ||
+                planTier === "enterprise" ||
+                !planCode ||
+                !selection
+              }
+              className={clsx(
+                "mt-4 w-full rounded-md px-4 py-3 text-center text-sm font-semibold shadow-sm transition",
+                planTier === "enterprise" || !planCode
+                  ? "cursor-not-allowed bg-pw-border text-pw-text-muted"
+                  : "bg-pw-primary text-white hover:bg-blue-600",
+              )}
+            >
+              {isCheckoutLoading ? "Redirecting…" : "Continue to secure checkout"}
+            </button>
+            {checkoutError && (
+              <p className="mt-2 text-sm text-pw-danger">{checkoutError}</p>
+            )}
+            <p className="mt-2 text-xs text-pw-text-muted">
+              We rely on Stripe-hosted Checkout. Subscriptions and entitlements are kept
+              in sync via the Stripe snapshot webhook.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Entitlement preview</h3>
+              {isPreviewLoading && (
+                <span className="text-xs text-pw-text-muted">Loading…</span>
+              )}
+            </div>
+            {preview && (
+              <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                <PreviewRow label="Plan" value={preview.displayName ?? "—"} />
+                <PreviewRow
+                  label="Billing"
+                  value={
+                    preview.billingPeriod === "monthly"
+                      ? "Monthly"
+                      : preview.billingPeriod === "yearly"
+                        ? "Yearly"
+                        : "—"
+                  }
+                />
+                <PreviewRow
+                  label="Active People cap"
+                  value={preview.effectiveCaps.av30Cap ?? "—"}
+                />
+                <PreviewRow
+                  label="Sites cap"
+                  value={preview.effectiveCaps.maxSites ?? "—"}
+                />
+                <PreviewRow
+                  label="Storage (GB)"
+                  value={preview.effectiveCaps.storageGbCap ?? "—"}
+                />
+                <PreviewRow
+                  label="SMS messages"
+                  value={preview.effectiveCaps.smsMessagesCap ?? "—"}
+                />
+              </dl>
+            )}
+            {previewError && (
+              <p className="mt-2 text-sm text-pw-danger">{previewError}</p>
+            )}
+            <p className="mt-2 text-xs text-pw-text-muted">
+              Preview comes from the backend plan catalogue; final entitlements are set
+              when Stripe snapshot webhooks confirm the checkout.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function AddonInput({
+  label,
+  helper,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  helper?: string;
+  value: number;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex flex-col gap-2 rounded-lg border border-pw-border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">{label}</span>
+        <input
+          type="number"
+          min={0}
+          max={MAX_QTY}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          disabled={disabled}
+          className={clsx(
+            "w-24 rounded-md border px-2 py-1 text-sm",
+            disabled ? "bg-pw-surface text-pw-text-muted" : "border-pw-border",
+          )}
+        />
+      </div>
+      <span className="text-xs text-pw-text-muted">
+        {helper}
+        {disabled ? " (not available on monthly)" : ""}
+      </span>
+    </label>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  required,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  type?: "text" | "email";
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="font-medium">
+        {label} {required && <span className="text-pw-primary">*</span>}
+      </span>
+      <input
+        type={type}
+        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-pw-border px-3 py-2 text-sm text-pw-text focus:border-pw-primary focus:outline-none"
+      />
+    </label>
+  );
+}
+
+function PreviewRow({ label, value }: { label: string; value: string | number }) {
+  return (
+    <>
+      <dt className="text-xs text-pw-text-muted">{label}</dt>
+      <dd className="text-sm font-medium">{value ?? "—"}</dd>
+    </>
+  );
+}
+
