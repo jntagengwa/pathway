@@ -10,6 +10,8 @@ const badgeVariants = cva(
         default: "bg-muted text-text-primary border-border-subtle",
         accent:
           "bg-accent-subtle text-accent-strong border border-accent-primary/30",
+        secondary:
+          "bg-[color:var(--badge-secondary-bg)] text-[color:var(--badge-secondary-fg)] border-[color:var(--badge-secondary-border)]",
         success: "bg-status-ok/10 text-status-ok border border-status-ok/30",
         warning:
           "bg-status-warn/10 text-status-warn border border-status-warn/30",
@@ -31,7 +33,11 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
   ({ className, variant, ...props }, ref) => (
     <span
       ref={ref}
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(
+        "[--badge-secondary-bg:rgba(247,202,104,0.2)] [--badge-secondary-fg:#7a5410] [--badge-secondary-border:rgba(247,202,104,0.5)]",
+        badgeVariants({ variant }),
+        className,
+      )}
       {...props}
     />
   ),

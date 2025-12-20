@@ -64,7 +64,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
           >
             <Image
               src="/pathwayLogo.png"
-              alt="PathWay"
+            alt="Nexsteps"
               width={48}
               height={48}
               className="rounded-md shadow-sm"
@@ -72,7 +72,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
             />
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold tracking-tight text-text-primary">
-                PathWay
+                Nexsteps
               </span>
               <span className="text-xs text-text-muted">Admin</span>
             </div>

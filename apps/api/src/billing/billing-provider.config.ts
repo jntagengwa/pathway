@@ -1,9 +1,22 @@
 import { BillingProvider } from "@pathway/db";
-import { PLAN_CATALOGUE, type PlanCode } from "./billing-plans";
+import { type PlanCode } from "./billing-plans";
 
 export type ActiveBillingProvider = "FAKE" | "STRIPE" | "GOCARDLESS";
 
-export type StripePriceMap = Partial<Record<PlanCode, string>>;
+export type AddonPriceCode =
+  | "AV30_BLOCK_25_MONTHLY"
+  | "AV30_BLOCK_25_YEARLY"
+  | "AV30_BLOCK_50_MONTHLY"
+  | "AV30_BLOCK_50_YEARLY"
+  | "STORAGE_100GB_YEARLY"
+  | "STORAGE_200GB_YEARLY"
+  | "STORAGE_1TB_YEARLY"
+  | "SMS_1000_MONTHLY"
+  | "SMS_1000_YEARLY";
+
+export type PriceCode = PlanCode | AddonPriceCode;
+
+export type StripePriceMap = Partial<Record<PriceCode, string>>;
 
 export type BillingProviderConfig = {
   activeProvider: ActiveBillingProvider;
@@ -29,14 +42,51 @@ export const BILLING_PROVIDER_CONFIG = Symbol("BILLING_PROVIDER_CONFIG");
 
 const isProd = process.env.NODE_ENV === "production";
 
+const ALLOWED_PRICE_CODES: Set<PriceCode> = new Set([
+  "STARTER_MONTHLY",
+  "STARTER_YEARLY",
+  "GROWTH_MONTHLY",
+  "GROWTH_YEARLY",
+  "ENTERPRISE_CONTACT",
+  "AV30_BLOCK_25_MONTHLY",
+  "AV30_BLOCK_25_YEARLY",
+  "AV30_BLOCK_50_MONTHLY",
+  "AV30_BLOCK_50_YEARLY",
+  "STORAGE_100GB_YEARLY",
+  "STORAGE_200GB_YEARLY",
+  "STORAGE_1TB_YEARLY",
+  "SMS_1000_MONTHLY",
+  "SMS_1000_YEARLY",
+]);
+
 const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
   if (!raw) return undefined;
   try {
     const parsed = JSON.parse(raw) as Record<string, string>;
     const filtered: StripePriceMap = {};
     Object.keys(parsed).forEach((code) => {
-      if (code in PLAN_CATALOGUE) {
-        filtered[code as PlanCode] = parsed[code];
+      // Normalise keys to uppercase and map legacy names to current codes
+      const upper = code.toUpperCase();
+      const legacyMap: Record<string, PriceCode> = {
+        STARTER_MONTH: "STARTER_MONTHLY",
+        STARTER_YEAR: "STARTER_YEARLY",
+        GROWTH_MONTH: "GROWTH_MONTHLY",
+        GROWTH_YEAR: "GROWTH_YEARLY",
+        ADDON_AV30_25_MONTH: "AV30_BLOCK_25_MONTHLY",
+        ADDON_AV30_25_YEAR: "AV30_BLOCK_25_YEARLY",
+        ADDON_AV30_50_MONTH: "AV30_BLOCK_50_MONTHLY",
+        ADDON_AV30_50_YEAR: "AV30_BLOCK_50_YEARLY",
+        ADDON_STORAGE_100GB_YEAR: "STORAGE_100GB_YEARLY",
+        ADDON_STORAGE_200GB_YEAR: "STORAGE_200GB_YEARLY",
+        ADDON_STORAGE_1TB_YEAR: "STORAGE_1TB_YEARLY",
+        ADDON_SMS_1000_MONTH: "SMS_1000_MONTHLY",
+        ADDON_SMS_1000_YEAR: "SMS_1000_YEARLY",
+      };
+
+      const mapped = (legacyMap[upper] ?? upper) as PriceCode;
+
+      if (ALLOWED_PRICE_CODES.has(mapped)) {
+        filtered[mapped] = parsed[code];
       }
     });
     return filtered;

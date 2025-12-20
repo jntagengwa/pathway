@@ -15,11 +15,19 @@ import {
   AdminPlanPreview,
   createBuyNowCheckout,
   previewPlanSelection,
+  fetchBillingPrices,
 } from "../../../lib/api-client";
+import {
+  PLAN_PRICES,
+  ADDON_PRICES,
+  calculateCartTotals,
+  mergeBillingPrices,
+  type PlanCode,
+} from "../../../lib/buy-now-pricing";
 
 const planOptions = [
   {
-    code: "STARTER_MONTHLY",
+    code: "STARTER",
     label: "Starter",
     description: "For single-site organisations getting started.",
     baseAv30: 50,
@@ -27,7 +35,7 @@ const planOptions = [
     tier: "starter",
   },
   {
-    code: "GROWTH_MONTHLY",
+    code: "GROWTH",
     label: "Growth",
     description: "For growing orgs with multiple groups/sites.",
     baseAv30: 200,
@@ -44,25 +52,35 @@ const planOptions = [
   },
 ] as const;
 
-type PlanCode = (typeof planOptions)[number]["code"];
-
 const clampNonNegative = (value: number | null | undefined) =>
   Math.max(0, Number.isFinite(value as number) ? Math.trunc(value as number) : 0);
 
 const warningCopy: Record<string, string> = {
-  price_not_included: "Pricing shows in checkout, not in this page.",
   mock_mode: "Running against mock data; for development only.",
   unknown_plan_code: "Plan code not recognised; caps may be incomplete.",
 };
 
+const formatAmount = (value: number) => {
+  const hasFraction = Math.abs(value % 1) > 0.000001;
+  return value.toLocaleString("en-GB", {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  });
+};
+
 export default function BuyNowPage() {
   const router = useRouter();
-  const [planCode, setPlanCode] = React.useState<PlanCode>("STARTER_MONTHLY");
-  const [extraAv30Blocks, setExtraAv30Blocks] = React.useState(0);
-  const [extraSites, setExtraSites] = React.useState(0);
-  const [extraStorageGb, setExtraStorageGb] = React.useState(0);
-  const [extraSmsMessages, setExtraSmsMessages] = React.useState(0);
-  const [extraLeaderSeats, setExtraLeaderSeats] = React.useState(0);
+  const [planTier, setPlanTier] = React.useState<(typeof planOptions)[number]["code"]>("STARTER");
+  const [billingPeriod, setBillingPeriod] = React.useState<"monthly" | "yearly">("monthly");
+  const [av30BlockCount, setAv30BlockCount] = React.useState(0);
+  const [storageChoice, setStorageChoice] = React.useState<"none" | "100" | "200" | "1000">("none");
+  const [smsBundlesCount, setSmsBundlesCount] = React.useState(0);
+  const [planPriceOverrides, setPlanPriceOverrides] = React.useState<
+    Partial<Record<PlanCode, (typeof PLAN_PRICES)[Exclude<PlanCode, "ENTERPRISE_CONTACT">]>>
+  >({});
+  const [addonPriceOverrides, setAddonPriceOverrides] = React.useState<
+    Partial<Record<keyof typeof ADDON_PRICES, { amountMajor: number; label: string }>>
+  >({});
 
   const [orgName, setOrgName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
@@ -77,17 +95,64 @@ export default function BuyNowPage() {
   const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
 
+  const planCode: PlanCode | null = React.useMemo(() => {
+    if (planTier === "ENTERPRISE_CONTACT") return "ENTERPRISE_CONTACT";
+    if (planTier === "STARTER") return billingPeriod === "monthly" ? "STARTER_MONTHLY" : "STARTER_YEARLY";
+    if (planTier === "GROWTH") return billingPeriod === "monthly" ? "GROWTH_MONTHLY" : "GROWTH_YEARLY";
+    return null;
+  }, [planTier, billingPeriod]);
+
+  React.useEffect(() => {
+    const loadPrices = async () => {
+      try {
+        const res = await fetchBillingPrices();
+        if (res?.prices?.length) {
+          const { planPrices, addonPrices } = mergeBillingPrices(
+            res.prices.map((p) => ({
+              code: p.code,
+              unitAmount: p.unitAmount,
+              interval: p.interval,
+            })),
+          );
+          setPlanPriceOverrides(planPrices);
+          setAddonPriceOverrides(addonPrices);
+        }
+      } catch (error) {
+        console.error("[buy-now] admin pricing fetch failed", error);
+        // fall back to static prices on error
+      }
+    };
+    void loadPrices();
+  }, []);
+
   const loadPreview = React.useCallback(async () => {
     setIsPreviewLoading(true);
     setPreviewError(null);
     try {
+      if (!planCode) {
+        setPreview(null);
+        setPreviewWarnings([]);
+        return;
+      }
+      const extraAv30Blocks = planCode.startsWith("GROWTH")
+        ? Math.max(0, av30BlockCount) * 2 // growth blocks are 50; backend expects blocks of 25
+        : Math.max(0, av30BlockCount);
+      const extraStorageGb =
+        storageChoice === "100"
+          ? 100
+          : storageChoice === "200"
+            ? 200
+            : storageChoice === "1000"
+              ? 1000
+              : 0;
+      const extraSmsMessages = Math.max(0, smsBundlesCount) * 1000;
       const result = await previewPlanSelection({
         planCode,
         extraAv30Blocks,
-        extraSites,
+        extraSites: 0,
         extraStorageGb,
         extraSmsMessages,
-        extraLeaderSeats,
+        extraLeaderSeats: 0,
       });
       setPreview(result);
       setPreviewWarnings(result.warnings ?? []);
@@ -104,11 +169,10 @@ export default function BuyNowPage() {
     }
   }, [
     planCode,
-    extraAv30Blocks,
-    extraSites,
-    extraStorageGb,
-    extraSmsMessages,
-    extraLeaderSeats,
+    av30BlockCount,
+    storageChoice,
+    smsBundlesCount,
+    billingPeriod,
   ]);
 
   // Debounce preview calls
@@ -120,34 +184,59 @@ export default function BuyNowPage() {
   }, [
     loadPreview,
     planCode,
-    extraAv30Blocks,
-    extraSites,
-    extraStorageGb,
-    extraSmsMessages,
-    extraLeaderSeats,
+    av30BlockCount,
+    storageChoice,
+    smsBundlesCount,
+    billingPeriod,
   ]);
 
   const handleCheckout = async () => {
     setCheckoutError(null);
-    if (!planCode || !orgName || !contactName || !contactEmail) {
+    if (!planCode || planTier === "ENTERPRISE_CONTACT") {
+      setCheckoutError("Enterprise is contact-only. Please reach out to sales.");
+      return;
+    }
+    if (!orgName || !contactName || !contactEmail) {
       setCheckoutError("Please complete required fields before continuing.");
       return;
     }
     setIsCheckoutLoading(true);
     try {
-      const origin =
-        typeof window !== "undefined" && window.location
-          ? window.location.origin
-          : "";
-      const successUrl = origin ? `${origin}/billing/buy-now?status=success` : undefined;
-      const cancelUrl = origin ? `${origin}/billing/buy-now?status=cancel` : undefined;
+      const buildRedirectUrl = (path: string) => {
+        if (typeof window === "undefined" || !window.location) return null;
+        const url = new URL(path, window.location.href);
+        if (url.hostname === "localhost") {
+          url.hostname = "127.0.0.1";
+        }
+        return url.toString();
+      };
+
+      const successUrl = buildRedirectUrl("/billing/buy-now?status=success");
+      const cancelUrl = buildRedirectUrl("/billing/buy-now?status=cancel");
+      if (!successUrl || !cancelUrl) {
+        setCheckoutError("Unable to determine redirect URLs in this environment.");
+        setIsCheckoutLoading(false);
+        return;
+      }
+      const extraAv30Blocks = planCode.startsWith("GROWTH")
+        ? Math.max(0, av30BlockCount) * 2
+        : Math.max(0, av30BlockCount);
+      const extraStorageGb =
+        storageChoice === "100"
+          ? 100
+          : storageChoice === "200"
+            ? 200
+            : storageChoice === "1000"
+              ? 1000
+              : 0;
+      const extraSmsMessages = Math.max(0, smsBundlesCount) * 1000;
       const response = await createBuyNowCheckout({
         planCode,
         extraAv30Blocks,
-        extraSites,
+        extraSites: 0,
         extraStorageGb,
         extraSmsMessages,
-        extraLeaderSeats,
+        extraLeaderSeats: 0,
         successUrl,
         cancelUrl,
         org: {
@@ -184,7 +273,61 @@ export default function BuyNowPage() {
     );
   };
 
-  const selectedPlan = planOptions.find((p) => p.code === planCode);
+  const selectedPlan = planOptions.find((p) => p.code === planTier);
+  const mergedPlanPrices = { ...PLAN_PRICES, ...planPriceOverrides };
+  const mergedAddonPrices = { ...ADDON_PRICES, ...addonPriceOverrides };
+  const storageOptions = [
+    { value: "none", meta: null, label: "No additional storage" },
+    {
+      value: "100",
+      meta: mergedAddonPrices.STORAGE_100GB_YEARLY,
+      label: mergedAddonPrices.STORAGE_100GB_YEARLY
+        ? `+100GB — £${formatAmount(mergedAddonPrices.STORAGE_100GB_YEARLY.amountMajor)} / year`
+        : "+100GB — £250 / year",
+    },
+    {
+      value: "200",
+      meta: mergedAddonPrices.STORAGE_200GB_YEARLY,
+      label: mergedAddonPrices.STORAGE_200GB_YEARLY
+        ? `+200GB — £${formatAmount(mergedAddonPrices.STORAGE_200GB_YEARLY.amountMajor)} / year`
+        : "+200GB — £450 / year",
+    },
+    {
+      value: "1000",
+      meta: mergedAddonPrices.STORAGE_1TB_YEARLY,
+      label: mergedAddonPrices.STORAGE_1TB_YEARLY
+        ? `+1TB — £${formatAmount(mergedAddonPrices.STORAGE_1TB_YEARLY.amountMajor)} / year`
+        : "+1TB — £1,500 / year",
+    },
+  ] as const;
+  const totals = planCode
+    ? calculateCartTotals(
+        {
+          planCode,
+          av30BlockCount,
+          storageChoice,
+          smsBundles1000: smsBundlesCount,
+        },
+        {
+          planPrices: mergedPlanPrices,
+          addonPrices: mergedAddonPrices,
+        },
+      )
+    : { currency: "gbp", subtotalMajor: 0, totalMajor: 0, lines: [] };
+  const planPriceLabel =
+    planCode && planCode !== "ENTERPRISE_CONTACT"
+      ? mergedPlanPrices[planCode]?.label
+      : null;
+
+  const smsAddon = mergedAddonPrices[
+    `SMS_1000_${billingPeriod === "yearly" ? "YEARLY" : "MONTHLY"}` as keyof typeof mergedAddonPrices
+  ];
+  const smsHelper =
+    smsAddon?.amountMajor !== undefined
+      ? `£${formatAmount(smsAddon.amountMajor)} per 1k SMS (${billingPeriod}).`
+      : billingPeriod === "monthly"
+        ? "£15 per 1k SMS (monthly)."
+        : "£150 per 1k SMS (yearly).";
 
   return (
     <div className="flex flex-col gap-6">
@@ -208,107 +351,138 @@ export default function BuyNowPage() {
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
         <div className="space-y-4">
           <Card title="Plan selection">
-            <div className="grid gap-3">
-              {planOptions.map((plan) => (
-                <button
-                  key={plan.code}
-                  type="button"
-                  onClick={() => {
-                    setPlanCode(plan.code);
-                    if (plan.code === "ENTERPRISE_CONTACT") {
-                      setExtraAv30Blocks(0);
-                    }
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm font-medium text-text-primary">Billing frequency:</p>
+              <div className="relative flex h-11 items-center rounded-full border border-accent-primary bg-surface px-1">
+                <span
+                  className="absolute inset-y-1 left-1 w-[50%] rounded-full bg-accent-primary text-white shadow-sm transition-transform duration-150 ease-out"
+                  style={{
+                    transform: billingPeriod === "monthly" ? "translateX(0%)" : "translateX(100%)",
                   }}
-                  className={`flex w-full items-start justify-between rounded-lg border px-4 py-3 text-left transition ${
-                    plan.code === planCode
-                      ? "border-accent ring-2 ring-accent/40"
-                      : "border-border-subtle hover:border-accent/60"
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-text-primary">
-                        {plan.label}
-                      </span>
-                      <Badge variant="secondary" size="sm">
-                        {plan.tier}
-                      </Badge>
+                />
+                {(["monthly", "yearly"] as const).map((freq) => (
+                  <button
+                    key={freq}
+                    type="button"
+                    onClick={() => setBillingPeriod(freq)}
+                    className={`relative z-10 w-24 rounded-full px-3 py-2 text-sm font-semibold transition ${
+                      billingPeriod === freq ? "text-white" : "text-text-muted hover:text-text-primary"
+                    }`}
+                  >
+                    {freq === "monthly" ? "Monthly" : "Yearly"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-3">
+              {planOptions.map((plan) => {
+                const isActive = planTier === plan.code;
+                const cardPlanCode =
+                  plan.code === "ENTERPRISE_CONTACT"
+                    ? "ENTERPRISE_CONTACT"
+                    : (plan.code === "STARTER"
+                        ? billingPeriod === "monthly"
+                          ? "STARTER_MONTHLY"
+                          : "STARTER_YEARLY"
+                        : billingPeriod === "monthly"
+                          ? "GROWTH_MONTHLY"
+                          : "GROWTH_YEARLY") as PlanCode;
+                const cardPrice = cardPlanCode !== "ENTERPRISE_CONTACT"
+                  ? PLAN_PRICES[cardPlanCode]
+                  : null;
+                return (
+                  <button
+                    key={plan.code}
+                    type="button"
+                    onClick={() => {
+                      setPlanTier(plan.code);
+                      if (plan.code === "ENTERPRISE_CONTACT") {
+                        setExtraAv30Blocks(0);
+                      }
+                    }}
+                    className={`flex w-full items-start justify-between rounded-lg border px-4 py-3 text-left transition ${
+                      isActive
+                        ? "border-accent ring-2 ring-accent/40"
+                        : "border-border-subtle hover:border-accent/60"
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-text-primary">
+                          {plan.label}
+                        </span>
+                        <Badge variant="secondary" size="sm">
+                          {plan.tier}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-text-muted">{plan.description}</p>
+                      <p className="text-xs text-text-muted">
+                        AV30 included: {plan.baseAv30 ?? "Custom"} · Sites:{" "}
+                        {plan.baseSites ?? "Custom"}
+                      </p>
+                      {cardPrice && (
+                        <p className="text-xs font-medium text-text-primary">{cardPrice.label}</p>
+                      )}
                     </div>
-                    <p className="text-xs text-text-muted">{plan.description}</p>
-                    <p className="text-xs text-text-muted">
-                      AV30 included: {plan.baseAv30 ?? "Custom"} · Sites:{" "}
-                      {plan.baseSites ?? "Custom"}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </Card>
 
           <Card title="Add-ons">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="extraAv30Blocks">Extra AV30 blocks</Label>
+                <Label htmlFor="av30Blocks">
+                  Extra AV30 blocks ({planTier === "GROWTH" ? "+50" : "+25"})
+                </Label>
                 <Input
-                  id="extraAv30Blocks"
+                  id="av30Blocks"
                   type="number"
                   min={0}
-                  value={extraAv30Blocks}
+                  value={av30BlockCount}
                   onChange={(e) =>
-                    setExtraAv30Blocks(clampNonNegative(Number(e.target.value)))
+                    setAv30BlockCount(clampNonNegative(Number(e.target.value)))
                   }
                 />
                 <p className="text-xs text-text-muted">
-                  Each block adds 25 Active People capacity.
+                  {planTier === "GROWTH"
+                    ? "Each block adds 50 Active People capacity."
+                    : "Each block adds 25 Active People capacity."}
                 </p>
               </div>
+
               <div className="space-y-1">
-                <Label htmlFor="extraSites">Additional sites</Label>
+                <Label htmlFor="smsBundles">SMS bundles (1,000 each)</Label>
                 <Input
-                  id="extraSites"
+                  id="smsBundles"
                   type="number"
                   min={0}
-                  value={extraSites}
+                  value={smsBundlesCount}
                   onChange={(e) =>
-                    setExtraSites(clampNonNegative(Number(e.target.value)))
+                    setSmsBundlesCount(clampNonNegative(Number(e.target.value)))
                   }
                 />
+                <p className="text-xs text-text-muted">{smsHelper}</p>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="extraStorageGb">Extra storage (GB)</Label>
-                <Input
-                  id="extraStorageGb"
-                  type="number"
-                  min={0}
-                  value={extraStorageGb}
-                  onChange={(e) =>
-                    setExtraStorageGb(clampNonNegative(Number(e.target.value)))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="extraSmsMessages">Extra SMS (messages)</Label>
-                <Input
-                  id="extraSmsMessages"
-                  type="number"
-                  min={0}
-                  value={extraSmsMessages}
-                  onChange={(e) =>
-                    setExtraSmsMessages(clampNonNegative(Number(e.target.value)))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="extraLeaderSeats">Extra leader seats</Label>
-                <Input
-                  id="extraLeaderSeats"
-                  type="number"
-                  min={0}
-                  value={extraLeaderSeats}
-                  onChange={(e) =>
-                    setExtraLeaderSeats(clampNonNegative(Number(e.target.value)))
-                  }
-                />
+
+              <div className="space-y-1 md:col-span-2">
+                <Label htmlFor="storageChoice">Storage (billed yearly)</Label>
+                <select
+                  id="storageChoice"
+                  value={storageChoice}
+                  onChange={(e) => setStorageChoice(e.target.value as typeof storageChoice)}
+                  className="w-full rounded-md border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary"
+                >
+                  {storageOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-text-muted">
+                  Storage add-ons are charged as yearly line items at checkout.
+                </p>
               </div>
             </div>
           </Card>
@@ -357,7 +531,7 @@ export default function BuyNowPage() {
         </div>
 
         <div className="space-y-4">
-          <Card title="Preview & summary">
+          <Card title="Preview & pricing">
             <div className="space-y-3">
               {isPreviewLoading ? (
                 <p className="text-sm text-text-muted">Loading preview…</p>
@@ -385,9 +559,35 @@ export default function BuyNowPage() {
                   <p className="text-text-muted">
                     SMS: {preview.effectiveSmsMessagesCap ?? "Not specified"}
                   </p>
-                  <p className="text-text-muted">
-                    Leader seats: {preview.effectiveLeaderSeatsIncluded ?? "Not specified"}
-                  </p>
+                  <div className="my-4 h-px bg-border-subtle" />
+                  <div className="space-y-2 text-sm">
+                    {planCode === "ENTERPRISE_CONTACT" ? (
+                      <p className="text-text-muted">Enterprise is bespoke. Contact sales.</p>
+                    ) : totals.lines.length ? (
+                      <>
+                        {totals.lines.map((line) => (
+                          <div key={line.label} className="flex items-center justify-between">
+                            <span className="text-text-primary">{line.label}</span>
+                            <span className="font-semibold">
+                              £{formatAmount(line.amountMajor)}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="my-2 h-px bg-border-subtle" />
+                        <div className="flex items-center justify-between text-base font-semibold">
+                          <span>Total</span>
+                          <span>
+                            £{formatAmount(totals.totalMajor)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-text-muted">
+                          Final price and tax confirmed on Stripe-hosted checkout. Additional storage/SMS entered here are charged per backend configuration.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-text-muted">Select a plan to see pricing.</p>
+                    )}
+                  </div>
                   {renderWarnings(previewWarnings)}
                 </div>
               ) : (

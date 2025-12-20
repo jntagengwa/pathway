@@ -1,14 +1,17 @@
 // Admin API client supports two modes:
-// - Real API: NEXT_PUBLIC_API_BASE_URL set -> all key flows hit the backend.
+// - Real API: NEXT_PUBLIC_API_URL (preferred) or NEXT_PUBLIC_API_BASE_URL set -> backend calls enabled.
 // - Mock mode: base URL missing -> safe, local-only mock data for development.
-// Production environments MUST set NEXT_PUBLIC_API_BASE_URL so mocks are disabled.
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3333";
+// Production environments MUST set NEXT_PUBLIC_API_URL (e.g., https://api.nexsteps.dev).
+const publicApiUrl =
+  process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+export const API_BASE_URL = publicApiUrl ?? "http://localhost:3333";
 
 const isUsingMockApi = (): boolean => {
   // Dev convenience: returns true when admin runs without a real API base URL.
-  // Production deployments should always set NEXT_PUBLIC_API_BASE_URL so this stays false.
-  return !process.env.NEXT_PUBLIC_API_BASE_URL;
+  // Production deployments should always set NEXT_PUBLIC_API_URL so this stays false.
+  return (
+    !process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_BASE_URL
+  );
 };
 
 export type AdminSessionRow = {
@@ -243,6 +246,35 @@ export type AdminPlanPreviewRequest = {
   extraSmsMessages?: number | null;
   extraLeaderSeats?: number | null;
   extraSites?: number | null;
+};
+
+export type AdminBillingPrices = {
+  provider: "stripe" | "fake";
+  prices: {
+    code: string;
+    priceId: string;
+    currency: string;
+    unitAmount: number;
+    interval: "month" | "year" | null;
+    intervalCount: number | null;
+    productName?: string | null;
+    description?: string | null;
+  }[];
+  warnings?: string[];
+};
+export type AdminBillingPrices = {
+  provider: "stripe" | "fake";
+  prices: {
+    code: string;
+    priceId: string;
+    currency: string;
+    unitAmount: number;
+    interval: "month" | "year" | null;
+    intervalCount: number | null;
+    productName?: string | null;
+    description?: string | null;
+  }[];
+  warnings?: string[];
 };
 
 export type AdminPlanPreview = {
@@ -2470,6 +2502,32 @@ export async function previewPlanSelection(
     },
     warnings: json.notes?.warnings ?? [],
   });
+}
+
+export async function fetchBillingPrices(): Promise<AdminBillingPrices> {
+  const useMock = isUsingMockApi();
+  if (useMock) {
+    return {
+      provider: "fake",
+      prices: [],
+      warnings: ["pricing_unavailable"],
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/billing/prices`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to load billing prices: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  return (await res.json()) as AdminBillingPrices;
 }
 
 export async function createBuyNowCheckout(
