@@ -14,6 +14,15 @@
       ],
       "@pathway/ui/*": [
         "../../packages/ui/src/*"
+      ],
+      "@/*": [
+        "./*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/app/*": [
+        "./app/*"
       ]
     },
     "allowJs": true,

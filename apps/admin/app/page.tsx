@@ -6,7 +6,7 @@ import { Badge, Button, Card } from "@pathway/ui";
 import {
   AdminAnnouncementRow,
   AdminSessionRow,
-  fetchAnnouncements,
+  // fetchAnnouncements,
   fetchRecentAnnouncements,
   fetchSessions,
 } from "../lib/api-client";
@@ -152,8 +152,8 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-xl font-semibold text-text-primary">Dashboard</h1>
         <p className="text-sm text-text-muted">
-          A quick overview of today’s sessions, attendance, notices, and safeguarding
-          metadata.
+          A quick overview of today’s sessions, attendance, notices, and
+          safeguarding metadata.
         </p>
       </div>
 
@@ -165,8 +165,8 @@ export default function DashboardPage() {
             </p>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/sessions" className="focus-visible:outline-none">
-              View all
-            </Link>
+                View all
+              </Link>
             </Button>
           </div>
           {isLoadingSessions ? (
@@ -177,16 +177,16 @@ export default function DashboardPage() {
                 <span className="font-semibold">
                   Unable to load today’s sessions
                 </span>
-                <Button size="xs" variant="secondary" onClick={loadSessions}>
+                <Button size="sm" variant="secondary" onClick={loadSessions}>
                   Retry
                 </Button>
               </div>
               <p className="text-xs text-text-muted">{sessionError}</p>
             </div>
           ) : todaysSessions.length === 0 ? (
-              <p className="text-sm text-text-muted">
-                No sessions scheduled for today.
-              </p>
+            <p className="text-sm text-text-muted">
+              No sessions scheduled for today.
+            </p>
           ) : (
             <div className="space-y-3">
               {todaysSessions.map((session) => {
@@ -202,7 +202,8 @@ export default function DashboardPage() {
                       </span>
                       <span className="text-xs text-text-muted">
                         {time ? `${time.range}` : "Time TBC"} ·{" "}
-                        {session.room || "Room TBC"} · {session.ageGroup || "Group TBC"}
+                        {session.room || "Room TBC"} ·{" "}
+                        {session.ageGroup || "Group TBC"}
                       </span>
                     </div>
                     <Badge
@@ -239,7 +240,7 @@ export default function DashboardPage() {
             <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-3 text-sm text-status-danger">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Unable to load attendance</span>
-                <Button size="xs" variant="secondary" onClick={loadSessions}>
+                <Button size="sm" variant="secondary" onClick={loadSessions}>
                   Retry
                 </Button>
               </div>
@@ -262,7 +263,8 @@ export default function DashboardPage() {
                       {item.title}
                     </p>
                     <p className="text-sm text-text-muted">
-                      {time ? `${time.range}` : "Time TBC"} · {item.room || "Room TBC"}
+                      {time ? `${time.range}` : "Time TBC"} ·{" "}
+                      {item.room || "Room TBC"}
                     </p>
                     <p className="text-xs text-text-muted">
                       {item.attendanceMarked} of {item.attendanceTotal} marked
@@ -287,13 +289,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-2">
-          <p className="text-sm text-text-muted">
-              Open concerns count will come from the safeguarding service (aggregate
-              only; no child-level detail).
-          </p>
-          <p className="text-xs text-text-muted">
-              TODO: pull aggregate open concerns count from safeguarding endpoint.
-          </p>
+            <p className="text-sm text-text-muted">
+              Open concerns count will come from the safeguarding service
+              (aggregate only; no child-level detail).
+            </p>
+            <p className="text-xs text-text-muted">
+              TODO: pull aggregate open concerns count from safeguarding
+              endpoint.
+            </p>
           </div>
         </Card>
 
@@ -304,8 +307,8 @@ export default function DashboardPage() {
             </p>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/notices" className="focus-visible:outline-none">
-              View all
-            </Link>
+                View all
+              </Link>
             </Button>
           </div>
           {isLoadingAnnouncements ? (
@@ -313,8 +316,14 @@ export default function DashboardPage() {
           ) : announcementError ? (
             <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-3 text-sm text-status-danger">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">Unable to load announcements</span>
-                <Button size="xs" variant="secondary" onClick={loadAnnouncements}>
+                <span className="font-semibold">
+                  Unable to load announcements
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={loadAnnouncements}
+                >
                   Retry
                 </Button>
               </div>

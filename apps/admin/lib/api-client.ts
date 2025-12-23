@@ -262,20 +262,6 @@ export type AdminBillingPrices = {
   }[];
   warnings?: string[];
 };
-export type AdminBillingPrices = {
-  provider: "stripe" | "fake";
-  prices: {
-    code: string;
-    priceId: string;
-    currency: string;
-    unitAmount: number;
-    interval: "month" | "year" | null;
-    intervalCount: number | null;
-    productName?: string | null;
-    description?: string | null;
-  }[];
-  warnings?: string[];
-};
 
 export type AdminPlanPreview = {
   planCode: string | null;
@@ -375,14 +361,23 @@ export type AdminLessonFormValues = {
   resources?: { label: string }[];
 };
 
-// Dev-only auth header builder.
-// Uses NEXT_PUBLIC_DEV_BEARER_TOKEN for local development.
-// Replace with real Auth0/Pathway session wiring before production.
-// Never log the token or expose it in UI.
+// Auth header builder with support for runtime token injection.
+// Preferred: NextAuth access token via setApiClientToken().
+// Dev fallback: NEXT_PUBLIC_DEV_BEARER_TOKEN (should be empty in prod).
+let accessTokenOverride: string | null = null;
+export function setApiClientToken(token?: string | null) {
+  accessTokenOverride = token ?? null;
+}
+
 function buildAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
+
+  if (accessTokenOverride) {
+    headers["Authorization"] = `Bearer ${accessTokenOverride}`;
+    return headers;
+  }
 
   const devToken = process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN;
   if (devToken) {

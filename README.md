@@ -104,6 +104,28 @@ Each app and package can have its own `.env` files. Make sure to create and conf
 
 Refer to the `.env.example` files in each directory for required variables.
 
+### Local HTTPS for API (dev)
+To run the Nest API over HTTPS on `https://api.localhost:3001` without browser certificate errors:
+
+1) Add to your `/etc/hosts`:
+   ```
+   127.0.0.1 api.localhost
+   ```
+2) Generate local certs (requires [mkcert](https://github.com/FiloSottile/mkcert)):
+   ```
+   pnpm cert:api
+   ```
+   This writes:
+   - `.cert/api.localhost.pem`
+   - `.cert/api.localhost-key.pem`
+3) In your `.env.local` (or `.env.example` for sharing defaults), set:
+   ```
+   API_DEV_SSL_CERT=.cert/api.localhost.pem
+   API_DEV_SSL_KEY=.cert/api.localhost-key.pem
+   API_HOST=api.localhost
+   ```
+4) Start the API; browse at `https://api.localhost:3001`.
+
 ## Docker Setup
 
 Build and run the Docker containers for production or development:

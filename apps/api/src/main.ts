@@ -2,9 +2,36 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
+import fs from "node:fs";
+import type { HttpsOptions } from "@nestjs/common/interfaces/external/https-options.interface";
+
+function readHttpsOptionsFromEnv(): HttpsOptions | undefined {
+  const keyPath = process.env.API_DEV_SSL_KEY ?? process.env.NEXT_DEV_SSL_KEY;
+  const certPath =
+    process.env.API_DEV_SSL_CERT ?? process.env.NEXT_DEV_SSL_CERT;
+
+  if (!keyPath || !certPath) return undefined;
+
+  if (!fs.existsSync(keyPath)) {
+    throw new Error(`HTTPS key file not found at: ${keyPath}`);
+  }
+  if (!fs.existsSync(certPath)) {
+    throw new Error(`HTTPS cert file not found at: ${certPath}`);
+  }
+
+  return {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath),
+  };
+}
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const httpsOptions = readHttpsOptionsFromEnv();
+
+  const app = await NestFactory.create(AppModule, {
+    cors: true,
+    ...(httpsOptions ? { httpsOptions } : {}),
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -17,6 +44,14 @@ async function bootstrap() {
   const port = process.env.API_PORT ? Number(process.env.API_PORT) : 3001;
   await app.listen(port);
 
-  console.log(`🚀 API listening on http://api.localhost:${port}`);
+  const host = process.env.API_HOST ?? "api.localhost";
+  const scheme = httpsOptions ? "https" : "http";
+
+  console.log(`🚀 API listening on ${scheme}://${host}:${port}`);
 }
-bootstrap();
+
+void bootstrap().catch((err: unknown) => {
+  // Fail fast in dev if HTTPS files are missing/misconfigured.
+  console.error("Failed to start API", err);
+  process.exit(1);
+});
