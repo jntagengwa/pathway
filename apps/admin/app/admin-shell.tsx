@@ -47,10 +47,15 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const pathname = usePathname() || "/";
+  const isAuthRoute = pathname === "/login";
   const title = resolveTitle(pathname);
   const { isMockApi, hasDevToken } = getDevRuntimeState();
   const showMockBanner = isMockApi;
   const showMissingTokenBanner = !isMockApi && !hasDevToken;
+
+  if (isAuthRoute) {
+    return <div className="min-h-screen bg-shell text-text-primary">{children}</div>;
+  }
 
   return (
     <div className="flex min-h-screen bg-shell text-text-primary">

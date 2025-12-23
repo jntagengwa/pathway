@@ -18,6 +18,7 @@
     "db:deploy": "pnpm --filter @pathway/db run prisma:migrate:deploy",
     "db:reset": "pnpm --filter @pathway/db run prisma:migrate:reset",
     "db:seed": "pnpm --filter @pathway/db run seed",
+    "cert:api": "mkdir -p .cert && mkcert -cert-file .cert/api.localhost.pem -key-file .cert/api.localhost-key.pem localhost 127.0.0.1 ::1 api.localhost",
     "reset": "git restore apps/**/.turbo/*.log packages/**/.turbo/*.log",
     "clean:cache": "git clean -fdX .turbo",
     "clean:all": "rm -rf node_modules .turbo && pnpm install"
