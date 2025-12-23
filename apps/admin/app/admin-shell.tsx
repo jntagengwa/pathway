@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TopBarActions } from "@/components/topbar-actions";
 import {
   SidebarNav,
   TopBar,
@@ -91,7 +92,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
         }
       />
       <div className="flex min-w-0 flex-1 flex-col bg-shell">
-        <TopBar title={title} />
+        <TopBar title={title} rightSlot={<TopBarActions />} />
         <main className="flex-1 px-8 py-6">
           <div className="mx-auto w-full max-w-5xl space-y-4">
             {showMockBanner && (
