@@ -11,6 +11,8 @@ export type Audience = "ALL" | "PARENTS" | "STAFF";
 
 @Injectable()
 export class AnnouncementsService {
+  constructor() {}
+
   async create(raw: unknown, tenantId: string) {
     const dto = await createAnnouncementDto.parseAsync(raw);
     if (dto.tenantId !== tenantId) {

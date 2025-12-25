@@ -60,6 +60,9 @@ export async function resetDatabase() {
         "Concern",
         "Child",
         "Group",
+        "SiteMembership",
+        "OrgMembership",
+        "UserIdentity",
         "UserTenantRole",
         "UserOrgRole",
         "User",
@@ -87,6 +90,9 @@ export async function resetDatabase() {
         "Concern",
         "Child",
         "Group",
+        "SiteMembership",
+        "OrgMembership",
+        "UserIdentity",
         "UserTenantRole",
         "UserOrgRole",
         "User",
@@ -107,6 +113,8 @@ export {
   SubscriptionStatus,
   BillingProvider,
   PendingOrderStatus,
+  OrgRole,
+  SiteRole,
 } from "@prisma/client";
 export { Prisma };
 

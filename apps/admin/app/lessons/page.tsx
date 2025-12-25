@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
 import { AdminLessonRow, fetchLessons } from "../../lib/api-client";
 
@@ -25,6 +26,7 @@ function formatDate(value?: string | null) {
 
 export default function LessonsPage() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [data, setData] = React.useState<AdminLessonRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -43,8 +45,11 @@ export default function LessonsPage() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void load();
+    }
+  }, [sessionStatus, session, load]);
 
   const columns = React.useMemo<ColumnDef<AdminLessonRow>[]>(
     () => [

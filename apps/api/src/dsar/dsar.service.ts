@@ -28,7 +28,8 @@ export class DsarService {
       throw new NotFoundException("Child not found");
     }
 
-    const parents = await prisma.user.findMany({
+    const parents = (
+      await prisma.user.findMany({
       where: {
         tenantId,
         children: { some: { id: childId } },
@@ -39,7 +40,11 @@ export class DsarService {
         name: true,
         hasFamilyAccess: true,
       },
-    });
+      })
+    ).map((parent) => ({
+      ...parent,
+      email: parent.email ?? "",
+    }));
 
     const attendance = await prisma.attendance.findMany({
       where: { childId },

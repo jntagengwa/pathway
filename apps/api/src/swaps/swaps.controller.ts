@@ -9,13 +9,15 @@ import {
   Query,
   BadRequestException,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import { z } from "zod";
 
 import { SwapsService } from "./swaps.service";
 import { createSwapDto, updateSwapDto } from "./dto";
 import { SwapStatus } from "@pathway/db";
-import { PathwayAuthGuard, CurrentTenant } from "@pathway/auth";
+import { CurrentTenant } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 
 const idParamSchema = z
   .string({ required_error: "id is required" })
@@ -31,9 +33,9 @@ const listQueryDto = z.object({
 export type ListQueryDto = z.infer<typeof listQueryDto>;
 
 @Controller("swaps")
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 export class SwapsController {
-  constructor(private readonly swaps: SwapsService) {}
+  constructor(@Inject(SwapsService) private readonly swaps: SwapsService) {}
 
   @Post()
   async create(

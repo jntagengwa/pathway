@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   Badge,
   Button,
@@ -27,6 +28,7 @@ function formatDate(value?: string | null) {
 }
 
 export default function NoticesPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [data, setData] = React.useState<AdminAnnouncementRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -55,8 +57,11 @@ export default function NoticesPage() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void load();
+    }
+  }, [sessionStatus, session, load]);
 
   const filteredData = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

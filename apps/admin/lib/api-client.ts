@@ -387,6 +387,55 @@ function buildAuthHeaders(): HeadersInit {
   return headers;
 }
 
+// --- Auth / Active Site helpers ---
+export type SiteOption = {
+  id: string;
+  name: string;
+  orgId: string;
+  orgName: string | null;
+  orgSlug?: string | null;
+  role?: string | null;
+};
+
+export type ActiveSiteState = {
+  activeSiteId: string | null;
+  sites: SiteOption[];
+};
+
+export async function fetchActiveSiteState(): Promise<ActiveSiteState> {
+  if (isUsingMockApi()) {
+    return { activeSiteId: null, sites: [] };
+  }
+  const response = await fetch(`${API_BASE_URL}/auth/active-site`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch active site: ${response.status}`);
+  }
+  return (await response.json()) as ActiveSiteState;
+}
+
+export async function setActiveSite(siteId: string): Promise<ActiveSiteState> {
+  if (!siteId) {
+    throw new Error("siteId is required");
+  }
+  if (isUsingMockApi()) {
+    return { activeSiteId: siteId, sites: [] };
+  }
+  const response = await fetch(`${API_BASE_URL}/auth/active-site`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ siteId }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to set active site: ${response.status}`);
+  }
+  return (await response.json()) as ActiveSiteState;
+}
+
 const getDefaultTenantId = () =>
   process.env.NEXT_PUBLIC_DEV_TENANT_ID ||
   process.env.NEXT_PUBLIC_TENANT_ID ||
@@ -2806,4 +2855,178 @@ export async function fetchStaffById(
 
   const json = (await res.json()) as ApiUser;
   return mapUserToStaffDetail(json);
+}
+
+// ========================================
+// PEOPLE & INVITES
+// ========================================
+
+export type PersonRow = {
+  id: string;
+  name: string;
+  email: string;
+  orgRole: string;
+  siteAccessSummary: {
+    allSites: boolean;
+    siteCount: number;
+  };
+};
+
+export type InviteRow = {
+  id: string;
+  email: string;
+  orgRole?: string | null;
+  siteAccessMode?: "ALL_SITES" | "SELECT_SITES" | null;
+  siteCount?: number;
+  siteRole?: string | null;
+  expiresAt: string;
+  usedAt?: string | null;
+  revokedAt?: string | null;
+  lastSentAt?: string | null;
+  status: "pending" | "used" | "expired" | "revoked";
+};
+
+export type CreateInvitePayload = {
+  email: string;
+  orgRole?: "ORG_ADMIN" | "ORG_MEMBER";
+  siteAccess?: {
+    mode: "ALL_SITES" | "SELECT_SITES";
+    siteIds?: string[];
+    role: "SITE_ADMIN" | "STAFF" | "VIEWER";
+  };
+};
+
+export type AcceptInviteResponse = {
+  activeSiteId: string | null;
+  orgId: string;
+  sites: Array<{ id: string; name: string; orgName?: string | null }>;
+};
+
+/**
+ * Fetch people (users) with access to an org
+ */
+export async function fetchPeopleForOrg(orgId: string): Promise<PersonRow[]> {
+  const res = await fetch(`${API_BASE_URL}/orgs/${orgId}/people`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch people: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as PersonRow[];
+}
+
+/**
+ * List invites for an org
+ */
+export async function fetchInvitesForOrg(
+  orgId: string,
+  status?: "pending" | "used" | "expired" | "revoked",
+): Promise<InviteRow[]> {
+  const url = new URL(`${API_BASE_URL}/orgs/${orgId}/invites`);
+  if (status) {
+    url.searchParams.set("status", status);
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch invites: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as InviteRow[];
+}
+
+/**
+ * Create a new invite
+ */
+export async function createInvite(
+  orgId: string,
+  payload: CreateInvitePayload,
+): Promise<InviteRow> {
+  const res = await fetch(`${API_BASE_URL}/orgs/${orgId}/invites`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to create invite: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as InviteRow;
+}
+
+/**
+ * Resend an invite
+ */
+export async function resendInvite(
+  orgId: string,
+  inviteId: string,
+): Promise<InviteRow> {
+  const res = await fetch(
+    `${API_BASE_URL}/orgs/${orgId}/invites/${inviteId}/resend`,
+    {
+      method: "POST",
+      headers: buildAuthHeaders(),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to resend invite: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as InviteRow;
+}
+
+/**
+ * Revoke an invite
+ */
+export async function revokeInvite(
+  orgId: string,
+  inviteId: string,
+): Promise<InviteRow> {
+  const res = await fetch(
+    `${API_BASE_URL}/orgs/${orgId}/invites/${inviteId}/revoke`,
+    {
+      method: "POST",
+      headers: buildAuthHeaders(),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to revoke invite: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as InviteRow;
+}
+
+/**
+ * Accept an invite
+ */
+export async function acceptInvite(
+  token: string,
+): Promise<AcceptInviteResponse> {
+  const res = await fetch(`${API_BASE_URL}/invites/accept`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify({ token }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to accept invite: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as AcceptInviteResponse;
 }

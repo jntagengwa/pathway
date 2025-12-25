@@ -9,11 +9,13 @@ import {
   Post,
   Query,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import { z, ZodError } from "zod";
 import { LessonsService } from "./lessons.service";
 import { createLessonDto, updateLessonDto } from "./dto";
-import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
+import { CurrentTenant } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 
 // Simple UUID validator for path params
 const idParam = z
@@ -30,10 +32,10 @@ const listQuery = z
   })
   .strict();
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("lessons")
 export class LessonsController {
-  constructor(private readonly lessons: LessonsService) {}
+  constructor(@Inject(LessonsService) private readonly lessons: LessonsService) {}
 
   @Post()
   async create(

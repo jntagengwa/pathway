@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Badge, Button, Card } from "@pathway/ui";
 import {
   AdminOrgOverview,
@@ -13,6 +14,7 @@ import {
 // This page is a human-friendly summary; avoid rendering raw config JSON, secrets, or debug dumps.
 
 export default function SettingsPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [org, setOrg] = React.useState<AdminOrgOverview | null>(null);
   const [retention, setRetention] = React.useState<AdminRetentionOverview | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -40,8 +42,11 @@ export default function SettingsPage() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void load();
+    }
+  }, [sessionStatus, session, load]);
 
   const loadingBlock = (
     <div className="space-y-2">

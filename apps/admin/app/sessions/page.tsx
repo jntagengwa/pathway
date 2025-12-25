@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Badge,
   Button,
@@ -96,6 +97,7 @@ const formatWeekRange = (start: Date) => {
 
 export default function SessionsPage() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [activeTab, setActiveTab] = React.useState<"sessions" | "rota">(
     "sessions",
   );
@@ -154,14 +156,18 @@ export default function SessionsPage() {
   );
 
   React.useEffect(() => {
-    void loadSessions();
-  }, [loadSessions]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void loadSessions();
+    }
+  }, [sessionStatus, session, loadSessions]);
 
   React.useEffect(() => {
-    if (activeTab === "rota") {
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session && activeTab === "rota") {
       void loadRota(weekStart);
     }
-  }, [activeTab, loadRota, weekStart]);
+  }, [sessionStatus, session, activeTab, loadRota, weekStart]);
 
   const columns = React.useMemo<ColumnDef<AdminSessionRow>[]>(
     () => [

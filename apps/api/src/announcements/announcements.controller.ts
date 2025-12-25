@@ -9,11 +9,13 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  Inject,
 } from "@nestjs/common";
 import { z } from "zod";
 import { AnnouncementsService, type Audience } from "./announcements.service";
 import { createAnnouncementDto, updateAnnouncementDto } from "./dto";
-import { CurrentTenant, PathwayAuthGuard, CurrentOrg } from "@pathway/auth";
+import { CurrentTenant, CurrentOrg } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
 
 const listQuery = z
@@ -25,15 +27,15 @@ const listQuery = z
 
 const idParam = z.object({ id: z.string().uuid("id must be a valid UUID") });
 
-@UseGuards(PathwayAuthGuard)
 @Controller("announcements")
 export class AnnouncementsController {
   constructor(
-    private readonly service: AnnouncementsService,
-    private readonly enforcement: EntitlementsEnforcementService,
+    @Inject(AnnouncementsService) private readonly service: AnnouncementsService,
+    @Inject(EntitlementsEnforcementService) private readonly enforcement: EntitlementsEnforcementService,
   ) {}
 
   @Post()
+  @UseGuards(AuthUserGuard)
   async create(
     @Body() body: unknown,
     @CurrentTenant("tenantId") tenantId: string,
@@ -51,6 +53,7 @@ export class AnnouncementsController {
   }
 
   @Get()
+  @UseGuards(AuthUserGuard)
   async findAll(
     @Query() query: unknown,
     @CurrentTenant("tenantId") tenantId: string,
@@ -64,6 +67,7 @@ export class AnnouncementsController {
   }
 
   @Get(":id")
+  @UseGuards(AuthUserGuard)
   async findOne(
     @Param() params: unknown,
     @CurrentTenant("tenantId") tenantId: string,
@@ -73,6 +77,7 @@ export class AnnouncementsController {
   }
 
   @Patch(":id")
+  @UseGuards(AuthUserGuard)
   async update(
     @Param() params: unknown,
     @Body() body: unknown,
@@ -91,6 +96,7 @@ export class AnnouncementsController {
   }
 
   @Delete(":id")
+  @UseGuards(AuthUserGuard)
   async remove(
     @Param() params: unknown,
     @CurrentTenant("tenantId") tenantId: string,

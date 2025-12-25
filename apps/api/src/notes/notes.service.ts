@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import type { Prisma } from "@prisma/client";
@@ -12,7 +13,7 @@ import { AuditAction, AuditEntityType } from "../audit/audit.types";
 
 @Injectable()
 export class NotesService {
-  constructor(private readonly audit: AuditService) {}
+  constructor(@Inject(AuditService) private readonly audit: AuditService) {}
 
   async create(
     dto: CreateNoteDto,

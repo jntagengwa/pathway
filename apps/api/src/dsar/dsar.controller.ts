@@ -4,9 +4,11 @@ import {
   Param,
   UseGuards,
   BadRequestException,
+  Inject,
 } from "@nestjs/common";
 import { z } from "zod";
-import { PathwayAuthGuard, CurrentTenant, UserOrgRole, UserTenantRole } from "@pathway/auth";
+import { CurrentTenant, UserOrgRole, UserTenantRole } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { SafeguardingGuard } from "../common/safeguarding/safeguarding.guard";
 import { AllowedSafeguardingRoles } from "../common/safeguarding/safeguarding.decorator";
 import { DsarService } from "./dsar.service";
@@ -18,10 +20,10 @@ const dsarRoles = {
   orgRoles: [UserOrgRole.SAFEGUARDING_LEAD, UserOrgRole.ORG_ADMIN],
 };
 
-@UseGuards(PathwayAuthGuard, SafeguardingGuard)
+@UseGuards(AuthUserGuard, SafeguardingGuard)
 @Controller("internal/dsar")
 export class DsarController {
-  constructor(private readonly dsar: DsarService) {}
+  constructor(@Inject(DsarService) private readonly dsar: DsarService) {}
 
   @Get("child/:childId")
   @AllowedSafeguardingRoles(dsarRoles)

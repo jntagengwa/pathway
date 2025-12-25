@@ -11,6 +11,8 @@ import {
   LoggingService,
   StructuredLogger,
 } from "../common/logging/logging.service";
+import { Logger } from "@nestjs/common";
+import type { LogContext } from "../common/logging/logging.service";
 
 type RegisterOrgResult = {
   org: {
@@ -45,7 +47,10 @@ export class OrgsService {
     private readonly billing: BillingService,
     logging: LoggingService,
   ) {
-    this.logger = logging.createLogger(OrgsService.name);
+    // Fallback to Nest Logger if DI fails in dev; avoids crash during bootstrap.
+    this.logger = logging
+      ? logging.createLogger(OrgsService.name)
+      : createLoggerFallback(OrgsService.name);
   }
 
   /**
@@ -250,4 +255,16 @@ export class OrgsService {
     }
     throw new BadRequestException(`Failed to register org: ${message}`);
   }
+}
+
+function createLoggerFallback(component: string): StructuredLogger {
+  const nest = new Logger(component);
+  return {
+    info: (message: string, meta?: LogContext) =>
+      nest.log(meta ? { message, ...meta } : message),
+    warn: (message: string, meta?: LogContext) =>
+      nest.warn(meta ? { message, ...meta } : message),
+    error: (message: string, meta?: LogContext, trace?: unknown) =>
+      nest.error(meta ? { message, ...meta } : message, trace as any), // eslint-disable-line @typescript-eslint/no-explicit-any
+  };
 }

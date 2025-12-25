@@ -3,22 +3,35 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
-  Scope,
 } from "@nestjs/common";
-import { PathwayRequestContext } from "@pathway/auth";
 import { withTenantRlsContext } from "@pathway/db";
 import { from, lastValueFrom } from "rxjs";
 
-@Injectable({ scope: Scope.REQUEST })
-export class TenantRlsInterceptor implements NestInterceptor {
-  constructor(private readonly requestContext: PathwayRequestContext) {}
+interface RequestWithContext {
+  __pathwayContext?: {
+    tenant?: { tenantId?: string };
+    org?: { orgId?: string };
+  };
+}
 
-  intercept(_context: ExecutionContext, next: CallHandler) {
-    const tenantId = this.requestContext.currentTenantId;
-    if (!tenantId) {
+/**
+ * RLS Interceptor that sets tenant context for database queries.
+ * Reads tenant/org from the __pathwayContext set by AuthUserGuard.
+ */
+@Injectable()
+export class TenantRlsInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler) {
+    const request = context.switchToHttp().getRequest<RequestWithContext>();
+    const pathwayContext = request.__pathwayContext;
+
+    if (!pathwayContext?.tenant?.tenantId) {
+      // No tenant context - skip RLS (e.g., for org-level or public endpoints)
       return next.handle();
     }
-    const orgId = this.requestContext.currentOrgId ?? null;
+
+    const tenantId = pathwayContext.tenant.tenantId;
+    const orgId = pathwayContext.org?.orgId || null;
+
     return from(
       withTenantRlsContext(tenantId, orgId, async () =>
         lastValueFrom(next.handle()),

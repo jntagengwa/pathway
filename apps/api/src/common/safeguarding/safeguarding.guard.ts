@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Inject,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PathwayRequestContext } from "@pathway/auth";
@@ -12,8 +13,8 @@ import type { SafeguardingRoleRequirement } from "./safeguarding.types";
 @Injectable()
 export class SafeguardingGuard implements CanActivate {
   constructor(
-    private readonly reflector: Reflector,
-    private readonly requestContext: PathwayRequestContext,
+    @Inject(Reflector) private readonly reflector: Reflector,
+    @Inject(PathwayRequestContext) private readonly requestContext: PathwayRequestContext,
   ) {}
 
   canActivate(context: ExecutionContext): boolean {

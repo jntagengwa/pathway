@@ -1,33 +1,3 @@
-// Temporarily disabled GoCardless webhook provider; placeholder for future implementation.
-import { Injectable, BadRequestException } from "@nestjs/common";
-import {
-  BillingWebhookProvider,
-  type ParsedBillingWebhookEvent,
-} from "../billing-webhook.provider";
-import { BillingProvider } from "@pathway/db";
-
-@Injectable()
-export class GoCardlessBillingWebhookProvider
-  implements BillingWebhookProvider
-{
-  async verifyAndParse(
-    body: unknown,
-    signature?: string,
-  ): Promise<ParsedBillingWebhookEvent> {
-    if (!signature && process.env.NODE_ENV === "production") {
-      throw new BadRequestException("Missing GoCardless signature");
-    }
-
-    // For now, treat all GoCardless webhooks as unknown.
-    return {
-      provider: BillingProvider.GOCARDLESS,
-      eventId: "",
-      kind: "unknown",
-      orgId: "",
-      subscriptionId: "",
-    };
-  }
-}
 import { Injectable, BadRequestException } from "@nestjs/common";
 import {
   BillingWebhookProvider,

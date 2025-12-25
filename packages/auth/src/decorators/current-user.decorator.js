@@ -1,0 +1,9 @@
+import { createParamDecorator } from "@nestjs/common";
+import { resolveAuthContext } from "./context-resolver";
+export const resolveCurrentUser = (field, ctx) => {
+    const context = resolveAuthContext(ctx);
+    if (!field)
+        return context.user;
+    return context.user[field];
+};
+export const CurrentUser = createParamDecorator(resolveCurrentUser);

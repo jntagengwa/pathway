@@ -9,11 +9,13 @@ import {
   Query,
   BadRequestException,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import { SessionsService, SessionListFilters } from "./sessions.service";
 import { CreateSessionDto } from "./dto/create-session.dto";
 import { UpdateSessionDto } from "./dto/update-session.dto";
-import { CurrentTenant, PathwayAuthGuard, CurrentOrg } from "@pathway/auth";
+import { CurrentTenant, CurrentOrg } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
 
 type IsoDateString = string; // ISO 8601 expected
@@ -36,12 +38,12 @@ function parseDateOrThrow(label: string, value?: string): Date | undefined {
 @Controller("sessions")
 export class SessionsController {
   constructor(
-    private readonly svc: SessionsService,
-    private readonly enforcement: EntitlementsEnforcementService,
+    @Inject(SessionsService) private readonly svc: SessionsService,
+    @Inject(EntitlementsEnforcementService) private readonly enforcement: EntitlementsEnforcementService,
   ) {}
 
   @Get()
-  @UseGuards(PathwayAuthGuard)
+  @UseGuards(AuthUserGuard)
   async list(
     @Query() q: SessionsQuery,
     @CurrentTenant("tenantId") tenantId: string,
@@ -56,7 +58,7 @@ export class SessionsController {
   }
 
   @Get(":id")
-  @UseGuards(PathwayAuthGuard)
+  @UseGuards(AuthUserGuard)
   async getById(
     @Param("id") id: string,
     @CurrentTenant("tenantId") tenantId: string,
@@ -65,7 +67,7 @@ export class SessionsController {
   }
 
   @Post()
-  @UseGuards(PathwayAuthGuard)
+  @UseGuards(AuthUserGuard)
   async create(
     @Body() dto: CreateSessionDto,
     @CurrentTenant("tenantId") tenantId: string,
@@ -88,7 +90,7 @@ export class SessionsController {
   }
 
   @Patch(":id")
-  @UseGuards(PathwayAuthGuard)
+  @UseGuards(AuthUserGuard)
   async update(
     @Param("id") id: string,
     @Body() dto: UpdateSessionDto,
@@ -108,7 +110,7 @@ export class SessionsController {
   }
 
   @Delete(":id")
-  @UseGuards(PathwayAuthGuard)
+  @UseGuards(AuthUserGuard)
   async delete(
     @Param("id") id: string,
     @CurrentTenant("tenantId") tenantId: string,

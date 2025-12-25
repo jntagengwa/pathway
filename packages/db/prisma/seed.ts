@@ -125,6 +125,17 @@ async function main() {
     skipDuplicates: true,
   });
 
+  // 4b) Site memberships (new auth model for tenant access)
+  await prisma.siteMembership.createMany({
+    data: [
+      { userId: admin.id, tenantId: tenant.id, role: "SITE_ADMIN" },
+      { userId: volunteerOnly.id, tenantId: tenant.id, role: "STAFF" },
+      { userId: bothSpaces.id, tenantId: tenant.id, role: "STAFF" },
+      { userId: parentOnly.id, tenantId: tenant.id, role: "VIEWER" },
+    ],
+    skipDuplicates: true,
+  });
+
   // 5) Child + guardianship (many-to-many)
   const child = await prisma.child.create({
     data: {

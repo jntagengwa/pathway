@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
 } from "@nestjs/common";
 import { withTenantRlsContext } from "@pathway/db";
 import type { Prisma } from "@prisma/client";
@@ -20,7 +21,7 @@ type ConcernFilters = {
 
 @Injectable()
 export class ConcernsService {
-  constructor(private readonly audit: AuditService) {}
+  constructor(@Inject(AuditService) private readonly audit: AuditService) {}
 
   async create(dto: CreateConcernDto, context: SafeguardingContextIds) {
     return this.withContext(context, async (tx) => {

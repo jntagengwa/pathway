@@ -7,6 +7,7 @@ import {
   Body,
   BadRequestException,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import {
@@ -17,12 +18,13 @@ import {
   updateAttendanceDto,
   UpdateAttendanceDto,
 } from "./dto/update-attendance.dto";
-import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
+import { CurrentTenant } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("attendance")
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(@Inject(AttendanceService) private readonly attendanceService: AttendanceService) {}
 
   @Get()
   async list(@CurrentTenant("tenantId") tenantId: string) {

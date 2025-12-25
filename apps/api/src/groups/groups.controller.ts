@@ -8,16 +8,18 @@ import {
   Patch,
   BadRequestException,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
-import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
+import { CurrentTenant } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { GroupsService } from "./groups.service";
 import { createGroupDto, type CreateGroupDto } from "./dto/create-group.dto";
 import { updateGroupDto, type UpdateGroupDto } from "./dto/update-group.dto";
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("groups")
 export class GroupsController {
-  constructor(private readonly groupsService: GroupsService) {}
+  constructor(@Inject(GroupsService) private readonly groupsService: GroupsService) {}
 
   @Get()
   async list(@CurrentTenant("tenantId") tenantId: string) {

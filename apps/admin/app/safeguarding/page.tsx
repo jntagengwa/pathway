@@ -5,6 +5,7 @@
 // Any change that exposes more detail must go through a safeguarding review.
 
 import React from "react";
+import { useSession } from "next-auth/react";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
 import {
   AdminConcernRow,
@@ -24,6 +25,7 @@ const statusTone: Record<
 };
 
 export default function SafeguardingPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [concerns, setConcerns] = React.useState<AdminConcernRow[]>([]);
   const [notesSummary, setNotesSummary] =
     React.useState<AdminNotesSummary | null>(null);
@@ -63,9 +65,12 @@ export default function SafeguardingPage() {
   }, []);
 
   React.useEffect(() => {
-    void loadConcerns();
-    void loadNotes();
-  }, [loadConcerns, loadNotes]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void loadConcerns();
+      void loadNotes();
+    }
+  }, [sessionStatus, session, loadConcerns, loadNotes]);
 
   const columns = React.useMemo<ColumnDef<AdminConcernRow>[]>(
     () => [

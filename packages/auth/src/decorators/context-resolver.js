@@ -1,0 +1,11 @@
+import { UnauthorizedException } from "@nestjs/common";
+import { PATHWAY_CONTEXT_PROPERTY } from "../constants";
+export function resolveAuthContext(ctx) {
+    const request = ctx
+        .switchToHttp()
+        .getRequest();
+    if (!request || !request[PATHWAY_CONTEXT_PROPERTY]) {
+        throw new UnauthorizedException("Pathway auth context missing. Ensure PathwayAuthGuard runs before decorators.");
+    }
+    return request[PATHWAY_CONTEXT_PROPERTY];
+}

@@ -12,6 +12,7 @@
     "test": "jest --config jest.config.ts --runInBand"
   },
   "dependencies": {
+    "@pathway/db": "workspace:*",
     "tslib": "^2.8.1"
   },
   "peerDependencies": {

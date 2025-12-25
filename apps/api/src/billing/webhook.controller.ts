@@ -4,6 +4,7 @@ import {
   Headers,
   HttpCode,
   Inject,
+  Logger,
   Post,
 } from "@nestjs/common";
 import {
@@ -41,9 +42,21 @@ export class BillingWebhookController {
     @Inject(BILLING_WEBHOOK_PROVIDER)
     private readonly provider: BillingWebhookProvider,
     private readonly entitlements: EntitlementsService,
-    logging: LoggingService,
+    logging?: LoggingService,
   ) {
-    this.logger = logging.createLogger(BillingWebhookController.name);
+    this.logger = logging
+      ? logging.createLogger(BillingWebhookController.name)
+      : this.createFallbackLogger();
+  }
+
+  private createFallbackLogger(): StructuredLogger {
+    const nest = new Logger(BillingWebhookController.name);
+    return {
+      info: (message: string, meta?: unknown) => nest.log(message, meta),
+      warn: (message: string, meta?: unknown) => nest.warn(message, meta),
+      error: (message: string, meta?: unknown, trace?: unknown) =>
+        nest.error(message, trace || meta),
+    };
   }
 
   @Post("webhook")

@@ -3,6 +3,7 @@ import {
   Controller,
   Post,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import {
   IsEmail,
@@ -15,7 +16,7 @@ import {
   IsUrl,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { BuyNowService } from "./buy-now.service";
 import type {
   BuyNowCheckoutResponse,
@@ -91,10 +92,10 @@ class BuyNowCheckoutRequestDto {
   cancelUrl?: string;
 }
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("billing/buy-now")
 export class BuyNowController {
-  constructor(private readonly buyNowService: BuyNowService) {}
+  constructor(@Inject(BuyNowService) private readonly buyNowService: BuyNowService) {}
 
   @Post("checkout")
   async checkout(

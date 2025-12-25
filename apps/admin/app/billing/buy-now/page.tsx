@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Badge,
   Button,
@@ -70,6 +71,7 @@ const formatAmount = (value: number) => {
 
 export default function BuyNowPage() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [planTier, setPlanTier] = React.useState<(typeof planOptions)[number]["code"]>("STARTER");
   const [billingPeriod, setBillingPeriod] = React.useState<"monthly" | "yearly">("monthly");
   const [av30BlockCount, setAv30BlockCount] = React.useState(0);
@@ -103,11 +105,14 @@ export default function BuyNowPage() {
   }, [planTier, billingPeriod]);
 
   React.useEffect(() => {
+    // Only load data when session is authenticated
+    if (sessionStatus !== "authenticated" || !session) return;
+    
     const loadPrices = async () => {
       try {
         const res = await fetchBillingPrices();
         if (res?.prices?.length) {
-          const { planPrices, addonPrices } = mergeBillingPrices(
+          const { planPrices, addonPrices} = mergeBillingPrices(
             res.prices.map((p) => ({
               code: p.code,
               unitAmount: p.unitAmount,
@@ -123,7 +128,7 @@ export default function BuyNowPage() {
       }
     };
     void loadPrices();
-  }, []);
+  }, [sessionStatus, session]);
 
   const loadPreview = React.useCallback(async () => {
     setIsPreviewLoading(true);
@@ -177,11 +182,16 @@ export default function BuyNowPage() {
 
   // Debounce preview calls
   React.useEffect(() => {
+    // Only load data when session is authenticated
+    if (sessionStatus !== "authenticated" || !session) return;
+    
     const handle = setTimeout(() => {
       void loadPreview();
     }, 300);
     return () => clearTimeout(handle);
   }, [
+    sessionStatus,
+    session,
     loadPreview,
     planCode,
     av30BlockCount,
