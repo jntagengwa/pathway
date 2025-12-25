@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { PathwayAuthModule } from "@pathway/auth";
 import { CommonModule } from "../common/common.module";
+import { AuthModule } from "../auth/auth.module";
 import { BillingService } from "./billing.service";
 import { BillingController } from "./billing.controller";
 import { EntitlementsService } from "./entitlements.service";
@@ -27,7 +28,7 @@ import {
 import { BILLING_WEBHOOK_PROVIDER } from "./billing-webhook.provider";
 
 @Module({
-  imports: [PathwayAuthModule, CommonModule],
+  imports: [PathwayAuthModule, CommonModule, AuthModule],
   controllers: [
     BillingController,
     BillingWebhookController,
@@ -64,6 +65,9 @@ import { BILLING_WEBHOOK_PROVIDER } from "./billing-webhook.provider";
     EntitlementsService,
     EntitlementsEnforcementService,
     BILLING_WEBHOOK_PROVIDER,
+    PlanPreviewService,
+    BuyNowService,
+    BillingPricingService,
   ],
 })
 export class BillingModule {}

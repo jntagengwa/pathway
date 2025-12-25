@@ -26,6 +26,7 @@ export interface OrgContext {
 export interface TenantContext {
   /**
    * Primary key for the tenant row. This is what we feed into Prisma filters + Postgres RLS.
+   * NOTE: In the admin UI this is surfaced as “Site” (Site == Tenant for RLS).
    */
   tenantId: string;
   orgId: string;
@@ -51,6 +52,10 @@ export interface AuthContext {
  */
 export interface PathwayAuthClaims {
   sub: string;
+  email?: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
   org_id?: string; // Auth0 Organisation GUID
   "https://pathway.app/user"?: {
     id?: string;
@@ -58,6 +63,7 @@ export interface PathwayAuthClaims {
     givenName?: string;
     familyName?: string;
     pictureUrl?: string;
+    lastActiveTenantId?: string;
   };
   "https://pathway.app/org"?: {
     orgId?: string;

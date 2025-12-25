@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Badge,
   Button,
@@ -14,6 +15,7 @@ import {
 import { AdminChildRow, fetchChildren } from "../../lib/api-client";
 
 export default function ChildrenPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [data, setData] = React.useState<AdminChildRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -35,8 +37,11 @@ export default function ChildrenPage() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void load();
+    }
+  }, [sessionStatus, session, load]);
 
   const ageGroups = React.useMemo(() => {
     const groups = new Set<string>();

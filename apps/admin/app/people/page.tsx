@@ -1,115 +1,194 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Badge,
   Button,
   Card,
   DataTable,
   Input,
-  Select,
   type ColumnDef,
 } from "@pathway/ui";
-import { AdminStaffRow, fetchStaff } from "../../lib/api-client";
+import {
+  fetchPeopleForOrg,
+  fetchInvitesForOrg,
+  resendInvite,
+  revokeInvite,
+  type PersonRow,
+  type InviteRow,
+} from "../../lib/api-client";
 
-const statusTone: Record<AdminStaffRow["status"], "success" | "default" | "warning"> = {
-  active: "success",
-  inactive: "default",
-  unknown: "warning",
-};
+// TODO: Get actual orgId from session/context
+const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 export default function PeoplePage() {
   const router = useRouter();
-  const [data, setData] = React.useState<AdminStaffRow[]>([]);
+  const { data: session, status: sessionStatus } = useSession();
+  const [people, setPeople] = React.useState<PersonRow[]>([]);
+  const [invites, setInvites] = React.useState<InviteRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [roleFilter, setRoleFilter] = React.useState<
-    "all" | "teacher" | "staff" | "admin" | "coordinator"
-  >("all");
+  const [activeTab, setActiveTab] = React.useState<"people" | "invites">("people");
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchStaff();
-      setData(result);
+      const [peopleData, invitesData] = await Promise.all([
+        fetchPeopleForOrg(DEMO_ORG_ID),
+        fetchInvitesForOrg(DEMO_ORG_ID, "pending"),
+      ]);
+      setPeople(peopleData);
+      setInvites(invitesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load people");
+      setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void load();
+    }
+  }, [sessionStatus, session, load]);
 
-  const filteredData = React.useMemo(() => {
+  const handleResendInvite = async (inviteId: string) => {
+    try {
+      await resendInvite(DEMO_ORG_ID, inviteId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resend invite");
+    }
+  };
+
+  const handleRevokeInvite = async (inviteId: string) => {
+    if (!confirm("Are you sure you want to revoke this invite?")) return;
+    try {
+      await revokeInvite(DEMO_ORG_ID, inviteId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to revoke invite");
+    }
+  };
+
+  const filteredPeople = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
+    if (!query) return people;
+    return people.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.email.toLowerCase().includes(query),
+    );
+  }, [people, searchQuery]);
 
-    const matchesRole = (row: AdminStaffRow) => {
-      if (roleFilter === "all") return true;
-      const rolesText = row.rolesLabel?.toLowerCase() ?? "";
-      switch (roleFilter) {
-        case "teacher":
-          return rolesText.includes("teacher");
-        case "staff":
-          return rolesText.includes("staff");
-        case "admin":
-          return rolesText.includes("admin");
-        case "coordinator":
-          return rolesText.includes("coordinator");
-        default:
-          return true;
-      }
-    };
+  const filteredInvites = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return invites;
+    return invites.filter((inv) => inv.email.toLowerCase().includes(query));
+  }, [invites, searchQuery]);
 
-    return data.filter((row) => {
-      const matchesQuery = query
-        ? (row.fullName?.toLowerCase() ?? "").includes(query)
-        : true;
-      return matchesQuery && matchesRole(row);
-    });
-  }, [data, searchQuery, roleFilter]);
-
-  const columns = React.useMemo<ColumnDef<AdminStaffRow>[]>(
+  const peopleColumns = React.useMemo<ColumnDef<PersonRow>[]>(
     () => [
       {
         id: "name",
         header: "Name",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-text-primary">{row.fullName}</span>
-            <span className="text-xs text-text-muted">{row.rolesLabel}</span>
+            <span className="font-semibold text-text-primary">{row.name}</span>
+            <span className="text-sm text-text-muted">{row.email}</span>
           </div>
         ),
       },
       {
-        id: "email",
-        header: "Email",
-        cell: (row) =>
-          row.email ? (
-            <a
-              href={`mailto:${row.email}`}
-              className="text-sm text-accent-strong underline-offset-2 hover:underline"
-            >
-              {row.email}
-            </a>
-          ) : (
-            <span className="text-sm text-text-muted">—</span>
-          ),
+        id: "orgRole",
+        header: "Org role",
+        cell: (row) => (
+          <Badge variant="default">{row.orgRole}</Badge>
+        ),
+        width: "140px",
       },
       {
-        id: "status",
-        header: "Status",
+        id: "siteAccess",
+        header: "Site access",
         cell: (row) => (
-          <Badge variant={statusTone[row.status]}>{row.status}</Badge>
+          <span className="text-sm text-text-secondary">
+            {row.siteAccessSummary.allSites
+              ? "All sites"
+              : `${row.siteAccessSummary.siteCount} site(s)`}
+          </span>
         ),
-        align: "center",
+        width: "140px",
+      },
+    ],
+    [],
+  );
+
+  const inviteColumns = React.useMemo<ColumnDef<InviteRow>[]>(
+    () => [
+      {
+        id: "email",
+        header: "Email",
+        cell: (row) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-text-primary">{row.email}</span>
+            {row.siteAccessMode && (
+              <span className="text-xs text-text-muted">
+                {row.siteAccessMode === "ALL_SITES"
+                  ? "All sites"
+                  : `${row.siteCount} site(s)`}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: "role",
+        header: "Roles",
+        cell: (row) => (
+          <div className="flex flex-col gap-1">
+            {row.orgRole && <Badge size="sm" variant="default">{row.orgRole}</Badge>}
+            {row.siteRole && <Badge size="sm" variant="accent">{row.siteRole}</Badge>}
+          </div>
+        ),
+        width: "160px",
+      },
+      {
+        id: "expires",
+        header: "Expires",
+        cell: (row) => (
+          <span className="text-sm text-text-secondary">
+            {new Date(row.expiresAt).toLocaleDateString()}
+          </span>
+        ),
         width: "120px",
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: (row) => (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleResendInvite(row.id)}
+            >
+              Resend
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleRevokeInvite(row.id)}
+            >
+              Revoke
+            </Button>
+          </div>
+        ),
+        width: "180px",
       },
     ],
     [],
@@ -117,68 +196,90 @@ export default function PeoplePage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary font-heading">
-            People & Staff
+            People
           </h1>
           <p className="text-sm text-text-muted">
-            Staff and volunteers with access to PathWay in this organisation.
+            Manage org members and site access
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm" disabled>
-            Add person
+          <Button size="sm" onClick={() => router.push("/people/invite")}>
+            + Invite person
           </Button>
         </div>
       </div>
-      <Card title="People & Staff">
-        {error ? (
-          <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold">Couldn’t load people yet.</span>
-              <Button size="sm" variant="secondary" onClick={load}>
-                Retry
-              </Button>
-            </div>
-            <p className="text-xs text-text-muted">{error}</p>
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-md border border-status-danger/30 bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
+          {error}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-border pb-0">
+        <button
+          onClick={() => setActiveTab("people")}
+          className={`pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === "people"
+              ? "border-accent text-accent"
+              : "border-transparent text-text-muted hover:text-text-primary"
+          }`}
+        >
+          People ({people.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("invites")}
+          className={`pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === "invites"
+              ? "border-accent text-accent"
+              : "border-transparent text-text-muted hover:text-text-primary"
+          }`}
+        >
+          Pending invites ({invites.length})
+        </button>
+      </div>
+
+      {/* Data Card */}
+      <Card
+        title={activeTab === "people" ? "Organisation members" : "Pending invitations"}
+        description={
+          activeTab === "people"
+            ? "Users with access to this organisation and its sites"
+            : "Invitations sent but not yet accepted"
+        }
+        toolbar={
+          <Input
+            placeholder={`Search ${activeTab}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-64"
+          />
+        }
+      >
+        {isLoading ? (
+          <div className="py-8 text-center text-sm text-text-muted">
+            Loading...
           </div>
+        ) : activeTab === "people" ? (
+          <DataTable
+            columns={peopleColumns}
+            data={filteredPeople}
+            emptyMessage="No people found. Invite someone to get started."
+          />
         ) : (
-          <>
-            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search staff…"
-                className="md:max-w-xs"
-                aria-label="Search staff"
-              />
-              <Select
-                value={roleFilter}
-                onChange={(e) =>
-                  setRoleFilter(e.target.value as typeof roleFilter)
-                }
-                className="md:w-48"
-                aria-label="Filter by role"
-              >
-                <option value="all">All roles</option>
-                <option value="teacher">Teacher</option>
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-                <option value="coordinator">Coordinator</option>
-              </Select>
-            </div>
-            <DataTable
-              data={filteredData}
-              columns={columns}
-              isLoading={isLoading}
-              emptyMessage="No staff or volunteers found for this organisation yet."
-              onRowClick={(row) => router.push(`/people/${row.id}`)}
-            />
-          </>
+          <DataTable
+            columns={inviteColumns}
+            data={filteredInvites}
+            emptyMessage="No pending invites."
+          />
         )}
       </Card>
     </div>

@@ -4,8 +4,9 @@ import {
   Controller,
   Post,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
-import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { PlanPreviewService } from "./plan-preview.service";
 import {
   type PlanPreviewRequest,
@@ -13,10 +14,10 @@ import {
   type PlanPreviewAddons,
 } from "./plan-preview.types";
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("billing/plan-preview")
 export class PlanPreviewController {
-  constructor(private readonly planPreviewService: PlanPreviewService) {}
+  constructor(@Inject(PlanPreviewService) private readonly planPreviewService: PlanPreviewService) {}
 
   @Post()
   preview(@Body() body: PlanPreviewRequest): PlanPreviewResponse {

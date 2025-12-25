@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  Inject,
 } from "@nestjs/common";
 import { AssignmentsService } from "./assignments.service";
 import { z } from "zod";
@@ -19,16 +20,17 @@ import {
   type UpdateAssignmentDto,
 } from "./dto/update-assignment.dto";
 import { AssignmentStatus, Role } from "@pathway/db";
-import { CurrentTenant, PathwayAuthGuard, CurrentOrg } from "@pathway/auth";
+import { CurrentTenant, CurrentOrg } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { UseGuards } from "@nestjs/common";
 import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("assignments")
 export class AssignmentsController {
   constructor(
-    private readonly assignmentsService: AssignmentsService,
-    private readonly enforcement: EntitlementsEnforcementService,
+    @Inject(AssignmentsService) private readonly assignmentsService: AssignmentsService,
+    @Inject(EntitlementsEnforcementService) private readonly enforcement: EntitlementsEnforcementService,
   ) {}
 
   @Post()

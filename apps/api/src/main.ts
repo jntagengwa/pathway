@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
+import cookieParser from "cookie-parser";
 import fs from "node:fs";
 import type { HttpsOptions } from "@nestjs/common/interfaces/external/https-options.interface";
 
@@ -29,9 +30,14 @@ async function bootstrap() {
   const httpsOptions = readHttpsOptionsFromEnv();
 
   const app = await NestFactory.create(AppModule, {
-    cors: true,
+    cors: {
+      origin: true,
+      credentials: true,
+    },
     ...(httpsOptions ? { httpsOptions } : {}),
   });
+
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -24,11 +24,17 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
 import { NotesModule } from "./notes/notes.module";
 import { ConcernsModule } from "./concerns/concerns.module";
 import { DsarModule } from "./dsar/dsar.module";
+import { AuthModule } from "./auth/auth.module";
+import { InvitesModule } from "./invites/invites.module";
+import { MailerModule } from "./mailer/mailer.module";
 
 @Module({
   imports: [
     CommonModule,
     HealthModule,
+    AuthModule,
+    MailerModule,
+    InvitesModule,
     TenantsModule,
     UsersModule,
     GroupsModule,

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Post, Inject } from "@nestjs/common";
 import { z } from "zod";
 import { BillingService } from "./billing.service";
 import { checkoutDto } from "./dto/checkout.dto";
@@ -27,7 +27,7 @@ const parseOrBadRequest = async <T>(
 
 @Controller("billing")
 export class BillingController {
-  constructor(private readonly service: BillingService) {}
+  constructor(@Inject(BillingService) private readonly service: BillingService) {}
 
   @Post("checkout")
   async checkout(@Body() body: unknown) {

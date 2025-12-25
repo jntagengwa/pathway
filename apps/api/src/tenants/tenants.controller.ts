@@ -5,6 +5,7 @@ import {
   Post,
   Body,
   BadRequestException,
+  Inject,
 } from "@nestjs/common";
 import { TenantsService } from "./tenants.service";
 import { createTenantDto } from "./dto/create-tenant.dto";
@@ -12,7 +13,7 @@ import type { CreateTenantDto } from "./dto/create-tenant.dto";
 
 @Controller("tenants")
 export class TenantsController {
-  constructor(private readonly svc: TenantsService) {}
+  constructor(@Inject(TenantsService) private readonly svc: TenantsService) {}
 
   @Get()
   async list() {

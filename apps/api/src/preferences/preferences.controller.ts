@@ -8,8 +8,10 @@ import {
   Patch,
   Post,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
-import { PathwayAuthGuard, CurrentTenant } from "@pathway/auth";
+import { CurrentTenant } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { PreferencesService } from "./preferences.service";
 import {
   createVolunteerPreferenceDto,
@@ -31,9 +33,9 @@ function zParseOrBadRequest<T>(schema: ZodSchema<T>, input: unknown): T {
 }
 
 @Controller("preferences")
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 export class PreferencesController {
-  constructor(private readonly preferencesService: PreferencesService) {}
+  constructor(@Inject(PreferencesService) private readonly preferencesService: PreferencesService) {}
 
   @Post()
   async create(

@@ -6,14 +6,17 @@ import {
   Scope,
   UnauthorizedException,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { DEBUG_FALLBACK_TOKEN } from "../constants";
 import { PathwayRequestContext } from "../context/pathway-request-context.service";
 import type { AuthContext, PathwayAuthClaims } from "../types/auth-context";
 import type { RequestWithAuthContext } from "../types/request-with-context";
 import { UserOrgRole, UserTenantRole } from "../types/roles";
+import { OrgRole, SiteRole, prisma } from "@pathway/db";
 
 const ORG_ROLE_VALUES = new Set(Object.values(UserOrgRole));
 const TENANT_ROLE_VALUES = new Set(Object.values(UserTenantRole));
+type DbUser = Awaited<ReturnType<typeof prisma.user.create>>;
 
 const DEFAULT_DEBUG_CLAIMS: PathwayAuthClaims = {
   sub: "debug|staff",
@@ -49,11 +52,11 @@ export class PathwayAuthGuard implements CanActivate {
 
   constructor(private readonly requestContext: PathwayRequestContext) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithAuthContext>();
 
     const claims = this.extractClaims(request);
-    const authContext = this.mapClaimsToContext(claims);
+    const authContext = await this.mapClaimsToContext(claims, request);
 
     this.requestContext.setContext(authContext);
 
@@ -128,48 +131,45 @@ export class PathwayAuthGuard implements CanActivate {
     return DEFAULT_DEBUG_CLAIMS;
   }
 
-  private mapClaimsToContext(claims: PathwayAuthClaims): AuthContext {
+  private async mapClaimsToContext(
+    claims: PathwayAuthClaims,
+    request: Request,
+  ): Promise<AuthContext> {
+    const user = await this.resolveUserFromClaims(claims);
     const userClaims = claims["https://pathway.app/user"] ?? {};
-    const orgClaims = claims["https://pathway.app/org"] ?? {};
-    const tenantClaims = claims["https://pathway.app/tenant"];
-
-    if (!tenantClaims?.tenantId) {
-      throw new UnauthorizedException("Missing tenant claim");
-    }
-
-    const orgId =
-      orgClaims.orgId ??
-      tenantClaims.orgId ??
-      claims.org_id ??
-      tenantClaims.tenantId;
-
-    const roles = {
-      org: this.parseOrgRoles(claims["https://pathway.app/org_roles"]),
-      tenant: this.parseTenantRoles(claims["https://pathway.app/tenant_roles"]),
-    };
+    const tenantCtx = await this.resolveTenantContext(user.id, claims, request);
+    const roles = await this.resolveRoles(
+      user.id,
+      tenantCtx.orgId,
+      tenantCtx.tenantId,
+      claims,
+    );
+    const orgClaims = (claims["https://pathway.app/org"] ?? {}) as NonNullable<
+      PathwayAuthClaims["https://pathway.app/org"]
+    >;
 
     return {
       user: {
-        userId: userClaims.id ?? claims.sub,
-        email: userClaims.email,
-        givenName: userClaims.givenName,
-        familyName: userClaims.familyName,
-        pictureUrl: userClaims.pictureUrl,
+        userId: user.id,
+        email: user.email ?? undefined,
+        givenName: user.displayName ?? user.name ?? undefined,
+        familyName: undefined,
+        pictureUrl: userClaims.pictureUrl ?? undefined,
         authProvider: claims.iss?.includes("auth0.com") ? "auth0" : "debug",
       },
       org: {
-        orgId,
+        orgId: tenantCtx.orgId,
         auth0OrgId: claims.org_id,
-        slug: orgClaims.slug,
-        name: orgClaims.name,
+        slug: tenantCtx.orgSlug,
+        name: tenantCtx.orgName,
         planTier: orgClaims.planTier,
       },
       tenant: {
-        tenantId: tenantClaims.tenantId,
-        orgId,
-        slug: tenantClaims.slug,
-        timezone: tenantClaims.timezone,
-        externalId: tenantClaims.externalId,
+        tenantId: tenantCtx.tenantId,
+        orgId: tenantCtx.orgId,
+        slug: tenantCtx.tenantSlug,
+        timezone: tenantCtx.tenantTimezone,
+        externalId: tenantCtx.tenantExternalId,
       },
       roles,
       permissions: this.parsePermissions(
@@ -178,6 +178,181 @@ export class PathwayAuthGuard implements CanActivate {
       rawClaims: claims,
       issuedAt: claims.iat,
       expiresAt: claims.exp,
+    };
+  }
+
+  private async resolveUserFromClaims(
+    claims: PathwayAuthClaims,
+  ): Promise<DbUser> {
+    const provider = claims.iss?.includes("auth0") ? "auth0" : "debug";
+    const subject = claims.sub;
+    if (!subject) {
+      throw new UnauthorizedException("Missing sub in token");
+    }
+
+    const userClaims = claims["https://pathway.app/user"] ?? {};
+    const email = userClaims.email ?? claims.email;
+    const name =
+      userClaims.givenName ??
+      claims.name ??
+      [userClaims.givenName, userClaims.familyName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+    const identity = await prisma.userIdentity.findUnique({
+      where: {
+        provider_providerSubject: {
+          provider,
+          providerSubject: subject,
+        },
+      },
+      include: { user: true },
+    });
+
+    if (identity?.user) {
+      const updates: Record<string, string | null | undefined> = {};
+      if (email && identity.user.email !== email) {
+        updates.email = email;
+      }
+      if (name && identity.user.displayName !== name) {
+        updates.displayName = name;
+        if (!identity.user.name) {
+          updates.name = name;
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        await prisma.user.update({
+          where: { id: identity.userId },
+          data: updates,
+        });
+      }
+      return identity.user;
+    }
+
+    const normalizedEmail = email?.trim().toLowerCase() || undefined;
+    let existingUser: DbUser | null = null;
+    if (normalizedEmail) {
+      existingUser = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: normalizedEmail,
+            mode: "insensitive",
+          },
+        },
+      });
+    }
+
+    let user: DbUser;
+    if (existingUser) {
+      user = existingUser;
+    } else {
+      try {
+        user = await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            displayName: name || undefined,
+            name: name || undefined,
+          },
+        });
+      } catch (err) {
+        const code =
+          typeof err === "object" && err !== null && "code" in err
+            ? String((err as { code?: unknown }).code)
+            : undefined;
+        if (code === "P2002" && normalizedEmail) {
+          const fallback = await prisma.user.findFirst({
+            where: {
+              email: {
+                equals: normalizedEmail,
+                mode: "insensitive",
+              },
+            },
+          });
+          if (fallback) {
+            user = fallback;
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    await prisma.userIdentity.create({
+      data: {
+        userId: user.id,
+        provider,
+        providerSubject: subject,
+        email: email ?? undefined,
+        displayName: name || undefined,
+      },
+    });
+
+    return user;
+  }
+
+  private async resolveTenantContext(
+    userId: string,
+    claims: PathwayAuthClaims,
+    request: Request,
+  ) {
+    const userClaims = claims["https://pathway.app/user"] ?? {};
+    const orgClaims = claims["https://pathway.app/org"] ?? {};
+    const tenantClaims = claims["https://pathway.app/tenant"];
+
+    const cookieTenantId = this.readCookie(request, "pw_active_site_id");
+    const cookieOrgId = this.readCookie(request, "pw_active_org_id");
+
+    const tenantId =
+      tenantClaims?.tenantId ??
+      cookieTenantId ??
+      userClaims.lastActiveTenantId ??
+      null;
+
+    if (!tenantId) {
+      throw new UnauthorizedException("No active site selected");
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, orgId: true, slug: true },
+    });
+    if (!tenant) {
+      throw new UnauthorizedException("Unknown site");
+    }
+
+    const orgId =
+      orgClaims.orgId ?? tenantClaims?.orgId ?? cookieOrgId ?? tenant.orgId;
+
+    const siteMembership = await prisma.siteMembership.findFirst({
+      where: { tenantId: tenant.id, userId },
+    });
+    if (!siteMembership) {
+      throw new UnauthorizedException(
+        "User is not a member of the active site",
+      );
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastActiveTenantId: tenant.id },
+    });
+
+    const org = await prisma.org.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, slug: true },
+    });
+
+    return {
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      tenantTimezone: tenantClaims?.timezone,
+      tenantExternalId: tenantClaims?.externalId,
+      orgId,
+      orgName: org?.name,
+      orgSlug: org?.slug ?? orgClaims.slug,
     };
   }
 
@@ -206,5 +381,67 @@ export class PathwayAuthGuard implements CanActivate {
     return claims.filter(
       (value): value is string => typeof value === "string" && value.length > 0,
     );
+  }
+
+  private readCookie(request: Request, name: string): string | null {
+    const header = request.headers?.cookie;
+    if (!header) return null;
+    const parts = header.split(";").map((part) => part.trim());
+    for (const part of parts) {
+      const [key, ...rest] = part.split("=");
+      if (key === name) {
+        return rest.join("=");
+      }
+    }
+    return null;
+  }
+
+  private async resolveRoles(
+    userId: string,
+    orgId: string,
+    tenantId: string,
+    claims: PathwayAuthClaims,
+  ) {
+    const siteMembership = await prisma.siteMembership.findFirst({
+      where: { tenantId, userId },
+    });
+    const orgMemberships = await prisma.orgMembership.findMany({
+      where: { orgId, userId },
+    });
+
+    const tenantRolesFromMembership: UserTenantRole[] = [];
+    if (siteMembership?.role === SiteRole.SITE_ADMIN) {
+      tenantRolesFromMembership.push(UserTenantRole.ADMIN);
+    } else if (siteMembership?.role === SiteRole.STAFF) {
+      tenantRolesFromMembership.push(UserTenantRole.STAFF);
+    } else if (siteMembership?.role === SiteRole.VIEWER) {
+      tenantRolesFromMembership.push(UserTenantRole.TEACHER);
+    }
+
+    const orgRolesFromMembership: UserOrgRole[] = [];
+    orgMemberships.forEach((membership: { role: OrgRole }) => {
+      if (membership.role === OrgRole.ORG_ADMIN) {
+        orgRolesFromMembership.push(UserOrgRole.ORG_ADMIN);
+      } else if (membership.role === OrgRole.ORG_BILLING) {
+        orgRolesFromMembership.push(UserOrgRole.BILLING_MANAGER);
+      } else if (membership.role === OrgRole.ORG_MEMBER) {
+        orgRolesFromMembership.push(UserOrgRole.SUPPORT);
+      }
+    });
+
+    const orgRoles = Array.from(
+      new Set([
+        ...orgRolesFromMembership,
+        ...this.parseOrgRoles(claims["https://pathway.app/org_roles"]),
+      ]),
+    );
+    const tenantRoles = Array.from(
+      new Set([
+        ...tenantRolesFromMembership,
+        ...this.parseTenantRoles(claims["https://pathway.app/tenant_roles"]),
+      ]),
+    );
+
+    return { org: orgRoles, tenant: tenantRoles };
   }
 }

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Badge,
   Button,
@@ -14,6 +15,7 @@ import {
 import { AdminParentRow, fetchParents } from "../../lib/api-client";
 
 export default function ParentsPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [data, setData] = React.useState<AdminParentRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -37,8 +39,11 @@ export default function ParentsPage() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void load();
+    }
+  }, [sessionStatus, session, load]);
 
   const filteredData = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

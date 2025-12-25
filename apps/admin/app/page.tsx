@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Badge, Button, Card } from "@pathway/ui";
 import {
   AdminAnnouncementRow,
@@ -72,6 +73,7 @@ const SkeletonRows: React.FC<{ rows?: number }> = ({ rows = 3 }) => (
 );
 
 export default function DashboardPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [sessions, setSessions] = React.useState<AdminSessionRow[]>([]);
   const [announcements, setAnnouncements] = React.useState<
     AdminAnnouncementRow[]
@@ -115,9 +117,12 @@ export default function DashboardPage() {
   }, []);
 
   React.useEffect(() => {
-    void loadSessions();
-    void loadAnnouncements();
-  }, [loadSessions, loadAnnouncements]);
+    // Only load data when session is authenticated
+    if (sessionStatus === "authenticated" && session) {
+      void loadSessions();
+      void loadAnnouncements();
+    }
+  }, [sessionStatus, session, loadSessions, loadAnnouncements]);
 
   const todaysSessions = React.useMemo(() => {
     return sessions

@@ -9,15 +9,16 @@ import {
   Query,
   BadRequestException,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import {
   CurrentOrg,
   CurrentTenant,
   CurrentUser,
-  PathwayAuthGuard,
   UserOrgRole,
   UserTenantRole,
 } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { z } from "zod";
 import { NotesService } from "./notes.service";
 import { createNoteDto, updateNoteDto } from "./dto";
@@ -47,10 +48,10 @@ const parseOrBadRequest = async <T>(
   }
 };
 
-@UseGuards(PathwayAuthGuard, SafeguardingGuard)
+@UseGuards(AuthUserGuard, SafeguardingGuard)
 @Controller("notes")
 export class NotesController {
-  constructor(private readonly service: NotesService) {}
+  constructor(@Inject(NotesService) private readonly service: NotesService) {}
 
   private buildContext(tenantId: string, orgId: string, actorUserId: string) {
     return { tenantId, orgId, actorUserId };

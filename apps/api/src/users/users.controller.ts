@@ -8,16 +8,18 @@ import {
   NotFoundException,
   BadRequestException,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
-import { CurrentTenant, PathwayAuthGuard } from "@pathway/auth";
+import { CurrentTenant } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 @Controller("users")
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(@Inject(UsersService) private readonly usersService: UsersService) {}
 
   @Get()
   async list(@CurrentTenant("tenantId") tenantId: string) {

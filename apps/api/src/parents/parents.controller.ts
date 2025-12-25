@@ -5,24 +5,25 @@ import {
   UseGuards,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from "@nestjs/common";
 import {
   CurrentOrg,
   CurrentTenant,
-  PathwayAuthGuard,
   PathwayRequestContext,
   UserOrgRole,
   UserTenantRole,
 } from "@pathway/auth";
+import { AuthUserGuard } from "../auth/auth-user.guard";
 import { ParentsService } from "./parents.service";
 import type { ParentDetailDto, ParentSummaryDto } from "./dto/parents.dto";
 
 @Controller("parents")
-@UseGuards(PathwayAuthGuard)
+@UseGuards(AuthUserGuard)
 export class ParentsController {
   constructor(
-    private readonly parentsService: ParentsService,
-    private readonly requestContext: PathwayRequestContext,
+    @Inject(ParentsService) private readonly parentsService: ParentsService,
+    @Inject(PathwayRequestContext) private readonly requestContext: PathwayRequestContext,
   ) {}
 
   @Get()
