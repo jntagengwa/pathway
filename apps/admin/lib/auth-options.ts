@@ -9,6 +9,15 @@ const apiBaseUrl =
 
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET;
 
+/**
+ * Check if a string looks like an email address.
+ */
+function isEmail(value: string | null | undefined): boolean {
+  if (!value || typeof value !== "string") return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(value.trim());
+}
+
 async function upsertIdentityToApi(payload: {
   provider: string;
   subject: string;
@@ -113,14 +122,21 @@ export const authOptions: NextAuthOptions = {
       // Auth0 handles email verification - if user is here, they're verified
       if (account?.provider === "auth0" && token.sub) {
         console.log("[🔐 AUTH] Upserting user identity to DB...");
+        const profileEmail = (profile as any)?.email ?? (token as any).email;
+        const profileName =
+          (profile as any)?.name ??
+          (profile as any)?.given_name ??
+          (token as any).name;
+        
+        // Only pass name if it exists and is NOT an email
+        // Don't pass email as name - let the API handle fallback logic
+        const safeName = profileName && !isEmail(profileName) ? profileName : undefined;
+        
         const identity = await upsertIdentityToApi({
           provider: "auth0",
           subject: token.sub,
-          email: (profile as any)?.email ?? (token as any).email,
-          name:
-            (profile as any)?.name ??
-            (profile as any)?.given_name ??
-            (token as any).name,
+          email: profileEmail,
+          name: safeName,
         });
         if (identity.userId) {
           (token as any).userId = identity.userId;

@@ -417,6 +417,45 @@ export async function fetchActiveSiteState(): Promise<ActiveSiteState> {
   return (await response.json()) as ActiveSiteState;
 }
 
+export type UserRolesResponse = {
+  userId: string;
+  orgRoles: Array<{ orgId: string; role: string }>;
+  siteRoles: Array<{ tenantId: string; role: string }>;
+  orgMemberships: Array<{ orgId: string; orgName: string; role: string }>;
+  siteMemberships: Array<{
+    tenantId: string;
+    tenantName: string;
+    orgId: string;
+    role: string;
+  }>;
+};
+
+/**
+ * Fetch user roles from the API
+ * This queries UserOrgRole, UserTenantRole, OrgMembership, and SiteMembership tables
+ */
+export async function fetchUserRoles(): Promise<UserRolesResponse> {
+  if (isUsingMockApi()) {
+    // In mock mode, return empty roles (will fall back to dev mode admin access)
+    return {
+      userId: "mock-user",
+      orgRoles: [],
+      siteRoles: [],
+      orgMemberships: [],
+      siteMemberships: [],
+    };
+  }
+  const response = await fetch(`${API_BASE_URL}/auth/active-site/roles`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user roles: ${response.status}`);
+  }
+  return (await response.json()) as UserRolesResponse;
+}
+
 export async function setActiveSite(siteId: string): Promise<ActiveSiteState> {
   if (!siteId) {
     throw new Error("siteId is required");
@@ -2863,7 +2902,8 @@ export async function fetchStaffById(
 
 export type PersonRow = {
   id: string;
-  name: string;
+  name: string; // Safe display name (computed by API)
+  displayName?: string | null; // Raw displayName from DB
   email: string;
   orgRole: string;
   siteAccessSummary: {
@@ -2888,6 +2928,7 @@ export type InviteRow = {
 
 export type CreateInvitePayload = {
   email: string;
+  name?: string;
   orgRole?: "ORG_ADMIN" | "ORG_MEMBER";
   siteAccess?: {
     mode: "ALL_SITES" | "SELECT_SITES";
@@ -2913,6 +2954,7 @@ export async function fetchPeopleForOrg(orgId: string): Promise<PersonRow[]> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    console.error("[api-client] fetchPeopleForOrg error:", res.status, body);
     throw new Error(`Failed to fetch people: ${res.status} ${body}`);
   }
 
@@ -3029,4 +3071,23 @@ export async function acceptInvite(
   }
 
   return (await res.json()) as AcceptInviteResponse;
+}
+
+/**
+ * Update current user's profile (name, displayName)
+ */
+export async function updateUserProfile(data: {
+  name?: string;
+  displayName?: string;
+}): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/users/me`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update profile: ${res.status} ${body}`);
+  }
 }

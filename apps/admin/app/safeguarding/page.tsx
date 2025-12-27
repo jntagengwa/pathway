@@ -13,6 +13,9 @@ import {
   fetchNotesSummary,
   fetchOpenConcerns,
 } from "../../lib/api-client";
+import { useAdminAccess } from "../../lib/use-admin-access";
+import { canAccessSafeguardingAdmin } from "../../lib/access";
+import { NoAccessCard } from "../../components/no-access-card";
 
 const statusTone: Record<
   AdminConcernRow["status"],
@@ -26,6 +29,7 @@ const statusTone: Record<
 
 export default function SafeguardingPage() {
   const { data: session, status: sessionStatus } = useSession();
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [concerns, setConcerns] = React.useState<AdminConcernRow[]>([]);
   const [notesSummary, setNotesSummary] =
     React.useState<AdminNotesSummary | null>(null);
@@ -34,6 +38,7 @@ export default function SafeguardingPage() {
   const [concernError, setConcernError] = React.useState<string | null>(null);
   const [notesError, setNotesError] = React.useState<string | null>(null);
 
+  // All hooks must be called before any conditional returns
   const loadConcerns = React.useCallback(async () => {
     setIsLoadingConcerns(true);
     setConcernError(null);
@@ -65,12 +70,17 @@ export default function SafeguardingPage() {
   }, []);
 
   React.useEffect(() => {
-    // Only load data when session is authenticated
-    if (sessionStatus === "authenticated" && session) {
+    // Only load data when session is authenticated and user has access
+    if (
+      sessionStatus === "authenticated" &&
+      session &&
+      !isLoadingAccess &&
+      canAccessSafeguardingAdmin(role)
+    ) {
       void loadConcerns();
       void loadNotes();
     }
-  }, [sessionStatus, session, loadConcerns, loadNotes]);
+  }, [sessionStatus, session, isLoadingAccess, role, loadConcerns, loadNotes]);
 
   const columns = React.useMemo<ColumnDef<AdminConcernRow>[]>(
     () => [
@@ -128,6 +138,25 @@ export default function SafeguardingPage() {
     ],
     [],
   );
+
+  // Access control guard - after all hooks
+  if (isLoadingAccess) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (!canAccessSafeguardingAdmin(role)) {
+    return (
+      <NoAccessCard
+        title="Safeguarding admin is not accessible"
+        message="Safeguarding concerns and notes are managed in the Nexsteps staff mobile app. This admin view is restricted to organisation administrators."
+      />
+    );
+  }
 
   const concernContent = () => {
     if (isLoadingConcerns) {
@@ -205,7 +234,7 @@ export default function SafeguardingPage() {
     if (!notesSummary) {
       return (
         <p className="text-sm text-text-muted">
-          Positive notes and pastoral records will be summarised here in a future
+              Positive notes and wellbeing records will be summarised here in a future
           update.
         </p>
       );
@@ -239,7 +268,7 @@ export default function SafeguardingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary font-heading">
-            Safeguarding & pastoral
+            Safeguarding & Wellbeing
           </h1>
           <p className="text-sm text-text-muted">
             Overview of concerns and positive notes. This page is metadata-only; detailed

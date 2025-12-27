@@ -23,7 +23,9 @@ import {
 @Injectable()
 export class BuyNowService {
   constructor(
+    @Inject(PlanPreviewService)
     private readonly planPreviewService: PlanPreviewService,
+    @Inject(BuyNowProvider)
     private readonly provider: BuyNowProvider,
     @Optional() private readonly requestContext?: PathwayRequestContext,
     @Inject(BILLING_PROVIDER_CONFIG)

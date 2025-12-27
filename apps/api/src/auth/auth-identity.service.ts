@@ -9,6 +9,15 @@ type UpsertResult = {
   displayName?: string | null;
 };
 
+/**
+ * Check if a string looks like an email address.
+ */
+function isEmail(value: string | null | undefined): boolean {
+  if (!value || typeof value !== "string") return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(value.trim());
+}
+
 @Injectable()
 export class AuthIdentityService {
   /**
@@ -39,14 +48,29 @@ export class AuthIdentityService {
         email?: string | null;
         displayName?: string | null;
         name?: string | null;
+        firstLoginAt?: Date | null;
       } = {};
       if (normalizedEmail && identity.user.email !== normalizedEmail) {
         updates.email = normalizedEmail;
       }
-      if (name && identity.user.displayName !== name) {
-        updates.displayName = name;
-        if (!identity.user.name) {
-          updates.name = name; // best-effort backfill for legacy name field
+      
+      // Track first login if not already set
+      if (!identity.user.firstLoginAt) {
+        updates.firstLoginAt = new Date();
+      }
+      
+      // Only update displayName if name is provided and is NOT an email
+      // Don't overwrite a good displayName with an email
+      const safeName = name?.trim() && !isEmail(name) ? name.trim() : null;
+      if (safeName) {
+        const currentDisplayName = identity.user.displayName?.trim();
+        // Only update if displayName is missing, empty, or equals email (auto-generated)
+        if (!currentDisplayName || currentDisplayName === identity.user.email) {
+          updates.displayName = safeName;
+        }
+        // Also update name field if it's missing
+        if (!identity.user.name?.trim()) {
+          updates.name = safeName;
         }
       }
 
@@ -57,10 +81,19 @@ export class AuthIdentityService {
         });
       }
 
+      // Return safe display name using fallback logic
+      const safeDisplayName =
+        safeName ??
+        (identity.user.displayName && !isEmail(identity.user.displayName)
+          ? identity.user.displayName
+          : identity.user.name && !isEmail(identity.user.name)
+            ? identity.user.name
+            : null);
+
       return {
         userId: identity.userId,
         email: normalizedEmail ?? identity.user.email,
-        displayName: name ?? identity.user.displayName ?? identity.user.name,
+        displayName: safeDisplayName,
       };
     }
 
@@ -73,13 +106,17 @@ export class AuthIdentityService {
         })
       : null;
 
+    // Only use name if it's not an email
+    const safeName = name?.trim() && !isEmail(name) ? name.trim() : null;
+
     const user =
       existingUser ??
       (await prisma.user.create({
         data: {
           email: normalizedEmail,
-          name,
-          displayName: name,
+          name: safeName ?? null,
+          displayName: safeName ?? null,
+          firstLoginAt: new Date(), // Mark first login for new users
         },
       }));
 
@@ -89,18 +126,71 @@ export class AuthIdentityService {
         provider,
         providerSubject: subject,
         email: normalizedEmail,
-        displayName: name,
+        displayName: safeName ?? null,
       },
     });
+
+    // If this is a new user (not existingUser), check for pending invites and mark them as used
+    if (!existingUser && normalizedEmail) {
+      await this.markPendingInvitesAsUsed(normalizedEmail, user.id);
+    }
 
     // Auto-provision site membership for new users
     await this.ensureUserHasSiteAccess(user.id);
 
+    // Return safe display name using fallback logic
+    const safeDisplayName =
+      safeName ??
+      (user.displayName && !isEmail(user.displayName)
+        ? user.displayName
+        : user.name && !isEmail(user.name)
+          ? user.name
+          : null);
+
     return {
       userId: user.id,
       email: normalizedEmail ?? user.email,
-      displayName: name ?? user.displayName ?? user.name,
+      displayName: safeDisplayName,
     };
+  }
+
+  /**
+   * Marks pending invites as used when a user signs up with an email that matches an invite.
+   * This handles the case where users sign up via Auth0 before explicitly accepting the invite.
+   */
+  private async markPendingInvitesAsUsed(
+    email: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    userId: string,
+  ): Promise<void> {
+    if (!email) return;
+
+    try {
+      const now = new Date();
+      const pendingInvites = await prisma.invite.findMany({
+        where: {
+          email: email.toLowerCase().trim(),
+          usedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        },
+      });
+
+      if (pendingInvites.length > 0) {
+        // Mark all pending invites for this email as used
+        await prisma.invite.updateMany({
+          where: {
+            id: { in: pendingInvites.map((inv) => inv.id) },
+          },
+          data: {
+            usedAt: new Date(),
+          },
+        });
+      }
+    } catch (error) {
+      // Don't fail user creation if invite marking fails
+      console.error("[AUTH] Failed to mark pending invites as used:", error);
+    }
   }
 
   /**

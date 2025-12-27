@@ -8,6 +8,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card } from "@pathway/ui";
 import { AdminBillingOverview, fetchBillingOverview } from "../../lib/api-client";
+import { useAdminAccess } from "../../lib/use-admin-access";
+import { canAccessBilling } from "../../lib/access";
+import { NoAccessCard } from "../../components/no-access-card";
+import {
+  getPlanDisplayName,
+  getPlanPriceDisplay,
+  formatRenewalDate,
+  getPlanInfo,
+} from "../../lib/plan-info";
 
 const statusTone: Record<
   AdminBillingOverview["subscriptionStatus"],
@@ -20,13 +29,22 @@ const statusTone: Record<
   NONE: "default",
 };
 
-function formatDateRange(start?: string | null, end?: string | null) {
-  if (!start || !end) return "Not available";
-  const s = new Date(start);
-  const e = new Date(end);
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return "Not available";
-  return `${s.toLocaleDateString()} → ${e.toLocaleDateString()}`;
-}
+const getStatusLabel = (status: AdminBillingOverview["subscriptionStatus"]): string => {
+  switch (status) {
+    case "ACTIVE":
+      return "Active";
+    case "TRIALING":
+      return "Trial";
+    case "PAST_DUE":
+      return "Payment issue";
+    case "CANCELED":
+      return "Canceled";
+    case "NONE":
+      return "No subscription";
+    default:
+      return status || "Unknown";
+  }
+};
 
 const ratioLabel = (current?: number | null, cap?: number | null) => {
   if (cap === null || cap === undefined || cap <= 0) return "Usage not capped";
@@ -44,6 +62,7 @@ const ratioPercent = (current?: number | null, cap?: number | null) => {
 
 export default function BillingPage() {
   const router = useRouter();
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [data, setData] = React.useState<AdminBillingOverview | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -68,6 +87,25 @@ export default function BillingPage() {
     void load();
   }, [load]);
 
+  // Access control guard
+  if (isLoadingAccess) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (!canAccessBilling(role)) {
+    return (
+      <NoAccessCard
+        title="You don't have access to billing"
+        message="Billing and subscription management is only available to organisation admins."
+      />
+    );
+  }
+
   const loadingBlock = (
     <div className="space-y-2">
       <span className="block h-3 w-32 animate-pulse rounded bg-muted" />
@@ -76,14 +114,18 @@ export default function BillingPage() {
     </div>
   );
 
+  const planInfo = data ? getPlanInfo(data.planCode) : null;
+  const planDisplayName = getPlanDisplayName(data?.planCode);
+  const priceDisplay = getPlanPriceDisplay(data?.planCode);
+
   const planCard = (
-    <Card title="Plan & Subscription">
+    <Card title="Current Plan">
       {isLoading ? (
         loadingBlock
       ) : error ? (
         <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold">Couldn’t load billing info.</span>
+            <span className="font-semibold">Couldn't load billing info.</span>
             <Button size="sm" variant="secondary" onClick={load}>
               Retry
             </Button>
@@ -91,30 +133,65 @@ export default function BillingPage() {
           <p className="text-xs text-text-muted">{error}</p>
         </div>
       ) : data ? (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-text-primary">
-              {data.planCode ?? "Unknown plan"}
-            </p>
-            <Badge variant={statusTone[data.subscriptionStatus] ?? "default"}>
-              {data.subscriptionStatus || "Unknown"}
+            <Badge variant="accent" className="text-sm">
+              Current plan
             </Badge>
           </div>
-          <p className="text-sm text-text-muted">
-            Period: {formatDateRange(data.periodStart, data.periodEnd)}
-          </p>
-          {data.cancelAtPeriodEnd ? (
-            <p className="text-xs text-warning-strong">
-              Cancels at the end of this period.
+          <div>
+            <h3 className="text-2xl font-semibold text-text-primary">
+              {planDisplayName}
+            </h3>
+            <p className="mt-1 text-lg text-text-muted">{priceDisplay}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={statusTone[data.subscriptionStatus] ?? "default"}>
+              {getStatusLabel(data.subscriptionStatus)}
+            </Badge>
+          </div>
+          {data.subscriptionStatus === "ACTIVE" && !data.cancelAtPeriodEnd && (
+            <p className="text-sm text-text-muted">
+              Renews on <strong>{formatRenewalDate(data.periodEnd)}</strong>
             </p>
-          ) : (
-            <p className="text-xs text-text-muted">Renews automatically at period end.</p>
+          )}
+          {data.cancelAtPeriodEnd && (
+            <div className="rounded-md border border-warning/20 bg-warning/5 p-3">
+              <p className="text-sm font-semibold text-warning-strong">
+                Plan canceled
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                Your subscription will end on {formatRenewalDate(data.periodEnd)}.
+                Contact support to reactivate.
+              </p>
+            </div>
+          )}
+          {data.subscriptionStatus === "PAST_DUE" && (
+            <div className="rounded-md border border-warning/20 bg-warning/5 p-3">
+              <p className="text-sm font-semibold text-warning-strong">
+                Payment issue detected
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                We'll keep your access active during a temporary grace period.
+                Please update your payment method.
+              </p>
+            </div>
+          )}
+          {planInfo && (
+            <p className="text-sm text-text-muted">
+              Includes up to {planInfo.av30Included ?? "unlimited"} active staff/volunteers (AV30)
+            </p>
           )}
         </div>
       ) : (
-        <p className="text-sm text-text-muted">
-          Billing doesn’t appear to be configured yet for this organisation.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-text-muted">
+            No active subscription found for this organisation.
+          </p>
+          <Button size="sm" onClick={() => router.push("/billing/buy-now")}>
+            Get started with a plan
+          </Button>
+        </div>
       )}
     </Card>
   );
@@ -206,7 +283,7 @@ export default function BillingPage() {
             Billing & Usage
           </h1>
           <p className="text-sm text-text-muted">
-            Plan and usage overview for this organisation. Payment details stay in your billing provider.
+            Manage your Nexsteps plan and usage for this organisation.
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={load}>
@@ -217,20 +294,29 @@ export default function BillingPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {planCard}
         {av30Card}
-        {limitsCard}
       </div>
-      <Card title="Self-serve plans">
+      {limitsCard}
+      <Card title="Change your plan">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-text-muted">
-            Upgrade from Starter to Growth or explore Enterprise options using our Buy Now flow.
+            {data?.planCode
+              ? "Upgrade to a higher tier or adjust your plan settings."
+              : "Choose a plan that fits your school or organisation."}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={() => router.push("/billing/buy-now")}>
-              Open Buy Now
-            </Button>
-            <p className="text-xs text-text-muted">
-              Plan and capacity only; pricing appears in checkout.
-            </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={() => router.push("/billing/buy-now")}>
+                {data?.planCode ? "Upgrade plan" : "Choose a plan"}
+              </Button>
+              <p className="text-xs text-text-muted">
+                Plan changes are handled securely via Stripe. You'll review pricing before confirming.
+              </p>
+            </div>
+            {data?.planCode && (
+              <p className="text-xs text-text-muted">
+                Current plan: {planDisplayName} • {priceDisplay}
+              </p>
+            )}
           </div>
         </div>
       </Card>

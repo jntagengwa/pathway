@@ -1,0 +1,13 @@
+# PathWay Local Development Reverse Proxy
+# Routes requests to web and admin apps by hostname
+
+# Admin app (https://app.localhost:3000)
+https://app.localhost:3000 {
+	reverse_proxy http://127.0.0.1:3002
+}
+
+# Marketing/web app (https://localhost:3000)
+https://localhost:3000 {
+	reverse_proxy http://127.0.0.1:3001
+}
+

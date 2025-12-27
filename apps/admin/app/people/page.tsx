@@ -19,6 +19,7 @@ import {
   type PersonRow,
   type InviteRow,
 } from "../../lib/api-client";
+import { getSafeDisplayName } from "../../lib/names";
 
 // TODO: Get actual orgId from session/context
 const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
@@ -80,9 +81,13 @@ export default function PeoplePage() {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return people;
     return people.filter(
-      (p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.email.toLowerCase().includes(query),
+      (p) => {
+        const displayName = getSafeDisplayName({ displayName: p.displayName, name: p.name, email: p.email });
+        return (
+          displayName.toLowerCase().includes(query) ||
+          p.email.toLowerCase().includes(query)
+        );
+      },
     );
   }, [people, searchQuery]);
 
@@ -99,7 +104,9 @@ export default function PeoplePage() {
         header: "Name",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-text-primary">{row.name}</span>
+            <span className="font-semibold text-text-primary">
+              {getSafeDisplayName({ displayName: row.displayName, name: row.name, email: row.email })}
+            </span>
             <span className="text-sm text-text-muted">{row.email}</span>
           </div>
         ),

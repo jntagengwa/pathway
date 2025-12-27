@@ -15,6 +15,7 @@ import {
   fetchActiveSiteState,
   setActiveSite,
 } from "@/lib/api-client";
+import { getSafeDisplayName } from "@/lib/names";
 
 type SiteState = {
   activeSiteId: string | null;
@@ -52,11 +53,14 @@ export function TopBarActions() {
 
   const siteMenuRef = React.useRef<HTMLDivElement | null>(null);
   const userMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const userMenuDropdownRef = React.useRef<HTMLDivElement | null>(null);
 
   const [siteOpen, setSiteOpen] = React.useState(false);
   const [userOpen, setUserOpen] = React.useState(false);
 
-  const userName = session?.user?.name ?? null;
+  const userDisplayName = session?.user
+    ? getSafeDisplayName(session.user)
+    : null;
   const userEmail = session?.user?.email ?? null;
 
   React.useEffect(() => {
@@ -175,7 +179,7 @@ export function TopBarActions() {
 
         {siteOpen && (
           <div
-            className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-border-subtle bg-surface shadow-lg"
+            className="absolute right-0 z-30 mt-2 w-80 rounded-xl border border-border-subtle bg-surface shadow-lg"
             role="menu"
           >
             <div className="flex items-center gap-2 px-3 pt-3 pb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
@@ -245,7 +249,9 @@ export function TopBarActions() {
           }}
           className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-accent-primary"
         >
-          <span className="hidden sm:inline">{userName ?? "Account"}</span>
+          <span className="hidden sm:inline">
+            {userDisplayName ?? "Account"}
+          </span>
           <span className="inline sm:hidden">
             <User className="h-4 w-4" />
           </span>
@@ -254,19 +260,21 @@ export function TopBarActions() {
 
         {userOpen && (
           <div
-            className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-border-subtle bg-surface shadow-lg"
+            ref={userMenuDropdownRef}
+            className="absolute right-0 top-full z-50 mt-2 w-64 -translate-x-0 rounded-xl border border-border-subtle bg-surface shadow-lg"
+            style={{ right: 0, transform: "translateX(0)" }}
             role="menu"
           >
             <div className="flex items-center gap-2 px-3 py-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-subtle text-xs font-semibold text-accent-strong">
-                {(userName ?? userEmail ?? "U")
+                {(userDisplayName ?? userEmail ?? "U")
                   .toString()
                   .slice(0, 2)
                   .toUpperCase()}
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-text-primary">
-                  {userName ?? "Signed-in user"}
+                  {userDisplayName ?? "Signed-in user"}
                 </span>
                 {userEmail && (
                   <span className="text-xs text-text-muted">{userEmail}</span>

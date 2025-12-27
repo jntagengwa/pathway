@@ -20,6 +20,10 @@ export class CreateInviteDto {
   email!: string;
 
   @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
   @IsEnum(OrgRole)
   orgRole?: OrgRole;
 

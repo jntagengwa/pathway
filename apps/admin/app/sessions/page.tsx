@@ -311,7 +311,7 @@ export default function SessionsPage() {
   const renderRotaTab = () => (
     <div className="flex flex-col gap-3">
       <Card
-        title="Staff rota"
+        title="Staff Rota"
         description="Weekly view of who is scheduled on each session."
         actions={
           <div className="flex items-center gap-2">
@@ -447,7 +447,7 @@ export default function SessionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary font-heading">
-            Sessions & Attendance
+            Sessions & Rota
           </h1>
           <p className="text-sm text-text-muted">
             Manage sessions and see who is scheduled on the rota.

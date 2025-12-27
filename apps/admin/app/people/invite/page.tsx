@@ -64,6 +64,7 @@ function StyledRadio({
 export default function InvitePersonPage() {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
+  const [name, setName] = React.useState("");
   const [orgRole, setOrgRole] = React.useState<"ORG_ADMIN" | "ORG_MEMBER" | "">(
     "",
   );
@@ -108,6 +109,10 @@ export default function InvitePersonPage() {
       const payload: CreateInvitePayload = {
         email: email.trim(),
       };
+
+      if (name.trim()) {
+        payload.name = name.trim();
+      }
 
       if (orgRole) {
         payload.orgRole = orgRole;
@@ -170,6 +175,20 @@ export default function InvitePersonPage() {
             {fieldErrors.email ? (
               <p className="text-xs text-status-danger">{fieldErrors.email}</p>
             ) : null}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="name">Name (optional)</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+            />
+            <p className="text-xs text-text-muted">
+              Optional: The person's name will be used when they accept the invite.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

@@ -9,15 +9,20 @@ import React from "react";
 import Link from "next/link";
 import { Badge, Button, Card } from "@pathway/ui";
 import { fetchAdminKpis, type AdminKpis } from "../../lib/api-client";
+import { useAdminAccess } from "../../lib/use-admin-access";
+import { canAccessAdminSection } from "../../lib/access";
+import { NoAccessCard } from "../../components/no-access-card";
 
 const numberOrDash = (value?: number | null) =>
   typeof value === "number" ? value : "—";
 
 export default function ReportsPage() {
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [kpis, setKpis] = React.useState<AdminKpis | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
+  // All hooks must be called before any conditional returns
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -35,8 +40,30 @@ export default function ReportsPage() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    // Only load data when user has access
+    if (!isLoadingAccess && canAccessAdminSection(role)) {
+      void load();
+    }
+  }, [isLoadingAccess, role, load]);
+
+  // Access control guard - after all hooks
+  if (isLoadingAccess) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (!canAccessAdminSection(role)) {
+    return (
+      <NoAccessCard
+        title="You don't have access to reports"
+        message="Reports and insights are only available to administrators."
+      />
+    );
+  }
 
   const loadingBlock = (
     <div className="space-y-2">

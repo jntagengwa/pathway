@@ -10,16 +10,21 @@ import {
   fetchOrgOverview,
   fetchRetentionOverview,
 } from "../../lib/api-client";
+import { useAdminAccess } from "../../lib/use-admin-access";
+import { canAccessAdminSection } from "../../lib/access";
+import { NoAccessCard } from "../../components/no-access-card";
 
 // This page is a human-friendly summary; avoid rendering raw config JSON, secrets, or debug dumps.
 
 export default function SettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [org, setOrg] = React.useState<AdminOrgOverview | null>(null);
   const [retention, setRetention] = React.useState<AdminRetentionOverview | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
+  // All hooks must be called before any conditional returns
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -42,11 +47,35 @@ export default function SettingsPage() {
   }, []);
 
   React.useEffect(() => {
-    // Only load data when session is authenticated
-    if (sessionStatus === "authenticated" && session) {
+    // Only load data when session is authenticated and user has access
+    if (
+      sessionStatus === "authenticated" &&
+      session &&
+      !isLoadingAccess &&
+      canAccessAdminSection(role)
+    ) {
       void load();
     }
-  }, [sessionStatus, session, load]);
+  }, [sessionStatus, session, isLoadingAccess, role, load]);
+
+  // Access control guard - after all hooks
+  if (isLoadingAccess) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (!canAccessAdminSection(role)) {
+    return (
+      <NoAccessCard
+        title="You don't have access to settings"
+        message="Organisation settings are only available to administrators."
+      />
+    );
+  }
 
   const loadingBlock = (
     <div className="space-y-2">

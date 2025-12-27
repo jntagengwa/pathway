@@ -68,8 +68,8 @@ export class AuthUserGuard implements CanActivate {
 
     // Store user info on request for downstream use
     req.authUserId = user.id;
-    req.authEmail = user.email ?? identity.email;
-    req.authDisplayName = user.displayName ?? user.name;
+    req.authEmail = user.email ?? identity.email ?? undefined;
+    req.authDisplayName = user.displayName ?? user.name ?? undefined;
 
     // Determine active tenant from cookie or user's lastActiveTenantId
     const cookieTenantId = req.cookies?.pw_active_site_id;

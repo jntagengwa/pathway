@@ -155,7 +155,9 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-xl font-semibold text-text-primary">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-text-primary font-heading">
+          Dashboard
+        </h1>
         <p className="text-sm text-text-muted">
           A quick overview of today’s sessions, attendance, notices, and
           safeguarding metadata.
