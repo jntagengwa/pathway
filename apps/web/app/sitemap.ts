@@ -1,8 +1,17 @@
 import type { MetadataRoute } from "next";
+import { getAllResources } from "../lib/resources";
 
 const baseUrl = "https://nexsteps.dev";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const resources = getAllResources();
+  const resourceUrls: MetadataRoute.Sitemap = resources.map((resource) => ({
+    url: `${baseUrl}/resources/${resource.slug}`,
+    lastModified: new Date(resource.publishedAt),
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
+
   return [
     {
       url: baseUrl,
@@ -82,6 +91,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.5,
     },
+    ...resourceUrls,
   ];
 }
 
