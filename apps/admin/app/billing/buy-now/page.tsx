@@ -17,6 +17,9 @@ import {
   createBuyNowCheckout,
   previewPlanSelection,
   fetchBillingPrices,
+  fetchOrgOverview,
+  fetchPeopleForOrg,
+  fetchActiveSiteState,
 } from "../../../lib/api-client";
 import {
   PLAN_PRICES,
@@ -88,6 +91,7 @@ export default function BuyNowPage() {
   const [contactName, setContactName] = React.useState("");
   const [contactEmail, setContactEmail] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [isLoadingOrgInfo, setIsLoadingOrgInfo] = React.useState(true);
 
   const [preview, setPreview] = React.useState<AdminPlanPreview | null>(null);
   const [previewWarnings, setPreviewWarnings] = React.useState<string[]>([]);
@@ -128,6 +132,67 @@ export default function BuyNowPage() {
       }
     };
     void loadPrices();
+  }, [sessionStatus, session]);
+
+  // Load org and owner info to pre-populate contact fields
+  React.useEffect(() => {
+    if (sessionStatus !== "authenticated" || !session) return;
+
+    const loadOrgInfo = async () => {
+      setIsLoadingOrgInfo(true);
+      try {
+        // Get current org ID from active site
+        const activeSite = await fetchActiveSiteState();
+        const currentSite = activeSite.sites.find(
+          (s) => s.id === activeSite.activeSiteId || activeSite.sites[0],
+        );
+        const orgId = currentSite?.orgId;
+
+        if (!orgId) {
+          console.warn("[buy-now] No org ID available from active site");
+          setIsLoadingOrgInfo(false);
+          return;
+        }
+
+        // Fetch org overview and people in parallel
+        const [orgOverview, people] = await Promise.all([
+          fetchOrgOverview().catch((err) => {
+            console.error("[buy-now] fetchOrgOverview failed:", err);
+            return { name: "" };
+          }),
+          fetchPeopleForOrg(orgId).catch((err) => {
+            console.error("[buy-now] fetchPeopleForOrg failed:", err);
+            return [];
+          }),
+        ]);
+
+        // Set org name
+        if (orgOverview.name) {
+          setOrgName(orgOverview.name);
+        }
+
+        // Find org admin/owner (prioritize ORG_ADMIN role)
+        const orgAdmin = people.find(
+          (p) => p.orgRole === "ORG_ADMIN" || p.orgRole === "ADMIN",
+        ) || people[0]; // Fallback to first person if no admin found
+
+        if (orgAdmin) {
+          if (orgAdmin.name) {
+            setContactName(orgAdmin.name);
+          }
+          if (orgAdmin.email) {
+            setContactEmail(orgAdmin.email);
+          }
+        }
+      } catch (error) {
+        console.error("[buy-now] Failed to load org info:", error);
+        // Don't block the form if org info fails to load
+      } finally {
+        setIsLoadingOrgInfo(false);
+      }
+    };
+
+    void loadOrgInfo();
   }, [sessionStatus, session]);
 
   const loadPreview = React.useCallback(async () => {
@@ -407,7 +472,7 @@ export default function BuyNowPage() {
                     onClick={() => {
                       setPlanTier(plan.code);
                       if (plan.code === "ENTERPRISE_CONTACT") {
-                        setExtraAv30Blocks(0);
+                        setAv30BlockCount(0);
                       }
                     }}
                     className={`flex w-full items-start justify-between rounded-lg border px-4 py-3 text-left transition ${
@@ -498,45 +563,71 @@ export default function BuyNowPage() {
           </Card>
 
           <Card title="Organisation contact">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="orgName">Organisation name</Label>
-                <Input
-                  id="orgName"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  required
-                />
+            {isLoadingOrgInfo ? (
+              <div className="space-y-2">
+                <div className="h-10 w-full animate-pulse rounded bg-muted" />
+                <div className="h-10 w-full animate-pulse rounded bg-muted" />
+                <div className="h-10 w-full animate-pulse rounded bg-muted" />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="contactName">Contact name</Label>
-                <Input
-                  id="contactName"
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                  required
-                />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="orgName">Organisation name</Label>
+                  <Input
+                    id="orgName"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    required
+                    disabled
+                    className="bg-muted/50 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-text-muted">
+                    Pre-filled from your organisation profile
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="contactName">Contact name</Label>
+                  <Input
+                    id="contactName"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    required
+                    disabled
+                    className="bg-muted/50 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-text-muted">
+                    Pre-filled from organisation admin
+                  </p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label htmlFor="contactEmail">Contact email</Label>
+                  <Input
+                    id="contactEmail"
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    required
+                    disabled
+                    className="bg-muted/50 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-text-muted">
+                    Pre-filled from organisation admin
+                  </p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any context for our team (kept internal)."
+                  />
+                  <p className="text-xs text-text-muted">
+                    We'll use the organisation and contact details above for billing and receipts.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1 md:col-span-2">
-                <Label htmlFor="contactEmail">Contact email</Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <Label htmlFor="notes">Notes (optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any context for our team (kept internal)."
-                />
-              </div>
-            </div>
+            )}
           </Card>
         </div>
 

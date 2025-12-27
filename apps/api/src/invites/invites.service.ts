@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
   Inject,
 } from "@nestjs/common";
-import { prisma, OrgRole, SiteRole, Prisma } from "@pathway/db";
+import { prisma, OrgRole, SiteRole, Role, Prisma } from "@pathway/db";
 import { createHash, randomBytes } from "crypto";
 import type { CreateInviteDto } from "./dto/create-invite.dto";
 import { MailerService } from "../mailer/mailer.service";
@@ -89,18 +89,21 @@ export class InvitesService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
+    // Note: name field added to schema - Prisma client needs regeneration after migration
+    // Using type assertion via unknown to work around Prisma client type mismatch until regeneration
     const invite = await prisma.invite.create({
       data: {
         orgId,
         createdByUserId,
         email: normalizedEmail,
+        name: dto.name?.trim() || null,
         orgRole: dto.orgRole ?? null,
         siteIdsJson,
         siteRole,
         tokenHash,
         expiresAt,
         lastSentAt: new Date(),
-      },
+      } as unknown as Prisma.InviteCreateInput,
       include: {
         org: { select: { name: true } },
         createdBy: { select: { name: true, displayName: true } },
@@ -237,35 +240,40 @@ export class InvitesService {
     orgId: string,
     status?: "pending" | "used" | "expired" | "revoked",
   ): Promise<InviteSummary[]> {
-    const now = new Date();
-    let where: Prisma.InviteWhereInput = { orgId };
+    try {
+      const now = new Date();
+      let where: Prisma.InviteWhereInput = { orgId };
 
-    if (status === "pending") {
-      where = {
-        ...where,
-        usedAt: null,
-        revokedAt: null,
-        expiresAt: { gt: now },
-      };
-    } else if (status === "used") {
-      where = { ...where, usedAt: { not: null } };
-    } else if (status === "expired") {
-      where = {
-        ...where,
-        usedAt: null,
-        revokedAt: null,
-        expiresAt: { lte: now },
-      };
-    } else if (status === "revoked") {
-      where = { ...where, revokedAt: { not: null } };
+      if (status === "pending") {
+        where = {
+          ...where,
+          usedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        };
+      } else if (status === "used") {
+        where = { ...where, usedAt: { not: null } };
+      } else if (status === "expired") {
+        where = {
+          ...where,
+          usedAt: null,
+          revokedAt: null,
+          expiresAt: { lte: now },
+        };
+      } else if (status === "revoked") {
+        where = { ...where, revokedAt: { not: null } };
+      }
+
+      const invites = await prisma.invite.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
+
+      return invites.map((inv) => this.toSummary(inv));
+    } catch (error) {
+      console.error("[INVITES] listInvites error:", error instanceof Error ? error.message : String(error));
+      throw error;
     }
-
-    const invites = await prisma.invite.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
-
-    return invites.map((inv) => this.toSummary(inv));
   }
 
   /**
@@ -308,7 +316,46 @@ export class InvitesService {
     }
 
     // Apply memberships
-    const { orgId, orgRole, siteIdsJson, siteRole } = invite;
+    // Note: name field added to schema - Prisma client needs regeneration after migration
+    const { orgId, orgRole, siteIdsJson, siteRole, name: inviteName } = invite as Prisma.InviteGetPayload<{
+      include: { org: true };
+    }> & { name?: string | null };
+
+    // Update user name from invite if provided and user doesn't have a name yet
+    if (inviteName?.trim()) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, displayName: true },
+      });
+
+      if (user) {
+        const updates: { name?: string; displayName?: string } = {};
+        
+        // Set name if it's currently null/empty
+        if (!user.name?.trim()) {
+          updates.name = inviteName.trim();
+        }
+
+        // Set displayName if it's currently null/empty OR if it equals the email (auto-generated)
+        // Don't overwrite a good displayName that the user might have set themselves
+        const currentDisplayName = user.displayName?.trim();
+        const userEmail = normalizedUserEmail;
+        if (!currentDisplayName || currentDisplayName === userEmail) {
+          updates.displayName = inviteName.trim();
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: updates,
+          });
+          console.log("[INVITE-ACCEPT] Updated user name from invite:", {
+            userId,
+            updates,
+          });
+        }
+      }
+    }
 
     console.log("[INVITE-ACCEPT] Applying memberships for invite:", {
       inviteId: invite.id,
@@ -317,6 +364,7 @@ export class InvitesService {
       orgRole,
       siteRole,
       hasSiteIdsJson: !!siteIdsJson,
+      inviteName,
     });
 
     // 1. Org membership
@@ -339,6 +387,47 @@ export class InvitesService {
       },
     });
     console.log("[INVITE-ACCEPT] ✅ OrgMembership created:", orgMembership);
+
+    // 1b. Create UserOrgRole record (for backward compatibility with older role checks)
+    // Map OrgRole enum directly (they use the same enum values)
+    if (effectiveOrgRole) {
+      try {
+        // Check if record already exists
+        const existing = await prisma.userOrgRole.findFirst({
+          where: {
+            userId,
+            orgId,
+            role: effectiveOrgRole,
+          },
+        });
+
+        if (!existing) {
+          await prisma.userOrgRole.create({
+            data: {
+              userId,
+              orgId,
+              role: effectiveOrgRole,
+            },
+          });
+          console.log("[INVITE-ACCEPT] ✅ UserOrgRole created:", {
+            userId,
+            orgId,
+            role: effectiveOrgRole,
+          });
+        } else {
+          console.log("[INVITE-ACCEPT] UserOrgRole already exists, skipping");
+        }
+      } catch (err) {
+        // Ignore duplicate errors (P2002)
+        const code =
+          typeof err === "object" && err !== null && "code" in err
+            ? String((err as { code?: unknown }).code)
+            : undefined;
+        if (code !== "P2002") {
+          console.error("[INVITE-ACCEPT] Failed to create UserOrgRole:", err);
+        }
+      }
+    }
 
     // 2. Site memberships
     let siteIds: string[] = [];
@@ -397,6 +486,48 @@ export class InvitesService {
           siteId,
           role: siteMembership.role,
         });
+
+        // 2b. Create UserTenantRole record (for backward compatibility with older role checks)
+        // Map SiteRole to Role enum
+        const tenantRole = this.mapSiteRoleToRole(effectiveSiteRole);
+        if (tenantRole) {
+          try {
+            // Check if record already exists
+            const existing = await prisma.userTenantRole.findFirst({
+              where: {
+                userId,
+                tenantId: siteId,
+                role: tenantRole,
+              },
+            });
+
+            if (!existing) {
+              await prisma.userTenantRole.create({
+                data: {
+                  userId,
+                  tenantId: siteId,
+                  role: tenantRole,
+                },
+              });
+              console.log("[INVITE-ACCEPT] ✅ UserTenantRole created:", {
+                userId,
+                tenantId: siteId,
+                role: tenantRole,
+              });
+            } else {
+              console.log("[INVITE-ACCEPT] UserTenantRole already exists, skipping");
+            }
+          } catch (err) {
+            // Ignore duplicate errors (P2002)
+            const code =
+              typeof err === "object" && err !== null && "code" in err
+                ? String((err as { code?: unknown }).code)
+                : undefined;
+            if (code !== "P2002") {
+              console.error("[INVITE-ACCEPT] Failed to create UserTenantRole:", err);
+            }
+          }
+        }
       }
     } else {
       console.warn("[INVITE-ACCEPT] ⚠️  No sites found in org - user will have no site access!");
@@ -458,11 +589,29 @@ export class InvitesService {
     return result;
   }
 
+  /**
+   * Map SiteRole to Role enum for UserTenantRole table
+   */
+  private mapSiteRoleToRole(siteRole: SiteRole): Role | null {
+    switch (siteRole) {
+      case SiteRole.SITE_ADMIN:
+        return Role.ADMIN;
+      case SiteRole.STAFF:
+        return Role.TEACHER; // STAFF maps to TEACHER in legacy Role enum
+      case SiteRole.VIEWER:
+        return Role.PARENT; // VIEWER maps to PARENT in legacy Role enum
+      default:
+        return null;
+    }
+  }
+
   private hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
   }
 
-  private toSummary(invite: Prisma.InviteGetPayload<Record<string, never>>): InviteSummary {
+  private toSummary(
+    invite: (Prisma.InviteGetPayload<Record<string, never>> | Prisma.InviteGetPayload<{ include: { org: true; createdBy: true } }>) & { name?: string | null },
+  ): InviteSummary {
     let siteAccessMode: "ALL_SITES" | "SELECT_SITES" | null = null;
     let siteCount = 0;
 

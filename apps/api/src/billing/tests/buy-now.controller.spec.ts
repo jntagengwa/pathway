@@ -1,9 +1,9 @@
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
-import { PathwayAuthGuard } from "@pathway/auth";
 import request from "supertest";
 import { BuyNowController } from "../buy-now.controller";
 import { BuyNowService } from "../buy-now.service";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import type { BuyNowCheckoutResponse } from "../buy-now.types";
 
 describe("BuyNowController", () => {
@@ -28,7 +28,7 @@ describe("BuyNowController", () => {
       controllers: [BuyNowController],
       providers: [{ provide: BuyNowService, useValue: serviceMock }],
     })
-      .overrideGuard(PathwayAuthGuard)
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

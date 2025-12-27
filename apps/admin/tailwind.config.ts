@@ -12,6 +12,7 @@ const config: Config = {
           primary: "rgb(var(--pw-accent-primary) / <alpha-value>)",
           subtle: "rgb(var(--pw-accent-subtle) / <alpha-value>)",
           strong: "rgb(var(--pw-accent-strong) / <alpha-value>)",
+          secondary: "rgb(var(--pw-accent-secondary) / <alpha-value>)",
           foreground: "rgb(var(--pw-accent-foreground) / <alpha-value>)",
         },
         text: {

@@ -180,6 +180,7 @@ export class UsersService {
       const data: Parameters<typeof prisma.user.update>[0]["data"] = {
         ...(parsed.email ? { email: parsed.email } : {}),
         ...(parsed.name ? { name: parsed.name } : {}),
+        ...(parsed.displayName !== undefined ? { displayName: parsed.displayName } : {}),
         ...(parsed.hasServeAccess !== undefined
           ? { hasServeAccess: parsed.hasServeAccess }
           : {}),
@@ -201,6 +202,7 @@ export class UsersService {
           id: true,
           email: true,
           name: true,
+          displayName: true,
           tenantId: true,
           hasServeAccess: true,
           hasFamilyAccess: true,

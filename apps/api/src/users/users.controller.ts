@@ -10,7 +10,7 @@ import {
   UseGuards,
   Inject,
 } from "@nestjs/common";
-import { CurrentTenant } from "@pathway/auth";
+import { CurrentTenant, CurrentUser } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -59,5 +59,18 @@ export class UsersController {
       throw new BadRequestException("tenantId must match current tenant");
     }
     return this.usersService.update(id, { ...dto, tenantId });
+  }
+
+  @Patch("me")
+  async updateMe(
+    @Body() dto: UpdateUserDto,
+    @CurrentUser("userId") userId: string,
+  ) {
+    // For "me" endpoint, only allow updating name and displayName (not tenantId, email, etc.)
+    const allowedFields: UpdateUserDto = {};
+    if (dto.name !== undefined) allowedFields.name = dto.name;
+    if (dto.displayName !== undefined) allowedFields.displayName = dto.displayName;
+
+    return this.usersService.update(userId, allowedFields);
   }
 }

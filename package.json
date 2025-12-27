@@ -4,6 +4,12 @@
   "packageManager": "pnpm@9.7.0",
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @pathway/web dev",
+    "dev:admin": "pnpm --filter @pathway/admin dev",
+    "dev:api": "pnpm --filter @pathway/api dev",
+    "dev:apps": "pnpm dev:web & pnpm dev:admin",
+    "dev:proxy": "caddy run --config Caddyfile.dev",
+    "dev:all": "pnpm dev:apps & pnpm dev:proxy",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

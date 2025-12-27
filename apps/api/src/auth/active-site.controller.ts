@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { prisma, OrgRole, SiteRole } from "@pathway/db";
+import { prisma, OrgRole, SiteRole, Role } from "@pathway/db";
 import { AuthUserGuard } from "./auth-user.guard";
 
 interface AuthenticatedRequest extends Request {
@@ -159,6 +159,104 @@ export class ActiveSiteController {
     });
 
     return result;
+  }
+
+  @UseGuards(AuthUserGuard)
+  @Get("roles")
+  async getUserRoles(@Req() req: AuthenticatedRequest) {
+    const userId = req.authUserId;
+    if (!userId) {
+      throw new UnauthorizedException("Missing authenticated user");
+    }
+
+    // Get user's org memberships to determine org roles
+    const orgMemberships = await prisma.orgMembership.findMany({
+      where: { userId },
+      include: { org: { select: { id: true, name: true } } },
+    });
+
+    // Get user's site memberships to determine site roles
+    const siteMemberships = await prisma.siteMembership.findMany({
+      where: { userId },
+      include: { tenant: { select: { id: true, name: true, orgId: true } } },
+    });
+
+    // Also check legacy UserOrgRole and UserTenantRole tables for backward compatibility
+    const userOrgRoles = await prisma.userOrgRole.findMany({
+      where: { userId },
+      include: { org: { select: { id: true, name: true } } },
+    });
+
+    const userTenantRoles = await prisma.userTenantRole.findMany({
+      where: { userId },
+      include: { tenant: { select: { id: true, name: true, orgId: true } } },
+    });
+
+    // Combine org roles from both sources
+    const orgRoles = new Map<string, OrgRole>();
+    orgMemberships.forEach((m) => {
+      orgRoles.set(m.orgId, m.role);
+    });
+    userOrgRoles.forEach((r) => {
+      // Only set if not already present (memberships take precedence)
+      if (!orgRoles.has(r.orgId)) {
+        orgRoles.set(r.orgId, r.role);
+      }
+    });
+
+    // Combine site roles from both sources
+    const siteRoles = new Map<string, SiteRole>();
+    siteMemberships.forEach((m) => {
+      siteRoles.set(m.tenantId, m.role);
+    });
+    userTenantRoles.forEach((r) => {
+      // Map legacy Role enum to SiteRole
+      const mappedRole = this.mapRoleToSiteRole(r.role);
+      if (mappedRole && !siteRoles.has(r.tenantId)) {
+        siteRoles.set(r.tenantId, mappedRole);
+      }
+    });
+
+    return {
+      userId,
+      orgRoles: Array.from(orgRoles.entries()).map(([orgId, role]) => ({
+        orgId,
+        role,
+      })),
+      siteRoles: Array.from(siteRoles.entries()).map(([tenantId, role]) => ({
+        tenantId,
+        role,
+      })),
+      // Include full membership details for convenience
+      orgMemberships: orgMemberships.map((m) => ({
+        orgId: m.orgId,
+        orgName: m.org.name,
+        role: m.role,
+      })),
+      siteMemberships: siteMemberships.map((m) => ({
+        tenantId: m.tenantId,
+        tenantName: m.tenant.name,
+        orgId: m.tenant.orgId,
+        role: m.role,
+      })),
+    };
+  }
+
+  /**
+   * Map legacy Role enum to SiteRole enum
+   */
+  private mapRoleToSiteRole(role: Role): SiteRole | null {
+    switch (role) {
+      case Role.ADMIN:
+        return SiteRole.SITE_ADMIN;
+      case Role.TEACHER:
+      case Role.COORDINATOR:
+        return SiteRole.STAFF;
+      case Role.PARENT:
+        return SiteRole.VIEWER;
+      default:
+        return null;
+    }
   }
 
   private setActiveSiteCookies(

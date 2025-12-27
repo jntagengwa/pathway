@@ -191,6 +191,7 @@ model User {
   children         Child[]               @relation("ParentChildren")
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
+  firstLoginAt     DateTime?                // Track when user first logs in (for onboarding)
   hasServeAccess   Boolean               @default(false)
   hasFamilyAccess  Boolean               @default(false)
   roles            UserTenantRole[]
@@ -267,6 +268,7 @@ model Invite {
   createdByUserId String
   createdBy       User   @relation("InviteCreatedBy", fields: [createdByUserId], references: [id])
   email           String // normalized to lowercase
+  name            String? // Optional name for the invitee
 
   // Org-level role (optional, if granting org access)
   orgRole OrgRole?

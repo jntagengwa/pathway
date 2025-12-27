@@ -21,6 +21,7 @@ const config: Config = {
   setupFilesAfterEnv: ["<rootDir>/test.setup.ts"],
   testMatch: ["**/tests/**/*.spec.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+  testTimeout: 10000, // Increase timeout for tests that may need database setup
 };
 
 export default config;
