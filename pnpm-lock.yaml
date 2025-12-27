@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@pathway/db':
+        specifier: workspace:*
+        version: link:packages/db
       resend:
         specifier: ^6.6.0
         version: 6.6.0
