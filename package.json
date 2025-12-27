@@ -52,6 +52,7 @@
   },
   "dependencies": {
     "@pathway/db": "workspace:*",
+    "@pathway/pricing": "workspace:*",
     "resend": "^6.6.0"
   }
 }

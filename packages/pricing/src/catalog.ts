@@ -1,0 +1,278 @@
+import type { PlanCode, PlanDefinition, PlanTier, PricingFaq } from "./types";
+
+/**
+ * Single source of truth for Nexsteps pricing plans.
+ * Plan codes align with apps/api/src/billing/billing-plans.ts to prevent drift.
+ */
+export const PLANS: Readonly<Record<PlanCode, PlanDefinition>> = {
+  STARTER_MONTHLY: {
+    code: "STARTER_MONTHLY",
+    tier: "starter",
+    displayName: "Starter",
+    tagline: "Perfect for single-site organisations getting started",
+    billingPeriod: "monthly",
+    pricePerMonth: 149,
+    currency: "GBP",
+    selfServe: true,
+    av30Included: 50,
+    maxSitesIncluded: 1,
+    features: [
+      "Up to 50 active staff/volunteers",
+      "1 site included",
+      "Attendance tracking",
+      "Rota and timetable management",
+      "Safeguarding notes and concerns",
+      "Parent communication",
+      "Mobile app access",
+      "GDPR-compliant data handling",
+    ],
+    addons: [
+      {
+        label: "Extra Active People",
+        description: "Add +25 Active People blocks for £39/month or £390/year",
+      },
+      {
+        label: "Storage",
+        description: "Additional storage available (100GB, 200GB, or 1TB packs)",
+      },
+      {
+        label: "SMS bundles",
+        description: "Add SMS messaging bundles (1,000 messages per bundle)",
+      },
+    ],
+    notes: [
+      "No setup fees",
+      "Cancel any time before your next renewal",
+      "You keep control of your data; we support exports if you need to move away",
+    ],
+    bestFor: "Single-site schools, clubs, and organisations getting started with Nexsteps",
+  },
+  STARTER_YEARLY: {
+    code: "STARTER_YEARLY",
+    tier: "starter",
+    displayName: "Starter",
+    tagline: "Perfect for single-site organisations getting started",
+    billingPeriod: "yearly",
+    pricePerYear: 1490,
+    currency: "GBP",
+    selfServe: true,
+    av30Included: 50,
+    maxSitesIncluded: 1,
+    features: [
+      "Up to 50 active staff/volunteers",
+      "1 site included",
+      "Attendance tracking",
+      "Rota and timetable management",
+      "Safeguarding notes and concerns",
+      "Parent communication",
+      "Mobile app access",
+      "GDPR-compliant data handling",
+    ],
+    addons: [
+      {
+        label: "Extra Active People",
+        description: "Add +25 Active People blocks for £39/month or £390/year",
+      },
+      {
+        label: "Storage",
+        description: "Additional storage available (100GB, 200GB, or 1TB packs)",
+      },
+      {
+        label: "SMS bundles",
+        description: "Add SMS messaging bundles (1,000 messages per bundle)",
+      },
+    ],
+    notes: [
+      "No setup fees",
+      "Cancel any time before your next renewal",
+      "You keep control of your data; we support exports if you need to move away",
+    ],
+    bestFor: "Single-site schools, clubs, and organisations getting started with Nexsteps",
+  },
+  GROWTH_MONTHLY: {
+    code: "GROWTH_MONTHLY",
+    tier: "growth",
+    displayName: "Growth",
+    tagline: "For growing organisations with multiple groups or sites",
+    billingPeriod: "monthly",
+    pricePerMonth: 399,
+    currency: "GBP",
+    selfServe: true,
+    av30Included: 200,
+    maxSitesIncluded: 3,
+    features: [
+      "Up to 200 active staff/volunteers",
+      "3 sites included",
+      "Everything in Starter",
+      "Multi-site management",
+      "Advanced reporting",
+      "Priority support",
+      "Custom onboarding",
+    ],
+    addons: [
+      {
+        label: "Extra Active People",
+        description: "Add +50 Active People blocks for £59/month or £590/year",
+      },
+      {
+        label: "Storage",
+        description: "Additional storage available (100GB, 200GB, or 1TB packs)",
+      },
+      {
+        label: "SMS bundles",
+        description: "Add SMS messaging bundles (1,000 messages per bundle)",
+      },
+      {
+        label: "Additional sites",
+        description: "Add more sites beyond the included 3",
+      },
+    ],
+    notes: [
+      "No setup fees",
+      "Cancel any time before your next renewal",
+      "You keep control of your data; we support exports if you need to move away",
+    ],
+    bestFor: "Multi-site academies, trusts, and growing organisations",
+  },
+  GROWTH_YEARLY: {
+    code: "GROWTH_YEARLY",
+    tier: "growth",
+    displayName: "Growth",
+    tagline: "For growing organisations with multiple groups or sites",
+    billingPeriod: "yearly",
+    pricePerYear: 3990,
+    currency: "GBP",
+    selfServe: true,
+    av30Included: 200,
+    maxSitesIncluded: 3,
+    features: [
+      "Up to 200 active staff/volunteers",
+      "3 sites included",
+      "Everything in Starter",
+      "Multi-site management",
+      "Advanced reporting",
+      "Priority support",
+      "Custom onboarding",
+    ],
+    addons: [
+      {
+        label: "Extra Active People",
+        description: "Add +50 Active People blocks for £59/month or £590/year",
+      },
+      {
+        label: "Storage",
+        description: "Additional storage available (100GB, 200GB, or 1TB packs)",
+      },
+      {
+        label: "SMS bundles",
+        description: "Add SMS messaging bundles (1,000 messages per bundle)",
+      },
+      {
+        label: "Additional sites",
+        description: "Add more sites beyond the included 3",
+      },
+    ],
+    notes: [
+      "No setup fees",
+      "Cancel any time before your next renewal",
+      "You keep control of your data; we support exports if you need to move away",
+    ],
+    bestFor: "Multi-site academies, trusts, and growing organisations",
+  },
+  ENTERPRISE_CONTACT: {
+    code: "ENTERPRISE_CONTACT",
+    tier: "enterprise",
+    displayName: "Enterprise",
+    tagline: "Custom plans and onboarding for large organisations",
+    billingPeriod: "contact",
+    currency: "GBP",
+    selfServe: false,
+    av30Included: null,
+    maxSitesIncluded: null,
+    features: [
+      "Unlimited active staff/volunteers",
+      "Unlimited sites",
+      "Everything in Growth",
+      "Dedicated account manager",
+      "Custom integrations",
+      "SLA guarantees",
+      "On-site training",
+      "Custom retention policies",
+    ],
+    notes: [
+      "Tailored pricing based on your needs",
+      "Flexible contract terms",
+      "Priority support and dedicated resources",
+    ],
+    bestFor: "Large multi-academy trusts, large charities, and organisations with complex requirements",
+  },
+} as const;
+
+/**
+ * Ordered list of plan codes for marketing display.
+ * Monthly plans first, then yearly, then enterprise.
+ */
+export const orderedPlanCodes: PlanCode[] = [
+  "STARTER_MONTHLY",
+  "GROWTH_MONTHLY",
+  "STARTER_YEARLY",
+  "GROWTH_YEARLY",
+  "ENTERPRISE_CONTACT",
+];
+
+/**
+ * Get plans grouped by tier for easier display.
+ */
+export function getPlansByTier(): Record<PlanTier, PlanDefinition[]> {
+  return {
+    starter: [PLANS.STARTER_MONTHLY, PLANS.STARTER_YEARLY],
+    growth: [PLANS.GROWTH_MONTHLY, PLANS.GROWTH_YEARLY],
+    enterprise: [PLANS.ENTERPRISE_CONTACT],
+  };
+}
+
+/**
+ * Get self-serve plans only (excludes Enterprise contact).
+ */
+export function getSelfServePlans(): PlanDefinition[] {
+  return Object.values(PLANS).filter((plan) => plan.selfServe);
+}
+
+export const PRICING_FAQS: PricingFaq[] = [
+  {
+    question: "Are there any hidden fees?",
+    answer:
+      "No. The price you see is the price you pay. There are no setup fees, no per-user fees beyond your plan's included Active People, and no surprise charges. Add-ons (extra Active People, storage, SMS) are clearly priced and optional.",
+  },
+  {
+    question: "Can I cancel my subscription?",
+    answer:
+      "Yes. You can cancel your subscription at any time before your next renewal. You'll continue to have access until the end of your current billing period, and you can export your data at any time.",
+  },
+  {
+    question: "What happens to my data if I cancel?",
+    answer:
+      "You keep control of your data. You can export all your data at any time through the admin interface. We support Data Subject Access Requests (DSARs) and can provide exports in standard formats. After cancellation, data is retained according to your organisation's retention policy, then securely deleted.",
+  },
+  {
+    question: "What are Active People (AV30)?",
+    answer:
+      "Active People (AV30) are unique staff or volunteer users who have been active in the last 30 days. Activity includes being scheduled on a rota, responding to assignments, or recording attendance. Only staff/volunteer roles count toward AV30; parents do not.",
+  },
+  {
+    question: "Can I change plans later?",
+    answer:
+      "Yes. You can upgrade or downgrade your plan at any time. When you upgrade, you'll be charged a prorated amount for the remainder of your billing period. When you downgrade, changes take effect at your next renewal.",
+  },
+  {
+    question: "Do you offer discounts for annual billing?",
+    answer:
+      "Yes. Annual plans are priced at approximately 10 months of monthly billing, giving you 2 months free when you pay annually upfront.",
+  },
+  {
+    question: "What's included in each plan?",
+    answer:
+      "All plans include core features: attendance tracking, rota management, safeguarding workflows, parent communication, mobile app access, and GDPR-compliant data handling. Starter includes 50 Active People and 1 site. Growth includes 200 Active People and 3 sites. Enterprise is customised to your needs.",
+  },
+];
+

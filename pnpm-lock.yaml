@@ -11,6 +11,9 @@ importers:
       '@pathway/db':
         specifier: workspace:*
         version: link:packages/db
+      '@pathway/pricing':
+        specifier: workspace:*
+        version: link:packages/pricing
       resend:
         specifier: ^6.6.0
         version: 6.6.0
@@ -211,6 +214,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@pathway/pricing':
+        specifier: workspace:*
+        version: link:../../packages/pricing
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -334,6 +340,8 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
+
+  packages/pricing: {}
 
   packages/types: {}
 
