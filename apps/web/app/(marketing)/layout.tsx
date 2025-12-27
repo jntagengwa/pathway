@@ -1,4 +1,6 @@
 import Link from "next/link";
+import AnalyticsProvider from "../../components/analytics-provider";
+import HeaderNav from "../../components/header-nav";
 
 export default function MarketingLayout({
   children,
@@ -7,55 +9,13 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <AnalyticsProvider />
       <header className="border-b border-pw-border bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <Link href="/" className="text-lg font-semibold text-pw-text">
             Nexsteps
           </Link>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/schools"
-              className="text-sm text-pw-text-muted transition hover:text-pw-text"
-            >
-              Schools
-            </Link>
-            <Link
-              href="/clubs"
-              className="text-sm text-pw-text-muted transition hover:text-pw-text"
-            >
-              Clubs
-            </Link>
-            <Link
-              href="/churches"
-              className="text-sm text-pw-text-muted transition hover:text-pw-text"
-            >
-              Churches
-            </Link>
-            <Link
-              href="/charities"
-              className="text-sm text-pw-text-muted transition hover:text-pw-text"
-            >
-              Charities
-            </Link>
-            <Link
-              href="/pricing"
-              className="text-sm text-pw-text-muted transition hover:text-pw-text"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/resources"
-              className="text-sm text-pw-text-muted transition hover:text-pw-text"
-            >
-              Resources
-            </Link>
-            <Link
-              href="/demo"
-              className="rounded-md bg-pw-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
-            >
-              Book a demo
-            </Link>
-          </div>
+          <HeaderNav />
         </nav>
       </header>
       <main className="flex-1">{children}</main>

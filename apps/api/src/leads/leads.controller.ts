@@ -5,6 +5,7 @@ import {
   BadRequestException,
   HttpCode,
   HttpStatus,
+  Inject,
 } from "@nestjs/common";
 import { LeadsService } from "./leads.service";
 import {
@@ -18,7 +19,7 @@ import {
 
 @Controller("leads")
 export class LeadsController {
-  constructor(private readonly leadsService: LeadsService) {}
+  constructor(@Inject(LeadsService) private readonly leadsService: LeadsService) {}
 
   @Post("demo")
   @HttpCode(HttpStatus.OK)

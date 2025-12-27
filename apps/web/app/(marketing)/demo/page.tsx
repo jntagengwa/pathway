@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { createDemoLead } from "../../../lib/leads-client";
 import type { CreateDemoLeadPayload } from "../../../lib/leads-client";
+import { track } from "../../../lib/analytics";
+import { getFirstTouchAttribution } from "../../../lib/attribution";
 
 const sectors = ["schools", "clubs", "churches", "charities"] as const;
 const roles = [
@@ -60,6 +62,15 @@ export default function DemoPage() {
       };
 
       await createDemoLead(payload);
+      
+      // Track demo submission
+      const attribution = getFirstTouchAttribution();
+      track({
+        type: "demo_submit",
+        sector: sector || null,
+        utm: attribution?.utm,
+      });
+      
       setSubmitStatus("success");
       // Reset form
       setName("");

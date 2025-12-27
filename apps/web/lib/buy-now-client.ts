@@ -9,8 +9,7 @@
  * customer portal), but for now we only redirect to Stripe-hosted Checkout.
  */
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3333";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
 export type PlanPreviewResponse = {
   planCode: string;
@@ -102,7 +101,9 @@ export async function previewPlanSelection(
   return (await res.json()) as PlanPreviewResponse;
 }
 
-export async function createCheckoutSession(payload: BuyNowCheckoutPayload): Promise<{
+export async function createCheckoutSession(
+  payload: BuyNowCheckoutPayload,
+): Promise<{
   sessionId: string;
   sessionUrl: string;
   warnings?: string[];
@@ -171,4 +172,3 @@ export async function fetchPublicBillingPrices(): Promise<PublicBillingPrices> {
 
   return (await res.json()) as PublicBillingPrices;
 }
-

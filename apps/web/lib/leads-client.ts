@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3333";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
 export type CreateDemoLeadPayload = {
   name: string;
@@ -93,4 +92,3 @@ export async function createTrialLead(
 
   return (await res.json()) as { success: boolean; id: string };
 }
-

@@ -1,14 +1,22 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { PLANS, PRICING_FAQS } from "@pathway/pricing";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Pricing",
-  description:
-    "Choose the right Nexsteps plan for your organisation. Transparent pricing with flexible options for schools, clubs, churches, and charities.",
-};
+import { useEffect } from "react";
+import { PLANS, PRICING_FAQS } from "@pathway/pricing";
+import { track } from "../../../lib/analytics";
+import { getFirstTouchAttribution } from "../../../lib/attribution";
+import CtaButton from "../../../components/cta-button";
 
 export default function PricingPage() {
+  useEffect(() => {
+    // Track pricing page view
+    const attribution = getFirstTouchAttribution();
+    track({
+      type: "pricing_view",
+      variant: null,
+      utm: attribution?.utm,
+    });
+  }, []);
+
   const starterMonthly = PLANS.STARTER_MONTHLY;
   const starterYearly = PLANS.STARTER_YEARLY;
   const growthMonthly = PLANS.GROWTH_MONTHLY;
@@ -49,7 +57,9 @@ export default function PricingPage() {
               </span>
               <span className="text-pw-text-muted">/year</span>
               <span className="ml-2 text-sm text-pw-text-muted">
-                (save £{((starterMonthly.pricePerMonth || 0) * 12 - (starterYearly.pricePerYear || 0)).toLocaleString("en-GB")})
+                (save £
+                {((starterMonthly.pricePerMonth || 0) * 12 - (starterYearly.pricePerYear || 0)).toLocaleString("en-GB")}
+                )
               </span>
             </div>
           </div>
@@ -84,12 +94,12 @@ export default function PricingPage() {
             <p className="mb-6 text-xs text-pw-text-muted italic">{starterMonthly.bestFor}</p>
           )}
 
-          <Link
+          <CtaButton
             href={`/demo?plan=${starterMonthly.tier}`}
-            className="rounded-md bg-pw-primary px-6 py-3 text-center text-base font-medium text-white shadow-sm transition hover:bg-blue-600"
+            location="pricing_starter"
           >
             Talk to us
-          </Link>
+          </CtaButton>
         </div>
 
         {/* Growth Card */}
@@ -113,7 +123,9 @@ export default function PricingPage() {
               </span>
               <span className="text-pw-text-muted">/year</span>
               <span className="ml-2 text-sm text-pw-text-muted">
-                (save £{((growthMonthly.pricePerMonth || 0) * 12 - (growthYearly.pricePerYear || 0)).toLocaleString("en-GB")})
+                (save £
+                {((growthMonthly.pricePerMonth || 0) * 12 - (growthYearly.pricePerYear || 0)).toLocaleString("en-GB")}
+                )
               </span>
             </div>
           </div>
@@ -148,12 +160,12 @@ export default function PricingPage() {
             <p className="mb-6 text-xs text-pw-text-muted italic">{growthMonthly.bestFor}</p>
           )}
 
-          <Link
+          <CtaButton
             href={`/demo?plan=${growthMonthly.tier}`}
-            className="rounded-md bg-pw-primary px-6 py-3 text-center text-base font-medium text-white shadow-sm transition hover:bg-blue-600"
+            location="pricing_growth"
           >
             Talk to us
-          </Link>
+          </CtaButton>
         </div>
 
         {/* Enterprise Card */}
@@ -189,12 +201,12 @@ export default function PricingPage() {
             <p className="mb-6 text-xs text-pw-text-muted italic">{enterprisePlan.bestFor}</p>
           )}
 
-          <Link
+          <CtaButton
             href="/demo?plan=enterprise"
-            className="rounded-md bg-pw-primary px-6 py-3 text-center text-base font-medium text-white shadow-sm transition hover:bg-blue-600"
+            location="pricing_enterprise"
           >
             Contact sales
-          </Link>
+          </CtaButton>
         </div>
       </div>
 

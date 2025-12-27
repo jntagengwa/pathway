@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sectors } from "../../content/sectors";
+import CtaButton from "../../components/cta-button";
 
 export const metadata: Metadata = {
   title: "Nexsteps — Safeguarding & attendance for schools, clubs, churches & charities",
@@ -20,12 +21,9 @@ export default function HomePage() {
           safeguarding, and parent communication—all in one secure platform.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <Link
-            href="/demo"
-            className="rounded-md bg-pw-primary px-6 py-3 text-base font-medium text-white shadow-sm transition hover:bg-blue-600"
-          >
+          <CtaButton href="/demo" location="home_hero">
             Book a demo
-          </Link>
+          </CtaButton>
           <Link
             href="/trial"
             className="rounded-md border border-pw-border bg-white px-6 py-3 text-base font-medium text-pw-text transition hover:bg-pw-surface"
@@ -90,4 +88,3 @@ export default function HomePage() {
     </div>
   );
 }
-
