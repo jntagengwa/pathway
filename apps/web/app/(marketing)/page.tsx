@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { sectors } from "../../content/sectors";
 
 export const metadata: Metadata = {
-  title: "Nexsteps – School Management Platform",
+  title: "Nexsteps — Safeguarding & attendance for schools, clubs, churches & charities",
   description:
     "Nexsteps helps schools, clubs, churches, and charities manage attendance, rotas, safeguarding, and parent communication.",
 };
@@ -34,36 +35,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-3">
-        {[
-          {
-            title: "For Schools",
-            description:
-              "Manage classes, attendance, rotas, and safeguarding workflows designed for busy school staff.",
-            link: "/schools",
-          },
-          {
-            title: "For Clubs",
-            description:
-              "Perfect for youth clubs, sports clubs, and after-school programmes managing multiple groups.",
-            link: "/clubs",
-          },
-          {
-            title: "For Churches & Charities",
-            description:
-              "Support faith-based groups and charities with secure, GDPR-compliant management tools.",
-            link: "/churches",
-          },
-        ].map((item) => (
-          <Link
-            key={item.title}
-            href={item.link}
-            className="rounded-xl border border-pw-border bg-white p-6 shadow-sm transition hover:border-pw-primary/60"
-          >
-            <h3 className="mb-2 text-lg font-semibold text-pw-text">{item.title}</h3>
-            <p className="text-sm text-pw-text-muted">{item.description}</p>
-          </Link>
-        ))}
+      <section className="flex flex-col gap-6">
+        <h2 className="text-center text-2xl font-semibold text-pw-text">
+          Choose your sector
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {sectors.map((sector) => (
+            <Link
+              key={sector.id}
+              href={`/${sector.slug}`}
+              className="rounded-xl border border-pw-border bg-white p-6 shadow-sm transition hover:border-pw-primary/60"
+            >
+              <h3 className="mb-2 text-lg font-semibold text-pw-text">
+                For {sector.name}
+              </h3>
+              <p className="text-sm text-pw-text-muted">{sector.heroSubtitle}</p>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-xl border border-pw-border bg-white p-8">
