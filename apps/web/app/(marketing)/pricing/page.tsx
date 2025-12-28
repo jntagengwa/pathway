@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Pricing page - driven from shared pricing package (Milestone 4).
+ * Plan definitions and pricing data come from @pathway/pricing.
+ */
+
 import { useEffect } from "react";
 import { PLANS, PRICING_FAQS } from "@pathway/pricing";
 import { track } from "../../../lib/analytics";

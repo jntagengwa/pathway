@@ -41,7 +41,16 @@ export default function HeaderNav() {
   };
 
   return (
-    <div className="flex items-center gap-6">
+    <nav className="flex items-center gap-4 flex-wrap">
+      {/* Product */}
+      <Link
+        href="/"
+        className="text-sm text-pw-text-muted transition hover:text-pw-text"
+      >
+        Product
+      </Link>
+
+      {/* Sectors - individual links for better mobile support */}
       <Link
         href="/schools"
         className="text-sm text-pw-text-muted transition hover:text-pw-text"
@@ -66,25 +75,41 @@ export default function HeaderNav() {
       >
         Charities
       </Link>
+
+      {/* Pricing */}
       <Link
         href="/pricing"
         className="text-sm text-pw-text-muted transition hover:text-pw-text"
       >
         Pricing
       </Link>
+
+      {/* Resources */}
       <Link
         href="/resources"
         className="text-sm text-pw-text-muted transition hover:text-pw-text"
       >
         Resources
       </Link>
+
+      {/* Security */}
+      <Link
+        href="/security"
+        className="text-sm text-pw-text-muted transition hover:text-pw-text"
+      >
+        Security
+      </Link>
+
+      {/* Book demo CTA */}
       <Link
         href="/demo"
         onClick={handleDemoClick}
         className="rounded-md bg-pw-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
       >
-        Book a demo
+        Book demo
       </Link>
+
+      {/* Login */}
       <Link
         href="https://app.nexsteps.dev"
         onClick={handleLoginClick}
@@ -92,7 +117,6 @@ export default function HeaderNav() {
       >
         Login
       </Link>
-    </div>
+    </nav>
   );
 }
-

@@ -22,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-pw-surface text-pw-text">{children}</body>
+      <body className="bg-shell text-text-primary">{children}</body>
     </html>
   );
 }

@@ -1,3 +1,8 @@
+/**
+ * Resources index page - resources engine (Milestone 5).
+ * Lists all published MDX resources from apps/web/content/resources/.
+ */
+
 import type { Metadata } from "next";
 import ResourcesClient from "./resources-client";
 import { getAllResources, getAllSectors } from "../../../lib/resources";

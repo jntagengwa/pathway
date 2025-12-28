@@ -1,15 +1,39 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Quicksand:wght@500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
+  --pw-bg-shell: 244 246 248;
+  --pw-bg-surface: 255 255 255;
+  --pw-bg-muted: 238 242 246;
+  --pw-text-primary: 15 23 42;
+  --pw-text-muted: 71 85 105;
+  --pw-text-inverse: 255 255 255;
+  --pw-accent-primary: 23 184 158;
+  --pw-accent-subtle: 215 245 238;
+  --pw-accent-strong: 15 157 130;
+  --pw-accent-secondary: 247 202 104;
+  --pw-accent-foreground: 15 23 42;
+  --pw-border-subtle: 226 232 240;
+  --pw-border-strong: 203 213 225;
+  --pw-status-ok: 34 197 94;
+  --pw-status-warn: 245 158 11;
+  --pw-status-danger: 239 68 68;
+  --pw-status-info: 59 130 246;
+  --font-heading: "Nunito", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-body: "Quicksand", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  @apply antialiased;
 }
 
 body {
-  @apply min-h-screen bg-pw-surface text-pw-text;
-  font-family: var(--font-inter, Inter), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  @apply min-h-screen bg-shell text-text-primary;
+  font-family: var(--font-body);
 }
 
 a {
@@ -17,3 +41,6 @@ a {
   text-decoration: none;
 }
 
+:focus-visible {
+  @apply outline-none ring-2 ring-offset-2 ring-status-info;
+}
