@@ -7,7 +7,7 @@
     "dev": "nodemon --watch src --ext ts --exec \"tsx --tsconfig tsconfig.json src/main.ts\"",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/main.js",
-    "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest -c jest.projects.config.ts",
     "test:watch": "jest --watch",

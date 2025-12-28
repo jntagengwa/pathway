@@ -1,0 +1,119 @@
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+import { Injectable, NotFoundException, BadRequestException, } from "@nestjs/common";
+import { prisma } from "@pathway/db";
+import { createTenantDto } from "./dto/create-tenant.dto";
+// Narrow unknown errors that may come from Prisma without using `any`
+function isPrismaError(err) {
+    return (typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        typeof err.code === "string");
+}
+let TenantsService = class TenantsService {
+    async list() {
+        return prisma.tenant.findMany({
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+        });
+    }
+    async getBySlug(slug) {
+        const t = await prisma.tenant.findUnique({
+            where: { slug },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+        if (!t)
+            throw new NotFoundException("tenant not found");
+        return t;
+    }
+    async create(input) {
+        // Normalize first (be forgiving to clients), then validate
+        const normalized = {
+            ...input,
+            name: String(input.name).trim(),
+            slug: String(input.slug).trim().toLowerCase(),
+        };
+        const parsed = createTenantDto.parse(normalized);
+        // Ensure the org exists (Tenant requires an Org)
+        const org = await prisma.org.findUnique({
+            where: { id: parsed.orgId },
+            select: { id: true },
+        });
+        if (!org) {
+            throw new BadRequestException("org not found");
+        }
+        // Pre-check for unique slug to provide a clean error (still race-safe with unique index)
+        const exists = await prisma.tenant.findUnique({
+            where: { slug: parsed.slug },
+        });
+        if (exists) {
+            throw new BadRequestException("slug already exists");
+        }
+        // Optional relation connects from DTO (IDs of existing records)
+        const usersConnect = parsed.users && parsed.users.length > 0
+            ? { connect: parsed.users.map((id) => ({ id })) }
+            : undefined;
+        const groupsConnect = parsed.groups && parsed.groups.length > 0
+            ? { connect: parsed.groups.map((id) => ({ id })) }
+            : undefined;
+        const childrenConnect = parsed.children && parsed.children.length > 0
+            ? { connect: parsed.children.map((id) => ({ id })) }
+            : undefined;
+        const rolesConnect = parsed.roles && parsed.roles.length > 0
+            ? { connect: parsed.roles.map((id) => ({ id })) }
+            : undefined;
+        try {
+            return await prisma.tenant.create({
+                data: {
+                    name: parsed.name,
+                    slug: parsed.slug,
+                    org: { connect: { id: parsed.orgId } },
+                    ...(usersConnect ? { users: usersConnect } : {}),
+                    ...(groupsConnect ? { groups: groupsConnect } : {}),
+                    ...(childrenConnect ? { children: childrenConnect } : {}),
+                    ...(rolesConnect ? { roles: rolesConnect } : {}),
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            });
+        }
+        catch (e) {
+            if (isPrismaError(e)) {
+                if (e.code === "P2002") {
+                    // Unique constraint (e.g., slug)
+                    throw new BadRequestException("slug already exists");
+                }
+                if (e.code === "P2003" || e.code === "P2025") {
+                    // Foreign key constraint / record to connect not found
+                    throw new BadRequestException("one or more related IDs do not exist");
+                }
+            }
+            throw e;
+        }
+    }
+};
+TenantsService = __decorate([
+    Injectable()
+], TenantsService);
+export { TenantsService };

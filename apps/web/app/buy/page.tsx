@@ -5,8 +5,11 @@ import Link from "next/link";
 import clsx from "clsx";
 import {
   PLAN_PRICES,
+  ADDON_PRICES,
   type PlanCode,
+  type AddonCode,
   type BuyNowSelection,
+  type StripePriceMeta,
   calculateCartTotals,
   mergeBillingPrices,
 } from "../../lib/buy-now-pricing";
@@ -124,8 +127,8 @@ export default function BuyNowPage() {
     ...PLAN_PRICES,
     ...planPriceOverrides,
   };
-  const mergedAddonPrices: Record<AddonCode, StripePriceMeta> = {
-    ...ADDON_PRICES,
+  const mergedAddonPrices: Partial<Record<AddonCode, { stripePriceId?: string; amountMajor: number; label: string }>> = {
+    ...(ADDON_PRICES as Record<AddonCode, { stripePriceId?: string; amountMajor: number; label: string }>),
     ...addonPriceOverrides,
   };
   const totals = selection
@@ -235,9 +238,9 @@ export default function BuyNowPage() {
         billingPeriod: frequency,
         av30AddonBlocks25: planTier === "starter" ? av30Blocks : 0,
         av30AddonBlocks50: planTier === "growth" ? av30Blocks : 0,
-        storageAddon100Gb: frequency === "yearly" ? storage100 : 0,
-        storageAddon200Gb: frequency === "yearly" ? storage200 : 0,
-        storageAddon1Tb: frequency === "yearly" ? storage1tb : 0,
+        storageAddon100Gb: frequency === "yearly" ? (storageChoice === "100" ? 1 : 0) : 0,
+        storageAddon200Gb: frequency === "yearly" ? (storageChoice === "200" ? 1 : 0) : 0,
+        storageAddon1Tb: frequency === "yearly" ? (storageChoice === "1000" ? 1 : 0) : 0,
         smsBundles1000: smsBundles,
         orgName,
         contactName,

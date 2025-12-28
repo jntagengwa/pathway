@@ -1,0 +1,192 @@
+import { randomUUID } from "node:crypto";
+import { Role, withTenantRlsContext } from "@pathway/db";
+const TENANT_A = process.env.E2E_TENANT_ID;
+const TENANT_B = process.env.E2E_TENANT2_ID;
+async function seedTenantData(tenantId, orgId, label) {
+    const userId = randomUUID();
+    const groupId = randomUUID();
+    const childId = randomUUID();
+    const noteId = randomUUID();
+    const concernId = randomUUID();
+    const sessionId = randomUUID();
+    const assignmentId = randomUUID();
+    const attendanceId = randomUUID();
+    const baseTime = new Date("2025-01-01T09:00:00.000Z");
+    await withTenantRlsContext(tenantId, orgId, async (tx) => {
+        await tx.user.create({
+            data: {
+                id: userId,
+                // Use a run-unique email to avoid cross-run unique conflicts on the global email index.
+                email: `teacher-${label}-${userId}@example.test`,
+                tenantId,
+                name: `Teacher ${label}`,
+            },
+        });
+        await tx.group.create({
+            data: {
+                id: groupId,
+                name: `Group ${label}`,
+                minAge: 6,
+                maxAge: 7,
+                tenantId,
+            },
+        });
+        await tx.child.create({
+            data: {
+                id: childId,
+                firstName: `Child${label}`,
+                lastName: "Demo",
+                tenantId,
+                groupId,
+            },
+        });
+        await tx.session.create({
+            data: {
+                id: sessionId,
+                tenantId,
+                groupId,
+                startsAt: baseTime,
+                endsAt: new Date(baseTime.getTime() + 60 * 60 * 1000),
+                title: `Session ${label}`,
+            },
+        });
+        await tx.assignment.create({
+            data: {
+                id: assignmentId,
+                sessionId,
+                userId,
+                role: Role.TEACHER,
+            },
+        });
+        await tx.childNote.create({
+            data: {
+                id: noteId,
+                childId,
+                authorId: userId,
+                text: `Note ${label}`,
+            },
+        });
+        await tx.concern.create({
+            data: {
+                id: concernId,
+                childId,
+                summary: `Concern ${label}`,
+            },
+        });
+        await tx.attendance.create({
+            data: {
+                id: attendanceId,
+                childId,
+                groupId,
+                sessionId,
+                present: true,
+            },
+        });
+    });
+    return {
+        childId,
+        noteId,
+        concernId,
+        sessionId,
+        attendanceId,
+        assignmentId,
+        userId,
+        orgId,
+    };
+}
+describe("Postgres RLS policies", () => {
+    const fixtures = {};
+    beforeAll(async () => {
+        const tenantIds = [TENANT_A, TENANT_B];
+        for (const tenantId of tenantIds) {
+            const tenant = await withTenantRlsContext(tenantId, null, async (tx) => tx.tenant.findUnique({
+                where: { id: tenantId },
+                select: { id: true, orgId: true },
+            }));
+            if (!tenant) {
+                throw new Error(`E2E tenant ${tenantId} missing — ensure test.setup.e2e.ts seeded Tenant A & B`);
+            }
+            const label = tenantId === TENANT_A ? "A" : "B";
+            fixtures[tenant.id] = await seedTenantData(tenant.id, tenant.orgId, label);
+        }
+    });
+    it("verifies RLS context is set correctly", async () => {
+        const result = await withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => {
+            const [row] = await tx.$queryRaw `
+          SELECT app.current_tenant_id() as tid, app.current_org_id() as oid
+        `;
+            return row;
+        });
+        expect(result.tid).toBe(TENANT_A);
+        expect(result.oid).toBe(fixtures[TENANT_A].orgId);
+    });
+    it("verifies RLS is enabled and forced on Child table", async () => {
+        const result = await withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => {
+            const [row] = await tx.$queryRaw `
+          SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE c.relname = 'Child' AND n.nspname = current_schema()
+        `;
+            return row;
+        });
+        expect(result.relrowsecurity).toBe(true);
+        expect(result.relforcerowsecurity).toBe(true);
+    });
+    it("verifies a Child policy exists", async () => {
+        const policies = await withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => tx.$queryRaw `
+          SELECT policyname, tablename, permissive, roles
+          FROM pg_policies
+          WHERE tablename = 'Child' AND schemaname = current_schema()
+        `);
+        expect(policies.length).toBeGreaterThan(0);
+    });
+    it("returns only in-tenant children and notes", async () => {
+        const { childId, noteId, orgId } = fixtures[TENANT_A];
+        const result = await withTenantRlsContext(TENANT_A, orgId, async (tx) => {
+            const children = await tx.child.findMany({ select: { id: true } });
+            const notes = await tx.childNote.findMany({ select: { id: true } });
+            return {
+                childIds: children.map((c) => c.id),
+                noteIds: notes.map((n) => n.id),
+            };
+        });
+        expect(result.childIds).toEqual(expect.arrayContaining([childId]));
+        expect(result.noteIds).toEqual(expect.arrayContaining([noteId]));
+    });
+    it("blocks cross-tenant note lookups silently", async () => {
+        const targetNote = fixtures[TENANT_B].noteId;
+        await withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => {
+            const note = await tx.childNote.findUnique({
+                where: { id: targetNote },
+            });
+            expect(note).toBeNull();
+        });
+    });
+    it("raises P2025 when updating another tenant's concern", async () => {
+        await expect(withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => tx.concern.update({
+            where: { id: fixtures[TENANT_B].concernId },
+            data: { summary: "not allowed" },
+        }))).rejects.toMatchObject({ code: "P2025" });
+    });
+    it("counts only attendance rows for the active tenant", async () => {
+        const countA = await withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => tx.attendance.count());
+        const countB = await withTenantRlsContext(TENANT_B, fixtures[TENANT_B].orgId, async (tx) => tx.attendance.count());
+        expect(countA).toBeGreaterThanOrEqual(1);
+        expect(countB).toBeGreaterThanOrEqual(1);
+    });
+    it("allows in-tenant session + assignment updates", async () => {
+        const { sessionId, orgId } = fixtures[TENANT_A];
+        const updated = await withTenantRlsContext(TENANT_A, orgId, async (tx) => tx.session.update({
+            where: { id: sessionId },
+            data: { title: "Updated Session A" },
+        }));
+        expect(updated.title).toBe("Updated Session A");
+    });
+    it("rejects cross-tenant session updates", async () => {
+        await expect(withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) => tx.session.update({
+            where: { id: fixtures[TENANT_B].sessionId },
+            data: { title: "should fail" },
+        }))).rejects.toMatchObject({ code: "P2025" });
+    });
+});

@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { getAllResources, getResourceBySlug } from "../../../../lib/resources";
-import MDXContent from "./mdx-content";
+
+// Dynamically import MDXContent to avoid SSR issues with next-mdx-remote
+const MDXContent = dynamic(() => import("./mdx-content"), {
+  ssr: false,
+});
 
 export async function generateStaticParams() {
   const resources = getAllResources();

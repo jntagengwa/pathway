@@ -166,7 +166,7 @@ export function calculateCartTotals(
 
   const addLine = (
     label: string,
-    unit: StripePriceMeta | undefined,
+    unit: { amountMajor: number } | undefined,
     quantity: number | undefined,
   ) => {
     if (!unit) return;

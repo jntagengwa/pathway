@@ -6,3 +6,6 @@ export type RequestWithAuthContext = Request & {
   [PATHWAY_CONTEXT_PROPERTY]?: AuthContext;
 };
 
+// Re-export constant for convenience
+export { PATHWAY_CONTEXT_PROPERTY };
+

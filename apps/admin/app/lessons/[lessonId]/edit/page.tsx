@@ -218,9 +218,10 @@ export default function EditLessonPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       onClick={() => removeResource(idx)}
                       aria-label="Remove resource"
+                      className="h-8 w-8 p-0"
                     >
                       <X className="h-4 w-4" />
                     </Button>

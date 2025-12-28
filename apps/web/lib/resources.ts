@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { serialize } from "next-mdx-remote/serialize";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 export type ResourceMeta = {
   slug: string;
@@ -21,7 +22,7 @@ export type ResourceMeta = {
 
 export type Resource = ResourceMeta & {
   content: string;
-  serializedContent: Awaited<ReturnType<typeof serialize>>;
+  serializedContent: MDXRemoteSerializeResult<Record<string, unknown>, Record<string, unknown>>;
 };
 
 const resourcesDirectory = path.join(process.cwd(), "content/resources");
@@ -94,7 +95,7 @@ export async function getResourceBySlug(slug: string): Promise<Resource | null> 
     if (data.slug === slug) {
       const serializedContent = await serialize(content, {
         parseFrontmatter: false,
-      });
+      }) as MDXRemoteSerializeResult<Record<string, unknown>, Record<string, unknown>>;
 
       return {
         slug: data.slug,
