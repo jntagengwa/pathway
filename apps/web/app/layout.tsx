@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const baseUrl = "https://nexsteps.dev";
+
 export const metadata: Metadata = {
-  title: "Nexsteps – Plans & Pricing",
-  description: "Choose your Nexsteps plan and complete checkout securely via Stripe.",
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: "Nexsteps – School Management Platform",
+    template: "%s | Nexsteps",
+  },
+  description: "Nexsteps helps schools, clubs, churches, and charities manage attendance, rotas, safeguarding, and parent communication.",
+  alternates: {
+    canonical: baseUrl,
+  },
 };
 
 export default function RootLayout({
@@ -13,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-pw-surface text-pw-text">{children}</body>
+      <body className="bg-shell text-text-primary">{children}</body>
     </html>
   );
 }

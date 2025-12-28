@@ -4,6 +4,8 @@ node_modules
 
 # local certificates
 .cert/
+certificates/
+*.pem
 
 # builds
 dist

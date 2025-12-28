@@ -91,6 +91,12 @@ enum AuditEntityType {
   CHILD_NOTE
 }
 
+enum LeadKind {
+  DEMO
+  TOOLKIT
+  TRIAL
+}
+
 // --- Models ---
 
 // NEW: Org (Suite) — business/billing owner; may contain multiple Tenants (sites)
@@ -614,4 +620,24 @@ model StaffActivity {
   @@index([tenantId, staffUserId, occurredAt])
   @@index([orgId, occurredAt])
   @@index([orgId, staffUserId, occurredAt])
+}
+
+model Lead {
+  id            String    @id @default(uuid())
+  kind          LeadKind
+  email         String
+  name          String?
+  organisation  String?
+  role          String?
+  sector        String?
+  message       String?   @db.Text
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  metadataJson  Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email, kind, createdAt])
+  @@index([kind, createdAt])
 }
