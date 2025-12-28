@@ -1,13 +1,13 @@
 {
   "extends": "../../packages/config/tsconfig/base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../../",
     "types": ["node", "jest"],
     "paths": {
       "@pathway/types": ["../../packages/types/src/index.ts"],
       "@pathway/types/*": ["../../packages/types/src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../../packages/types/src", "../../packages/db/src"]
 }
 
