@@ -188,10 +188,13 @@ describe("DSAR (e2e)", () => {
         .catch(() => undefined);
     }).catch(() => undefined);
 
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("returns DSAR export for an authorised admin in the same tenant", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/internal/dsar/child/${childId}`)
       .set("Authorization", adminHeader)

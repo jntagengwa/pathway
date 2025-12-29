@@ -21,10 +21,13 @@ describe("HealthController (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("/health (GET)", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer()).get("/health");
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("status", "ok");

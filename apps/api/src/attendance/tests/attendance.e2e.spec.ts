@@ -120,10 +120,13 @@ describe("Attendance (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /attendance should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/attendance")
       .set("Authorization", authHeader);

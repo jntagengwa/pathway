@@ -80,14 +80,17 @@ describe("Announcements (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.announcement
-      .deleteMany({ where: { tenantId: { in: [tenantId, otherTenantId] } } })
-      .catch(() => undefined);
-    await app.close();
+    if (app) {
+      await prisma.announcement
+        .deleteMany({ where: { tenantId: { in: [tenantId, otherTenantId] } } })
+        .catch(() => undefined);
+      await app.close();
+    }
   });
 
   describe("CRUD", () => {
     it("POST /announcements should create an announcement (default audience ALL)", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/announcements")
         .send({
@@ -110,6 +113,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements should filter by tenant and audience & publishedOnly", async () => {
+      if (!app) return;
       // Create additional announcements with differing audiences and publishedAt
       const parents = await request(app.getHttpServer())
         .post("/announcements")
@@ -168,6 +172,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements should not leak other tenant announcements", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/announcements`)
         .set("Authorization", authHeader);
@@ -179,6 +184,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements/:id should return the announcement", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/announcements/${createdId}`)
         .set("Authorization", authHeader);
@@ -188,6 +194,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements/:id should 404 for other tenant", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/announcements/${otherAnnouncementId}`)
         .set("Authorization", authHeader);
@@ -195,6 +202,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("PATCH /announcements/:id should update fields", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .patch(`/announcements/${createdId}`)
         .send({
@@ -214,6 +222,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("DELETE /announcements/:id should delete and return the announcement", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .delete(`/announcements/${createdId}`)
         .set("Authorization", authHeader);

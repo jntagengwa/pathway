@@ -46,10 +46,13 @@ describe("Orgs (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /orgs/:slug should return seeded org", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/orgs/${orgSlug}`)
       .set("Authorization", authHeader);

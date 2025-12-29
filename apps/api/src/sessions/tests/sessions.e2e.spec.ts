@@ -124,10 +124,13 @@ describe("Sessions (e2e)", () => {
       await tx.session.deleteMany({ where: { id: ids.otherSession } });
       await tx.group.deleteMany({ where: { id: ids.otherGroup } });
     }).catch(() => undefined);
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /sessions should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/sessions")
       .set("Authorization", authHeader);

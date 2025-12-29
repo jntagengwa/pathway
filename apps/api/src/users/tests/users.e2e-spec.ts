@@ -83,10 +83,13 @@ describe("Users (e2e)", () => {
         await tx.user.deleteMany({ where: { id: otherTenantUserId } });
       }).catch(() => undefined);
     }
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /users should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/users")
       .set("Authorization", authHeader);

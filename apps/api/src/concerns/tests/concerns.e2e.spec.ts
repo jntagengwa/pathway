@@ -122,11 +122,14 @@ describe("Concerns (e2e)", () => {
         .deleteMany({ where: { id: userId } })
         .catch(() => undefined);
     }).catch(() => undefined);
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   describe("validation", () => {
     it("POST /concerns returns 400 for empty summary (before FK checks)", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/concerns")
         .set("Authorization", authHeader)

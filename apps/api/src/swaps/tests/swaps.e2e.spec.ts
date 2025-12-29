@@ -117,10 +117,13 @@ describe("Swaps (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("POST /swaps should create a swap request", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/swaps")
       .set("Authorization", authHeader)

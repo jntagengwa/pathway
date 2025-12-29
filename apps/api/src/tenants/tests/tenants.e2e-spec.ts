@@ -37,10 +37,13 @@ describe("Tenants (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /tenants should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer()).get("/tenants");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);

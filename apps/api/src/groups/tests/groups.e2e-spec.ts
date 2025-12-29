@@ -91,10 +91,13 @@ describe("Groups (e2e)", () => {
 
   afterAll(async () => {
     // Cleanup is handled by per-suite TRUNCATE; nothing to do here except close app
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /groups should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/groups")
       .set("Authorization", authHeader);

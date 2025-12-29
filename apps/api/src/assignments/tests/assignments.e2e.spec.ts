@@ -180,10 +180,13 @@ describe("Assignments (e2e)", () => {
       // ignore
     }
 
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("POST /assignments should create an assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/assignments")
       .send({

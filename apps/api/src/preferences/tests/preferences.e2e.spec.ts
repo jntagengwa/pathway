@@ -63,7 +63,9 @@ describe("Preferences (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
     if (prefId) {
       await withTenantRlsContext(tenantId, orgId, async (tx) => {
         await tx.volunteerPreference.deleteMany({ where: { id: prefId } });

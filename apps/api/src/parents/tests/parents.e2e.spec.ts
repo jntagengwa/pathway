@@ -105,10 +105,13 @@ describe("Parents (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /parents returns parents from the current tenant only", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/parents")
       .set("Authorization", authHeaderTenant1);

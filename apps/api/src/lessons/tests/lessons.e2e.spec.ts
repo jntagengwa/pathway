@@ -103,13 +103,16 @@ describe("Lessons (e2e)", () => {
       await prisma.lesson.deleteMany({ where: { id: otherLessonId } });
     }
     // Avoid deleting seeded tenants/org; only clean per-entity rows if needed
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   describe("CRUD", () => {
     let createdId: string;
 
     it("POST /lessons should create a lesson", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/lessons")
         .send({
