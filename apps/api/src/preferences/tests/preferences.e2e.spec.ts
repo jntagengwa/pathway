@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { AppModule } from "../../app.module";
 import { Weekday, withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("Preferences (e2e)", () => {
   let app: INestApplication;
@@ -21,6 +22,10 @@ describe("Preferences (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     if (!tenantId || !orgId) {
       throw new Error("E2E_TENANT_ID / E2E_ORG_ID missing");
     }

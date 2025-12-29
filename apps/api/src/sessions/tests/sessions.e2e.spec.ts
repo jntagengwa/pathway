@@ -5,6 +5,7 @@ import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import { randomUUID } from "crypto";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Sessions e2e: reuse seeded org/tenants and seed records via RLS context
 
@@ -33,6 +34,10 @@ describe("Sessions (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     if (!orgId || !tenantId || !otherTenantId) {
       throw new Error("E2E_ORG_ID / E2E_TENANT_ID / E2E_TENANT2_ID missing");
     }

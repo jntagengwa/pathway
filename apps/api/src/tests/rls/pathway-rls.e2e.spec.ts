@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, Role, withTenantRlsContext } from "@pathway/db";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 const TENANT_A = process.env.E2E_TENANT_ID as string;
 const TENANT_B = process.env.E2E_TENANT2_ID as string;
@@ -129,6 +130,10 @@ describe("Postgres RLS policies", () => {
   const fixtures: Record<string, TenantFixtures> = {};
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const tenantIds = [TENANT_A, TENANT_B];
     for (const tenantId of tenantIds) {
       const tenant = await withTenantRlsContext(tenantId, null, async (tx) =>

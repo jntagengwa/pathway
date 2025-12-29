@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../../app.module";
 import { randomUUID } from "crypto";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 /**
  * E2E tests for Tenants module
@@ -19,6 +20,10 @@ describe("Tenants (e2e)", () => {
   const orgId = process.env.E2E_ORG_ID as string;
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     if (!orgId) {
       throw new Error("E2E_ORG_ID missing");
     }

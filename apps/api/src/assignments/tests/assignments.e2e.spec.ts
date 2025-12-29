@@ -4,6 +4,7 @@ import { Test } from "@nestjs/testing";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext, Role, AssignmentStatus } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Utility to make unique slugs/names per run
 const nonce = Math.random().toString(36).slice(2, 8);
@@ -34,6 +35,10 @@ describe("Assignments (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

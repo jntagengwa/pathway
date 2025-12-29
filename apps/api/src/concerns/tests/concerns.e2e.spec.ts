@@ -5,6 +5,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext, Role } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // API response shape (serialized)
 type Concern = {
@@ -33,6 +34,10 @@ describe("Concerns (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     orgId = process.env.E2E_ORG_ID as string;
     tenantId = process.env.E2E_TENANT_ID as string;
     tenantSlug = "e2e-tenant-a";

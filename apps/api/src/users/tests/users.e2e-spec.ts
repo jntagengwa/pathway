@@ -4,6 +4,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("Users (e2e)", () => {
   let app: INestApplication;
@@ -23,6 +24,10 @@ describe("Users (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     // Spin up app first
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],

@@ -2,11 +2,16 @@ import { Test } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../../app.module";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("HealthController (e2e)", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

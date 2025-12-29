@@ -10,6 +10,7 @@ import {
   SwapStatus,
 } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // E2E for Swap Requests
 // This follows the same conventions as other e2e suites in this repo
@@ -35,6 +36,10 @@ describe("Swaps (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     if (!tenantId || !orgId) {
       throw new Error("E2E_TENANT_ID / E2E_ORG_ID missing");
     }

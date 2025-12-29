@@ -5,6 +5,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { prisma, withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("Lessons (e2e)", () => {
   let app: INestApplication;
@@ -31,6 +32,10 @@ describe("Lessons (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

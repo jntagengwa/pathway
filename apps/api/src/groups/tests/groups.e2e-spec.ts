@@ -4,6 +4,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 /**
  * E2E tests for Groups module
@@ -33,6 +34,10 @@ describe("Groups (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const orgId = process.env.E2E_ORG_ID as string;
     const seededTenant = process.env.E2E_TENANT_ID as string;
     const seededTenant2 = process.env.E2E_TENANT2_ID as string;

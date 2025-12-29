@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext, Role } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("DSAR (e2e)", () => {
   let app: INestApplication;
@@ -25,6 +26,10 @@ describe("DSAR (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     orgId = process.env.E2E_ORG_ID as string;
     tenantA = process.env.E2E_TENANT_ID as string;
     tenantB = process.env.E2E_TENANT2_ID as string;

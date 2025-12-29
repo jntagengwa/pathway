@@ -4,6 +4,7 @@ import { Test } from "@nestjs/testing";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
 import { AppModule } from "../../app.module";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("Parents (e2e)", () => {
   let app: INestApplication;
@@ -21,6 +22,10 @@ describe("Parents (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     tenantId = process.env.E2E_TENANT_ID as string;
     tenant2Id = process.env.E2E_TENANT2_ID as string;
     orgId = process.env.E2E_ORG_ID as string;
