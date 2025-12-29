@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../../app.module";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Orgs e2e: reuse seeded E2E org/tenant; avoid creating new orgs (RLS)
 
@@ -20,6 +21,10 @@ describe("Orgs (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     if (!orgId || !tenantId)
       throw new Error("E2E_ORG_ID / E2E_TENANT_ID missing");
 
@@ -41,10 +46,13 @@ describe("Orgs (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /orgs/:slug should return seeded org", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/orgs/${orgSlug}`)
       .set("Authorization", authHeader);
@@ -54,6 +62,7 @@ describe("Orgs (e2e)", () => {
   });
 
   it("GET /orgs should list orgs including the seeded one", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/orgs")
       .set("Authorization", authHeader);
@@ -63,6 +72,7 @@ describe("Orgs (e2e)", () => {
   });
 
   it("GET /orgs/:slug should 404 for unknown org", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/orgs/unknown-${Date.now()}`)
       .set("Authorization", authHeader);

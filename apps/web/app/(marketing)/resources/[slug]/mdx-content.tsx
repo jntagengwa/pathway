@@ -1,8 +1,9 @@
 "use client";
 
+import React from "react";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 
-const mdxComponents = {
+const mdxComponents: Record<string, React.ComponentType<React.HTMLAttributes<HTMLElement>>> = {
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h1 className="mb-4 text-3xl font-bold text-pw-text" {...props} />
   ),
@@ -39,7 +40,7 @@ const mdxComponents = {
 };
 
 interface MDXContentProps {
-  source: MDXRemoteSerializeResult;
+  source: MDXRemoteSerializeResult<Record<string, unknown>, Record<string, unknown>>;
 }
 
 export default function MDXContent({ source }: MDXContentProps) {

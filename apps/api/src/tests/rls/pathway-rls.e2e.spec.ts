@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, Role, withTenantRlsContext } from "@pathway/db";
+import {
+  requireDatabase,
+  isDatabaseAvailable,
+} from "../../../test-helpers.e2e";
 
 const TENANT_A = process.env.E2E_TENANT_ID as string;
 const TENANT_B = process.env.E2E_TENANT2_ID as string;
@@ -129,6 +133,10 @@ describe("Postgres RLS policies", () => {
   const fixtures: Record<string, TenantFixtures> = {};
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const tenantIds = [TENANT_A, TENANT_B];
     for (const tenantId of tenantIds) {
       const tenant = await withTenantRlsContext(tenantId, null, async (tx) =>
@@ -154,6 +162,7 @@ describe("Postgres RLS policies", () => {
   });
 
   it("verifies RLS context is set correctly", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A]) return;
     const result = await withTenantRlsContext(
       TENANT_A,
       fixtures[TENANT_A].orgId,
@@ -171,6 +180,7 @@ describe("Postgres RLS policies", () => {
   });
 
   it("verifies RLS is enabled and forced on Child table", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A]) return;
     const result = await withTenantRlsContext(
       TENANT_A,
       fixtures[TENANT_A].orgId,
@@ -195,6 +205,7 @@ describe("Postgres RLS policies", () => {
   });
 
   it("verifies a Child policy exists", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A]) return;
     const policies = await withTenantRlsContext(
       TENANT_A,
       fixtures[TENANT_A].orgId,
@@ -216,6 +227,7 @@ describe("Postgres RLS policies", () => {
   });
 
   it("returns only in-tenant children and notes", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A]) return;
     const { childId, noteId, orgId } = fixtures[TENANT_A];
     const result = await withTenantRlsContext(TENANT_A, orgId, async (tx) => {
       const children = await tx.child.findMany({ select: { id: true } });
@@ -231,6 +243,8 @@ describe("Postgres RLS policies", () => {
   });
 
   it("blocks cross-tenant note lookups silently", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A] || !fixtures[TENANT_B])
+      return;
     const targetNote = fixtures[TENANT_B].noteId;
     await withTenantRlsContext(
       TENANT_A,
@@ -245,6 +259,8 @@ describe("Postgres RLS policies", () => {
   });
 
   it("raises P2025 when updating another tenant's concern", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A] || !fixtures[TENANT_B])
+      return;
     await expect(
       withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) =>
         tx.concern.update({
@@ -256,6 +272,8 @@ describe("Postgres RLS policies", () => {
   });
 
   it("counts only attendance rows for the active tenant", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A] || !fixtures[TENANT_B])
+      return;
     const countA = await withTenantRlsContext(
       TENANT_A,
       fixtures[TENANT_A].orgId,
@@ -272,6 +290,7 @@ describe("Postgres RLS policies", () => {
   });
 
   it("allows in-tenant session + assignment updates", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A]) return;
     const { sessionId, orgId } = fixtures[TENANT_A];
     const updated = await withTenantRlsContext(TENANT_A, orgId, async (tx) =>
       tx.session.update({
@@ -283,6 +302,8 @@ describe("Postgres RLS policies", () => {
   });
 
   it("rejects cross-tenant session updates", async () => {
+    if (!isDatabaseAvailable() || !fixtures[TENANT_A] || !fixtures[TENANT_B])
+      return;
     await expect(
       withTenantRlsContext(TENANT_A, fixtures[TENANT_A].orgId, async (tx) =>
         tx.session.update({

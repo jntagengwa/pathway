@@ -29,8 +29,22 @@ describe("Av30ComputeService", () => {
     try {
       seeded = await seedFixtures();
     } catch (error) {
-      // Check if it's a permission error
+      // Log the full error for visibility in CI logs
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      const errorCode =
+        typeof error === "object" && error !== null && "errorCode" in error
+          ? String((error as { errorCode?: unknown }).errorCode)
+          : undefined;
+      
+      console.error("[Av30ComputeService] Error in seedFixtures:", {
+        message: errorMessage,
+        stack: errorStack,
+        errorCode,
+        error: error,
+      });
+      
+      // Check if it's a permission error
       if (errorMessage.includes("permission denied for schema app")) {
         hasDbPermissions = false;
         console.warn(
@@ -39,6 +53,18 @@ describe("Av30ComputeService", () => {
         );
         return;
       }
+      
+      // Check if it's a database connection error (P1001)
+      if (errorCode === "P1001" || errorMessage.includes("Can't reach database server")) {
+        hasDbPermissions = false;
+        console.warn(
+          "[Av30ComputeService] Skipping tests: database server is not available. " +
+            "Please make sure your database server is running.",
+        );
+        return;
+      }
+      
+      // Re-throw with full error context for CI visibility
       throw error;
     }
   });
@@ -228,11 +254,25 @@ describe("Av30ComputeService", () => {
     slug: string;
     planCode: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.org_id', ${data.id}, true)`;
-      await tx.$executeRaw`SET LOCAL row_security = on`;
-      return tx.org.create({ data });
-    });
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.org_id', ${data.id}, true)`;
+        await tx.$executeRaw`SET LOCAL row_security = on`;
+        return tx.org.create({ data });
+      });
+    } catch (error) {
+      // Log transaction error with context for debugging
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error("[createOrgWithContext] Transaction failed:", {
+        orgId: data.id,
+        orgName: data.name,
+        errorMessage,
+        errorStack,
+        error,
+      });
+      throw error;
+    }
   }
 
   async function createTenantWithContext(data: {

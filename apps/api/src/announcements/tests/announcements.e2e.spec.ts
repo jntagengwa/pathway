@@ -4,6 +4,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { prisma, withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Types to keep the spec strongly typed (no any)
 type Announcement = {
@@ -32,6 +33,10 @@ describe("Announcements (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -75,14 +80,17 @@ describe("Announcements (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.announcement
-      .deleteMany({ where: { tenantId: { in: [tenantId, otherTenantId] } } })
-      .catch(() => undefined);
-    await app.close();
+    if (app) {
+      await prisma.announcement
+        .deleteMany({ where: { tenantId: { in: [tenantId, otherTenantId] } } })
+        .catch(() => undefined);
+      await app.close();
+    }
   });
 
   describe("CRUD", () => {
     it("POST /announcements should create an announcement (default audience ALL)", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/announcements")
         .send({
@@ -105,6 +113,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements should filter by tenant and audience & publishedOnly", async () => {
+      if (!app) return;
       // Create additional announcements with differing audiences and publishedAt
       const parents = await request(app.getHttpServer())
         .post("/announcements")
@@ -163,6 +172,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements should not leak other tenant announcements", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/announcements`)
         .set("Authorization", authHeader);
@@ -174,6 +184,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements/:id should return the announcement", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/announcements/${createdId}`)
         .set("Authorization", authHeader);
@@ -183,6 +194,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("GET /announcements/:id should 404 for other tenant", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/announcements/${otherAnnouncementId}`)
         .set("Authorization", authHeader);
@@ -190,6 +202,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("PATCH /announcements/:id should update fields", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .patch(`/announcements/${createdId}`)
         .send({
@@ -209,6 +222,7 @@ describe("Announcements (e2e)", () => {
     });
 
     it("DELETE /announcements/:id should delete and return the announcement", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .delete(`/announcements/${createdId}`)
         .set("Authorization", authHeader);

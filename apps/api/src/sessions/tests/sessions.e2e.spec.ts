@@ -5,6 +5,7 @@ import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import { randomUUID } from "crypto";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Sessions e2e: reuse seeded org/tenants and seed records via RLS context
 
@@ -33,6 +34,10 @@ describe("Sessions (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     if (!orgId || !tenantId || !otherTenantId) {
       throw new Error("E2E_ORG_ID / E2E_TENANT_ID / E2E_TENANT2_ID missing");
     }
@@ -119,10 +124,13 @@ describe("Sessions (e2e)", () => {
       await tx.session.deleteMany({ where: { id: ids.otherSession } });
       await tx.group.deleteMany({ where: { id: ids.otherGroup } });
     }).catch(() => undefined);
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /sessions should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/sessions")
       .set("Authorization", authHeader);
@@ -131,6 +139,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("POST /sessions should create a session", async () => {
+    if (!app) return;
     const newSessionId = randomUUID();
     const res = await request(app.getHttpServer())
       .post("/sessions")
@@ -152,6 +161,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("GET /sessions/:id should return the created session", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/sessions/${ids.session}`)
       .set("Authorization", authHeader);
@@ -160,6 +170,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("PATCH /sessions/:id should update a session", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch(`/sessions/${ids.session}`)
       .set("Authorization", authHeader)
@@ -172,6 +183,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("POST /sessions should 400 when endsAt <= startsAt (validation)", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/sessions")
       .set("Authorization", authHeader)
@@ -185,6 +197,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("POST /sessions should 400 when group is from another tenant", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/sessions")
       .set("Authorization", authHeader)
@@ -198,6 +211,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("GET /sessions should not leak other tenant records", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/sessions")
       .set("Authorization", otherAuthHeader);
@@ -210,6 +224,7 @@ describe("Sessions (e2e)", () => {
   });
 
   it("GET /sessions/:id should 404 for other tenant session", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/sessions/${ids.otherSession}`)
       .set("Authorization", authHeader);

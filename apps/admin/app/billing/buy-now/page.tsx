@@ -486,7 +486,7 @@ export default function BuyNowPage() {
                         <span className="text-sm font-semibold text-text-primary">
                           {plan.label}
                         </span>
-                        <Badge variant="secondary" size="sm">
+                        <Badge variant="secondary">
                           {plan.tier}
                         </Badge>
                       </div>

@@ -1,0 +1,40 @@
+import { Test } from "@nestjs/testing";
+import { DsarController } from "../dsar.controller";
+import { DsarService } from "../dsar.service";
+import { PathwayAuthGuard } from "@pathway/auth";
+import { SafeguardingGuard } from "../../common/safeguarding/safeguarding.guard";
+describe("DsarController", () => {
+    let controller;
+    const tenantId = "tenant-1";
+    const childId = "11111111-1111-1111-1111-111111111111";
+    const serviceMock = {
+        exportChild: jest.fn(),
+    };
+    beforeEach(async () => {
+        jest.clearAllMocks();
+        const module = await Test.createTestingModule({
+            controllers: [DsarController],
+            providers: [{ provide: DsarService, useValue: serviceMock }],
+        })
+            .overrideGuard(PathwayAuthGuard)
+            .useValue({ canActivate: () => true })
+            .overrideGuard(SafeguardingGuard)
+            .useValue({ canActivate: () => true })
+            .compile();
+        controller = module.get(DsarController);
+    });
+    it("calls service with childId and tenantId", async () => {
+        const exportData = {
+            child: { id: childId, firstName: "Amy", lastName: "Jones", allergies: null, disabilities: [], notes: null, group: null },
+            parents: [],
+            attendance: [],
+            notes: [],
+            concerns: [],
+            sessions: [],
+        };
+        serviceMock.exportChild.mockResolvedValue(exportData);
+        const result = await controller.exportChild({ childId }, tenantId);
+        expect(serviceMock.exportChild).toHaveBeenCalledWith(childId, tenantId);
+        expect(result).toBe(exportData);
+    });
+});

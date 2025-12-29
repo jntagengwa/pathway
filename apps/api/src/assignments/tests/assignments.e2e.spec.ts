@@ -4,6 +4,7 @@ import { Test } from "@nestjs/testing";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext, Role, AssignmentStatus } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Utility to make unique slugs/names per run
 const nonce = Math.random().toString(36).slice(2, 8);
@@ -34,6 +35,10 @@ describe("Assignments (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -175,10 +180,13 @@ describe("Assignments (e2e)", () => {
       // ignore
     }
 
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("POST /assignments should create an assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/assignments")
       .send({
@@ -203,6 +211,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments/:id should return the created assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/assignments/${ids.assignment}`)
       .set("Authorization", authHeader);
@@ -215,6 +224,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments?sessionId=… should list the assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/assignments`)
       .query({ sessionId: ids.session })
@@ -227,6 +237,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("PATCH /assignments/:id should update status to DECLINED", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch(`/assignments/${ids.assignment}`)
       .send({ status: AssignmentStatus.DECLINED })
@@ -238,6 +249,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("POST /assignments duplicate (sessionId,userId,role) should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/assignments")
       .send({ sessionId: ids.session, userId: ids.user, role: Role.TEACHER })
@@ -249,6 +261,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments should not leak other tenant assignments", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/assignments")
       .set("Authorization", authHeader);
@@ -262,6 +275,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments/:id should 404 for other tenant assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/assignments/${ids.otherAssignment}`)
       .set("Authorization", authHeader);

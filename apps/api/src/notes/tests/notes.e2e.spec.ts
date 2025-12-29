@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 // Types for responses
 type Note = {
@@ -37,6 +38,10 @@ describe("Notes (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -117,11 +122,14 @@ describe("Notes (e2e)", () => {
         if (authorId) await tx.user.deleteMany({ where: { id: authorId } });
       }).catch(() => undefined);
     }
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   describe("validation", () => {
     it("POST /notes should 400 on empty text", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/notes")
         .set("Authorization", authHeader)

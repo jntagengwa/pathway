@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext, Role } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("DSAR (e2e)", () => {
   let app: INestApplication;
@@ -25,6 +26,10 @@ describe("DSAR (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     orgId = process.env.E2E_ORG_ID as string;
     tenantA = process.env.E2E_TENANT_ID as string;
     tenantB = process.env.E2E_TENANT2_ID as string;
@@ -183,10 +188,13 @@ describe("DSAR (e2e)", () => {
         .catch(() => undefined);
     }).catch(() => undefined);
 
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("returns DSAR export for an authorised admin in the same tenant", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/internal/dsar/child/${childId}`)
       .set("Authorization", adminHeader)
@@ -201,6 +209,7 @@ describe("DSAR (e2e)", () => {
   });
 
   it("returns 404 when requesting a child from another tenant", async () => {
+    if (!app) return;
     await request(app.getHttpServer())
       .get(`/internal/dsar/child/${childId}`)
       .set("Authorization", otherTenantHeader)

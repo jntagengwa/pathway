@@ -5,6 +5,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "rootDir": "../../",
+    "outDir": "../../apps/api/dist",
     "paths": {
       "@pathway/auth": ["../../packages/auth/src/index.ts"],
       "@pathway/auth/*": ["../../packages/auth/src/*"],

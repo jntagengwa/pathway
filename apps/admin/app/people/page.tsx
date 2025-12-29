@@ -158,8 +158,8 @@ export default function PeoplePage() {
         header: "Roles",
         cell: (row) => (
           <div className="flex flex-col gap-1">
-            {row.orgRole && <Badge size="sm" variant="default">{row.orgRole}</Badge>}
-            {row.siteRole && <Badge size="sm" variant="accent">{row.siteRole}</Badge>}
+            {row.orgRole && <Badge variant="default">{row.orgRole}</Badge>}
+            {row.siteRole && <Badge variant="accent">{row.siteRole}</Badge>}
           </div>
         ),
         width: "160px",
@@ -262,7 +262,7 @@ export default function PeoplePage() {
             ? "Users with access to this organisation and its sites"
             : "Invitations sent but not yet accepted"
         }
-        toolbar={
+        actions={
           <Input
             placeholder={`Search ${activeTab}...`}
             value={searchQuery}

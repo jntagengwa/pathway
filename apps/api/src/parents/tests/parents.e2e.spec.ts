@@ -4,6 +4,7 @@ import { Test } from "@nestjs/testing";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
 import { AppModule } from "../../app.module";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 describe("Parents (e2e)", () => {
   let app: INestApplication;
@@ -21,6 +22,10 @@ describe("Parents (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     tenantId = process.env.E2E_TENANT_ID as string;
     tenant2Id = process.env.E2E_TENANT2_ID as string;
     orgId = process.env.E2E_ORG_ID as string;
@@ -100,10 +105,13 @@ describe("Parents (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /parents returns parents from the current tenant only", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/parents")
       .set("Authorization", authHeaderTenant1);
@@ -116,6 +124,7 @@ describe("Parents (e2e)", () => {
   });
 
   it("GET /parents/:id returns detail for tenant parent", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/parents/${parentIdTenant1}`)
       .set("Authorization", authHeaderTenant1);
@@ -127,6 +136,7 @@ describe("Parents (e2e)", () => {
   });
 
   it("GET /parents/:id 404s for cross-tenant parent", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/parents/${parentIdTenant2}`)
       .set("Authorization", authHeaderTenant1);

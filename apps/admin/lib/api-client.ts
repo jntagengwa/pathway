@@ -47,7 +47,7 @@ export type AdminAssignmentInput = {
   sessionId: string;
   staffId: string;
   role: string;
-  status?: "pending" | "confirmed";
+  status?: "pending" | "confirmed" | "declined";
 };
 
 export type AdminRotaDay = {

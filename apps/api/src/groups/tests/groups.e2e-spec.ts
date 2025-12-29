@@ -4,6 +4,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
+import { requireDatabase } from "../../../test-helpers.e2e";
 
 /**
  * E2E tests for Groups module
@@ -33,6 +34,10 @@ describe("Groups (e2e)", () => {
   };
 
   beforeAll(async () => {
+    if (!requireDatabase()) {
+      return;
+    }
+
     const orgId = process.env.E2E_ORG_ID as string;
     const seededTenant = process.env.E2E_TENANT_ID as string;
     const seededTenant2 = process.env.E2E_TENANT2_ID as string;
@@ -86,10 +91,13 @@ describe("Groups (e2e)", () => {
 
   afterAll(async () => {
     // Cleanup is handled by per-suite TRUNCATE; nothing to do here except close app
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it("GET /groups should return array", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/groups")
       .set("Authorization", authHeader);
@@ -101,6 +109,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("POST /groups should create a group", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/groups")
       .send({ name: baseName, tenantId, minAge: 7, maxAge: 9 })
@@ -119,6 +128,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("GET /groups/:id should return the created group", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/groups/${createdGroupId}`)
       .set("Authorization", authHeader);
@@ -133,6 +143,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("PATCH /groups/:id should update group", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch(`/groups/${createdGroupId}`)
       .send({ name: `Group-${nonce}-updated`, minAge: 6, maxAge: 10 })
@@ -150,6 +161,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("POST /groups duplicate name for same tenant should 400", async () => {
+    if (!app) return;
     // First create another group with a fixed name
     const name = `Group-${nonce}-dup`;
     const res1 = await request(app.getHttpServer())
@@ -170,6 +182,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("POST /groups invalid ages should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/groups")
       .send({ name: `Group-${nonce}-bad`, tenantId, minAge: 10, maxAge: 9 }) // invalid: minAge > maxAge
@@ -180,6 +193,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("GET /groups should not include other tenant groups", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/groups")
       .set("Authorization", authHeader);
@@ -191,6 +205,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("GET /groups/:id should 404 when accessing other tenant", async () => {
+    if (!app) return;
     if (!otherGroupId) throw new Error("otherGroupId missing");
 
     const res = await request(app.getHttpServer())

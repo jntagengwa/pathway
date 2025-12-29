@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { Button, Card } from "@pathway/ui";
-import { acceptInvite, setActiveSiteState } from "../../lib/api-client";
+import { acceptInvite, setActiveSite } from "../../lib/api-client";
 
-export default function AcceptInvitePage() {
+function AcceptInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -70,7 +70,7 @@ export default function AcceptInvitePage() {
 
       if (result.activeSiteId) {
         // Single site - auto-selected
-        await setActiveSiteState(result.activeSiteId);
+        await setActiveSite(result.activeSiteId);
         setState("success");
         // Redirect to welcome page instead of dashboard
         setTimeout(() => {
@@ -118,7 +118,7 @@ export default function AcceptInvitePage() {
     }
 
     try {
-      await setActiveSiteState(selectedSiteId);
+      await setActiveSite(selectedSiteId);
       setState("success");
       // Redirect to welcome page
       setTimeout(() => {
@@ -376,4 +376,23 @@ export default function AcceptInvitePage() {
   }
 
   return null;
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-teal-50">
+          <Card className="p-8 max-w-md border-0 shadow-xl">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-500"></div>
+              <p className="text-gray-600 font-medium">Loading...</p>
+            </div>
+          </Card>
+        </div>
+      }
+    >
+      <AcceptInviteContent />
+    </Suspense>
+  );
 }
