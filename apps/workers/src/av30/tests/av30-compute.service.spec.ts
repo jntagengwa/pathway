@@ -29,8 +29,17 @@ describe("Av30ComputeService", () => {
     try {
       seeded = await seedFixtures();
     } catch (error) {
-      // Check if it's a permission error
+      // Log the full error for visibility in CI logs
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      console.error("[Av30ComputeService] Error in seedFixtures:", {
+        message: errorMessage,
+        stack: errorStack,
+        error: error,
+      });
+      
+      // Check if it's a permission error
       if (errorMessage.includes("permission denied for schema app")) {
         hasDbPermissions = false;
         console.warn(
@@ -39,6 +48,8 @@ describe("Av30ComputeService", () => {
         );
         return;
       }
+      
+      // Re-throw with full error context for CI visibility
       throw error;
     }
   });
@@ -228,11 +239,25 @@ describe("Av30ComputeService", () => {
     slug: string;
     planCode: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.org_id', ${data.id}, true)`;
-      await tx.$executeRaw`SET LOCAL row_security = on`;
-      return tx.org.create({ data });
-    });
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.org_id', ${data.id}, true)`;
+        await tx.$executeRaw`SET LOCAL row_security = on`;
+        return tx.org.create({ data });
+      });
+    } catch (error) {
+      // Log transaction error with context for debugging
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error("[createOrgWithContext] Transaction failed:", {
+        orgId: data.id,
+        orgName: data.name,
+        errorMessage,
+        errorStack,
+        error,
+      });
+      throw error;
+    }
   }
 
   async function createTenantWithContext(data: {
