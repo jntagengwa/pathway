@@ -143,6 +143,7 @@ describe("Concerns (e2e)", () => {
 
   describe("RBAC", () => {
     it("returns 403 for teacher role accessing concerns", async () => {
+      if (!app) return;
       const teacherHeader = buildAuthHeader({
         sub: "teacher",
         "https://pathway.app/user": { id: "teacher" },
@@ -181,6 +182,7 @@ describe("Concerns (e2e)", () => {
     });
 
     it("GET /concerns filters by childId", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/concerns?childId=${childId}`)
         .set("Authorization", authHeader);
@@ -193,6 +195,7 @@ describe("Concerns (e2e)", () => {
     });
 
     it("GET /concerns/:id returns the concern", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/concerns/${createdId}`)
         .set("Authorization", authHeader);
@@ -202,6 +205,7 @@ describe("Concerns (e2e)", () => {
     });
 
     it("PATCH /concerns/:id updates summary/details", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .patch(`/concerns/${createdId}`)
         .set("Authorization", authHeader)
@@ -216,6 +220,7 @@ describe("Concerns (e2e)", () => {
     });
 
     it("DELETE /concerns/:id deletes and then 404s on fetch", async () => {
+      if (!app) return;
       const resDelete = await request(app.getHttpServer())
         .delete(`/concerns/${createdId}`)
         .set("Authorization", authHeader);

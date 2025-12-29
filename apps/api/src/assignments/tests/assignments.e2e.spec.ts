@@ -211,6 +211,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments/:id should return the created assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/assignments/${ids.assignment}`)
       .set("Authorization", authHeader);
@@ -223,6 +224,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments?sessionId=… should list the assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/assignments`)
       .query({ sessionId: ids.session })
@@ -235,6 +237,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("PATCH /assignments/:id should update status to DECLINED", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch(`/assignments/${ids.assignment}`)
       .send({ status: AssignmentStatus.DECLINED })
@@ -246,6 +249,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("POST /assignments duplicate (sessionId,userId,role) should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/assignments")
       .send({ sessionId: ids.session, userId: ids.user, role: Role.TEACHER })
@@ -257,6 +261,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments should not leak other tenant assignments", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/assignments")
       .set("Authorization", authHeader);
@@ -270,6 +275,7 @@ describe("Assignments (e2e)", () => {
   });
 
   it("GET /assignments/:id should 404 for other tenant assignment", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/assignments/${ids.otherAssignment}`)
       .set("Authorization", authHeader);

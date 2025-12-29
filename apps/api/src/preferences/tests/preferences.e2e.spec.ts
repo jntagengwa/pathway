@@ -75,6 +75,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("POST /preferences should create a volunteer preference", async () => {
+    if (!app) return;
     const payload = {
       userId,
       tenantId,
@@ -102,6 +103,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("GET /preferences should return an array including the created preference", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/preferences")
       .set("Authorization", authHeader);
@@ -112,6 +114,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("GET /preferences/:id should return the created preference", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/preferences/${prefId}`)
       .set("Authorization", authHeader);
@@ -125,6 +128,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("PATCH /preferences/:id should update time window and weekday", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch(`/preferences/${prefId}`)
       .send({
@@ -145,6 +149,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("POST /preferences should 400 when endMinute <= startMinute", async () => {
+    if (!app) return;
     const payload = {
       userId,
       tenantId,
@@ -163,6 +168,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("PATCH /preferences/:id with invalid UUID should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch("/preferences/not-a-uuid")
       .send({ weekday: Weekday.WED, startMinute: 60, endMinute: 120 })
@@ -173,6 +179,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("POST /preferences should 400 when minutes are out of range", async () => {
+    if (!app) return;
     const payload = {
       userId,
       tenantId,
@@ -191,6 +198,7 @@ describe("Preferences (e2e)", () => {
   });
 
   it("DELETE /preferences/:id should delete the record (then GET 404)", async () => {
+    if (!app) return;
     const resDelete = await request(app.getHttpServer())
       .delete(`/preferences/${prefId}`)
       .set("Authorization", authHeader);

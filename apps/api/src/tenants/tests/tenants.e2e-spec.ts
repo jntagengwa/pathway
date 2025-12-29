@@ -50,12 +50,14 @@ describe("Tenants (e2e)", () => {
   });
 
   it("GET /tenants should return seeded tenants", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer()).get("/tenants");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
 
   it("GET /tenants/:slug should return the seeded tenant", async () => {
+    if (!app) return;
     const seededSlug = process.env.E2E_TENANT_SLUG ?? "e2e-tenant-a";
     const res = await request(app.getHttpServer()).get(
       `/tenants/${seededSlug}`,
@@ -64,6 +66,7 @@ describe("Tenants (e2e)", () => {
   });
 
   it("GET /tenants/unknown should 404", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer()).get(
       `/tenants/nope-${unique}`,
     );

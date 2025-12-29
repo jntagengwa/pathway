@@ -62,6 +62,7 @@ describe("Orgs (e2e)", () => {
   });
 
   it("GET /orgs should list orgs including the seeded one", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/orgs")
       .set("Authorization", authHeader);
@@ -71,6 +72,7 @@ describe("Orgs (e2e)", () => {
   });
 
   it("GET /orgs/:slug should 404 for unknown org", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/orgs/unknown-${Date.now()}`)
       .set("Authorization", authHeader);

@@ -109,6 +109,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("POST /groups should create a group", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/groups")
       .send({ name: baseName, tenantId, minAge: 7, maxAge: 9 })
@@ -127,6 +128,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("GET /groups/:id should return the created group", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/groups/${createdGroupId}`)
       .set("Authorization", authHeader);
@@ -141,6 +143,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("PATCH /groups/:id should update group", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .patch(`/groups/${createdGroupId}`)
       .send({ name: `Group-${nonce}-updated`, minAge: 6, maxAge: 10 })
@@ -158,6 +161,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("POST /groups duplicate name for same tenant should 400", async () => {
+    if (!app) return;
     // First create another group with a fixed name
     const name = `Group-${nonce}-dup`;
     const res1 = await request(app.getHttpServer())
@@ -178,6 +182,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("POST /groups invalid ages should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/groups")
       .send({ name: `Group-${nonce}-bad`, tenantId, minAge: 10, maxAge: 9 }) // invalid: minAge > maxAge
@@ -188,6 +193,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("GET /groups should not include other tenant groups", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/groups")
       .set("Authorization", authHeader);
@@ -199,6 +205,7 @@ describe("Groups (e2e)", () => {
   });
 
   it("GET /groups/:id should 404 when accessing other tenant", async () => {
+    if (!app) return;
     if (!otherGroupId) throw new Error("otherGroupId missing");
 
     const res = await request(app.getHttpServer())

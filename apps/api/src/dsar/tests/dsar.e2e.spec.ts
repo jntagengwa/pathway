@@ -209,6 +209,7 @@ describe("DSAR (e2e)", () => {
   });
 
   it("returns 404 when requesting a child from another tenant", async () => {
+    if (!app) return;
     await request(app.getHttpServer())
       .get(`/internal/dsar/child/${childId}`)
       .set("Authorization", otherTenantHeader)

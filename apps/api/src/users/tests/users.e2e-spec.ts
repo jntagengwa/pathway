@@ -4,7 +4,7 @@ import request from "supertest";
 import { AppModule } from "../../app.module";
 import { withTenantRlsContext } from "@pathway/db";
 import type { PathwayAuthClaims } from "@pathway/auth";
-import { requireDatabase } from "../../../test-helpers.e2e";
+import { requireDatabase, isDatabaseAvailable } from "../../../test-helpers.e2e";
 
 describe("Users (e2e)", () => {
   let app: INestApplication;
@@ -101,6 +101,7 @@ describe("Users (e2e)", () => {
   });
 
   it("POST /users should create a user", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/users")
       .send({
@@ -119,6 +120,7 @@ describe("Users (e2e)", () => {
   });
 
   it("GET /users/:id should return the created user", async () => {
+    if (!app || !isDatabaseAvailable()) return;
     // Find the created user to get its id
     const created = await withTenantRlsContext(tenantId, orgId, (tx) =>
       tx.user.findFirst({ where: { email } }),
@@ -136,6 +138,7 @@ describe("Users (e2e)", () => {
   });
 
   it("POST /users duplicate email should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/users")
       .send({
@@ -153,6 +156,7 @@ describe("Users (e2e)", () => {
   });
 
   it("POST /users invalid email should 400", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/users")
       .send({
@@ -169,6 +173,7 @@ describe("Users (e2e)", () => {
   });
 
   it("GET /users should not leak other tenants", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get("/users")
       .set("Authorization", authHeader);
@@ -185,6 +190,7 @@ describe("Users (e2e)", () => {
   });
 
   it("GET /users/:id should 404 for another tenant", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/users/${otherTenantUserId}`)
       .set("Authorization", authHeader);

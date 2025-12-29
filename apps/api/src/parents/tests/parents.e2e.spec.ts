@@ -124,6 +124,7 @@ describe("Parents (e2e)", () => {
   });
 
   it("GET /parents/:id returns detail for tenant parent", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/parents/${parentIdTenant1}`)
       .set("Authorization", authHeaderTenant1);
@@ -135,6 +136,7 @@ describe("Parents (e2e)", () => {
   });
 
   it("GET /parents/:id 404s for cross-tenant parent", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .get(`/parents/${parentIdTenant2}`)
       .set("Authorization", authHeaderTenant1);

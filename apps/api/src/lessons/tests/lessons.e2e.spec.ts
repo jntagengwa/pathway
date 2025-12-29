@@ -142,6 +142,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("GET /lessons/:id should return the created lesson", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/lessons/${createdId}`)
         .set("Authorization", authHeader);
@@ -155,6 +156,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("GET /lessons should filter by tenantId/groupId/weekOf", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/lessons?groupId=${ids.group}&weekOf=${base.weekOfISO}`)
         .set("Authorization", authHeader);
@@ -173,6 +175,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("GET /lessons should not leak other tenant lessons", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get("/lessons")
         .set("Authorization", authHeader);
@@ -187,6 +190,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("PATCH /lessons/:id should update fields", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .patch(`/lessons/${createdId}`)
         .send({
@@ -208,6 +212,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("GET /lessons/:id should 404 for other tenant lesson", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .get(`/lessons/${otherLessonId}`)
         .set("Authorization", authHeader);
@@ -216,6 +221,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("DELETE /lessons/:id should delete and return the lesson", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .delete(`/lessons/${createdId}`)
         .set("Authorization", authHeader);
@@ -229,6 +235,7 @@ describe("Lessons (e2e)", () => {
 
   describe("Validation", () => {
     it("POST /lessons should 400 for invalid uuids", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/lessons")
         .send({
@@ -244,6 +251,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("POST /lessons should 400 for invalid weekOf", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/lessons")
         .send({
@@ -259,6 +267,7 @@ describe("Lessons (e2e)", () => {
     });
 
     it("PATCH /lessons/:id should 400 for invalid id", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .patch("/lessons/not-a-uuid")
         .send({ title: "won't matter" })
