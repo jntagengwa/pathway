@@ -105,6 +105,9 @@ if (allowReset) {
 }
 
 let prisma: PrismaClientType | undefined;
+// Global flag to track if database is available
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).__E2E_DB_AVAILABLE = false;
 
 beforeAll(async () => {
   // 3) Import prisma AFTER DATABASE_URL is set so the client binds to the E2E DB
@@ -118,12 +121,44 @@ beforeAll(async () => {
   // Quick smoke check: ensure the test role can read migrations metadata.
   try {
     await prisma.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).__E2E_DB_AVAILABLE = true;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode =
+      typeof error === "object" && error !== null && "errorCode" in error
+        ? String((error as { errorCode?: unknown }).errorCode)
+        : undefined;
+
     console.error(
-      "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants. Tests will likely fail.",
-      error,
+      "[test.setup.e2e] Smoke check failed: cannot read _prisma_migrations. Ensure schema is migrated and test role has USAGE/SELECT grants.",
+      {
+        errorMessage,
+        errorCode,
+        error,
+      },
     );
+
+    // If it's a connection error (P1001), mark DB as unavailable but don't throw
+    // Tests will skip gracefully
+    if (
+      errorCode === "P1001" ||
+      errorMessage.includes("Can't reach database server")
+    ) {
+      console.warn(
+        "[test.setup.e2e] Database server is not available. E2E tests will be skipped.",
+      );
+      return; // Exit early, skip seeding
+    }
+
+    // For other errors, still throw (e.g., permission errors)
     throw error;
+  }
+
+  // Only seed if database is available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(globalThis as any).__E2E_DB_AVAILABLE) {
+    return;
   }
 
   // 4) Minimal deterministic seed for all e2e specs (clean DB per run)
