@@ -32,10 +32,15 @@ describe("Av30ComputeService", () => {
       // Log the full error for visibility in CI logs
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
+      const errorCode =
+        typeof error === "object" && error !== null && "errorCode" in error
+          ? String((error as { errorCode?: unknown }).errorCode)
+          : undefined;
       
       console.error("[Av30ComputeService] Error in seedFixtures:", {
         message: errorMessage,
         stack: errorStack,
+        errorCode,
         error: error,
       });
       
@@ -45,6 +50,16 @@ describe("Av30ComputeService", () => {
         console.warn(
           "[Av30ComputeService] Skipping tests: database user lacks permissions on 'app' schema. " +
             "Grant USAGE permission: GRANT USAGE ON SCHEMA app TO <test_user>;",
+        );
+        return;
+      }
+      
+      // Check if it's a database connection error (P1001)
+      if (errorCode === "P1001" || errorMessage.includes("Can't reach database server")) {
+        hasDbPermissions = false;
+        console.warn(
+          "[Av30ComputeService] Skipping tests: database server is not available. " +
+            "Please make sure your database server is running.",
         );
         return;
       }
