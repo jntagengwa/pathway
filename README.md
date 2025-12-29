@@ -69,17 +69,92 @@ pnpm --filter=mobile dev
 
 ## Testing
 
-Run tests for all packages and apps:
+This monorepo uses a clear separation between **unit tests** and **integration tests**:
+
+- **Unit tests** (`*.spec.ts`): Fast, isolated tests that don't require external dependencies like databases
+- **Integration tests** (`*.e2e.spec.ts`, `*.e2e-spec.ts`): End-to-end tests that require a database and test the full application stack
+
+### Running Tests
+
+**Unit tests only (default, no database required):**
 
 ```bash
-pnpm turbo run test
+# Run all unit tests across the monorepo
+pnpm test:unit
+
+# Run unit tests for a specific package
+pnpm --filter @pathway/api test:unit
+pnpm --filter @pathway/workers test
+pnpm --filter @pathway/auth test
 ```
 
-Run tests for a specific package or app:
+**Integration tests (requires database):**
 
 ```bash
-pnpm --filter=util test
+# Run all integration tests
+pnpm test:integration
+
+# Run integration tests for a specific package
+pnpm --filter @pathway/api test:integration
 ```
+
+**Note:** The default `pnpm test` command runs unit tests only, ensuring CI passes without external dependencies.
+
+### Running Integration Tests Locally
+
+Integration tests require a PostgreSQL database. You have two options:
+
+#### Option 1: Using Docker Compose (Recommended)
+
+1. Start the development database:
+
+```bash
+pnpm infra:up
+```
+
+2. Set up environment variables in `.env.test`:
+
+```bash
+DATABASE_URL=postgresql://pathway_user:pathway_password@localhost:5432/pathway_test?schema=app
+E2E_DATABASE_URL=postgresql://pathway_user:pathway_password@localhost:5432/pathway_test_e2e?schema=app
+E2E_ORG_ID=00000000-0000-0000-0000-000000000001
+E2E_TENANT_ID=00000000-0000-0000-0000-000000000002
+E2E_TENANT2_ID=00000000-0000-0000-0000-000000000003
+E2E_TENANT_SLUG=e2e-tenant-a
+```
+
+3. Generate Prisma client and run migrations:
+
+```bash
+pnpm db:generate
+pnpm --filter @pathway/db run prisma migrate deploy
+```
+
+4. Run integration tests:
+
+```bash
+pnpm test:integration
+```
+
+#### Option 2: Using a Local Postgres Instance
+
+1. Ensure PostgreSQL is running locally
+2. Create test databases:
+
+```sql
+CREATE DATABASE pathway_test;
+CREATE DATABASE pathway_test_e2e;
+```
+
+3. Configure `.env.test` with your local connection string
+4. Run migrations and tests as above
+
+### Test Naming Conventions
+
+- **Unit tests**: `**/*.spec.ts` (e.g., `users.service.spec.ts`)
+- **Integration tests**: `**/*.e2e.spec.ts` or `**/*.e2e-spec.ts` (e.g., `users.e2e.spec.ts`)
+
+This convention allows Jest to automatically separate test types and run them independently.
 
 ## Linting & Formatting
 
@@ -208,15 +283,26 @@ pnpm -r typecheck
 # Lint all packages and apps
 pnpm -r lint
 
-# Run tests for all packages and apps
-pnpm -r test
+# Run unit tests (no database required)
+pnpm test:unit
 ```
 
 All checks must pass before code can be merged. The workflow:
 - Uses pnpm with frozen lockfile for reproducible installs
 - Caches the pnpm store for faster builds
-- Fails fast on the first error (typecheck → lint → test)
+- Fails fast on the first error (typecheck → lint → test:unit)
 - Runs on Ubuntu latest with Node.js 20
+- **Does not require a database** - only unit tests run by default
+
+### Integration Tests in CI
+
+Integration tests run in a separate, optional job that:
+- Runs on `master`/`main` branch pushes, PRs, or manual trigger
+- Uses a Postgres service container (ephemeral, isolated per run)
+- Sets up test databases and runs migrations automatically
+- Runs all integration tests with proper database isolation
+
+To manually trigger integration tests in CI, use the "Run workflow" button in GitHub Actions.
 
 ### Local CI Checks
 
@@ -224,21 +310,16 @@ You can run the same checks locally before pushing:
 
 ```bash
 # Typecheck
-pnpm -r typecheck
+pnpm typecheck
 
 # Lint
-pnpm -r lint
-
-# Test
-pnpm -r test
-```
-
-Or use the root scripts (which use Turbo for caching):
-
-```bash
-pnpm typecheck
 pnpm lint
-pnpm test
+
+# Unit tests (default, no DB required)
+pnpm test:unit
+
+# Integration tests (requires database)
+pnpm test:integration
 ```
 
 ## Next Steps
