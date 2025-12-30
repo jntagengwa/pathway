@@ -20,6 +20,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+
+      - name: Debug required vars
+        id: debug-vars
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_TO_ASSUME }}" ]; then echo "AWS_ROLE_TO_ASSUME is EMPTY"; exit 1; fi
+          if [ -z "${{ vars.AWS_ACCOUNT_ID }}" ]; then echo "AWS_ACCOUNT_ID is EMPTY"; exit 1; fi
+          echo "Vars present (not printing values)."
+          end
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
