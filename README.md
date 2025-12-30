@@ -322,6 +322,97 @@ pnpm test:unit
 pnpm test:integration
 ```
 
+## Deployment
+
+This repository includes automated deployment to AWS ECS Fargate via GitHub Actions. The deployment workflow runs automatically on pushes to the `master` branch.
+
+### Required GitHub Variables
+
+The following variables must be configured in your GitHub repository settings (Settings → Secrets and variables → Actions → Variables):
+
+#### AWS Configuration
+- `AWS_REGION` - AWS region (defaults to `eu-west-2` if not set)
+- `AWS_ACCOUNT_ID` - Your AWS account ID
+- `AWS_ROLE_TO_ASSUME` - ARN of the IAM role to assume via OIDC (e.g., `arn:aws:iam::123456789012:role/github-actions-role`)
+
+#### ECS Configuration
+- `ECS_CLUSTER` - ECS cluster name (defaults to `nexsteps-prod` if not set)
+- `ECS_EXECUTION_ROLE_ARN` - ARN of the ECS task execution role (for pulling images from ECR and writing logs)
+- `ECS_TASK_ROLE_ARN` - ARN of the ECS task role (for application permissions)
+
+#### ECS Service Names
+- `ECS_SERVICE_WEB` - ECS service name for web app (defaults to `nexsteps-web`)
+- `ECS_SERVICE_ADMIN` - ECS service name for admin app (defaults to `nexsteps-admin`)
+- `ECS_SERVICE_API` - ECS service name for API (defaults to `nexsteps-api`)
+
+#### ECS Task Definition Names
+- `ECS_TASKDEF_WEB` - Task definition family name for web (defaults to `nexsteps-web`)
+- `ECS_TASKDEF_ADMIN` - Task definition family name for admin (defaults to `nexsteps-admin`)
+- `ECS_TASKDEF_API` - Task definition family name for API (defaults to `nexsteps-api`)
+
+#### ECR Repository Names
+- `ECR_REPO_WEB` - ECR repository name for web (defaults to `nexsteps-web`)
+- `ECR_REPO_ADMIN` - ECR repository name for admin (defaults to `nexsteps-admin`)
+- `ECR_REPO_API` - ECR repository name for API (defaults to `nexsteps-api`)
+
+### AWS IAM Setup
+
+The deployment workflow uses OIDC to authenticate with AWS. You need to:
+
+1. **Create an IAM Role** for GitHub Actions with trust policy allowing the GitHub OIDC provider:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+         },
+         "Action": "sts:AssumeRoleWithWebIdentity",
+         "Condition": {
+           "StringEquals": {
+             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+           },
+           "StringLike": {
+             "token.actions.githubusercontent.com:sub": "repo:OWNER/REPO:*"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+2. **Attach policies** to the role with permissions for:
+   - ECR: `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`, `ecr:GetDownloadUrlForLayer`, `ecr:BatchGetImage`, `ecr:PutImage`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`
+   - ECS: `ecs:RegisterTaskDefinition`, `ecs:DescribeTaskDefinition`, `ecs:UpdateService`, `ecs:DescribeServices`
+   - CloudWatch Logs: `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`
+
+3. **Set the role ARN** as the `AWS_ROLE_TO_ASSUME` variable in GitHub.
+
+### Deployment Process
+
+When code is pushed to `master`:
+
+1. The workflow builds Docker images for all three apps (web, admin, api)
+2. Images are tagged with both `:sha-<commit-sha>` and `:latest`
+3. Images are pushed to their respective ECR repositories
+4. Task definitions are rendered with the new image URIs
+5. New task definition revisions are registered with ECS
+6. Each ECS service is updated to use the new task definition
+7. The workflow waits for all services to reach a stable state
+
+### Task Definitions
+
+Task definitions are stored in `infra/ecs/` and include:
+- Fargate compatibility
+- CPU/Memory allocation (512 CPU, 1024 MB memory by default)
+- Container port mappings (3000 for all services)
+- CloudWatch Logs configuration
+- Environment variables for production
+
+You can modify these task definitions as needed, but ensure they match your ECS service configurations.
+
 ## Next Steps
 
 - Add more detailed documentation for each app and package

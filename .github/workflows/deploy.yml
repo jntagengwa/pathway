@@ -1,0 +1,191 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches: [master]
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-2' }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    name: Build and Deploy to ECS
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push web image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPO_WEB || 'nexsteps-web' }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --file apps/web/Dockerfile \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --push \
+            .
+
+      - name: Build and push admin image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPO_ADMIN || 'nexsteps-admin' }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --file apps/admin/Dockerfile \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --push \
+            .
+
+      - name: Build and push api image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPO_API || 'nexsteps-api' }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --file apps/api/Dockerfile \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --push \
+            .
+
+      - name: Render and deploy web task definition
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPO_WEB || 'nexsteps-web' }}
+          IMAGE_TAG: ${{ github.sha }}
+          EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
+          TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
+          sed -e "s|IMAGE_URI_PLACEHOLDER|$IMAGE_URI|g" \
+              -e "s|EXECUTION_ROLE_ARN_PLACEHOLDER|$EXECUTION_ROLE_ARN|g" \
+              -e "s|TASK_ROLE_ARN_PLACEHOLDER|$TASK_ROLE_ARN|g" \
+              infra/ecs/web.taskdef.json > /tmp/web-taskdef.json
+          
+          aws ecs register-task-definition \
+            --cli-input-json file:///tmp/web-taskdef.json \
+            --region ${{ env.AWS_REGION }}
+          
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASKDEF_WEB || 'nexsteps-web' }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.revision' \
+            --output text)
+          
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER || 'nexsteps-prod' }} \
+            --service ${{ vars.ECS_SERVICE_WEB || 'nexsteps-web' }} \
+            --task-definition ${{ vars.ECS_TASKDEF_WEB || 'nexsteps-web' }}:$TASK_DEF \
+            --region ${{ env.AWS_REGION }} \
+            --force-new-deployment
+
+      - name: Render and deploy admin task definition
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPO_ADMIN || 'nexsteps-admin' }}
+          IMAGE_TAG: ${{ github.sha }}
+          EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
+          TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
+          sed -e "s|IMAGE_URI_PLACEHOLDER|$IMAGE_URI|g" \
+              -e "s|EXECUTION_ROLE_ARN_PLACEHOLDER|$EXECUTION_ROLE_ARN|g" \
+              -e "s|TASK_ROLE_ARN_PLACEHOLDER|$TASK_ROLE_ARN|g" \
+              infra/ecs/admin.taskdef.json > /tmp/admin-taskdef.json
+          
+          aws ecs register-task-definition \
+            --cli-input-json file:///tmp/admin-taskdef.json \
+            --region ${{ env.AWS_REGION }}
+          
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASKDEF_ADMIN || 'nexsteps-admin' }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.revision' \
+            --output text)
+          
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER || 'nexsteps-prod' }} \
+            --service ${{ vars.ECS_SERVICE_ADMIN || 'nexsteps-admin' }} \
+            --task-definition ${{ vars.ECS_TASKDEF_ADMIN || 'nexsteps-admin' }}:$TASK_DEF \
+            --region ${{ env.AWS_REGION }} \
+            --force-new-deployment
+
+      - name: Render and deploy api task definition
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPO_API || 'nexsteps-api' }}
+          IMAGE_TAG: ${{ github.sha }}
+          EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
+          TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
+          sed -e "s|IMAGE_URI_PLACEHOLDER|$IMAGE_URI|g" \
+              -e "s|EXECUTION_ROLE_ARN_PLACEHOLDER|$EXECUTION_ROLE_ARN|g" \
+              -e "s|TASK_ROLE_ARN_PLACEHOLDER|$TASK_ROLE_ARN|g" \
+              infra/ecs/api.taskdef.json > /tmp/api-taskdef.json
+          
+          aws ecs register-task-definition \
+            --cli-input-json file:///tmp/api-taskdef.json \
+            --region ${{ env.AWS_REGION }}
+          
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASKDEF_API || 'nexsteps-api' }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.revision' \
+            --output text)
+          
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER || 'nexsteps-prod' }} \
+            --service ${{ vars.ECS_SERVICE_API || 'nexsteps-api' }} \
+            --task-definition ${{ vars.ECS_TASKDEF_API || 'nexsteps-api' }}:$TASK_DEF \
+            --region ${{ env.AWS_REGION }} \
+            --force-new-deployment
+
+      - name: Wait for web service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER || 'nexsteps-prod' }} \
+            --services ${{ vars.ECS_SERVICE_WEB || 'nexsteps-web' }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for admin service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER || 'nexsteps-prod' }} \
+            --services ${{ vars.ECS_SERVICE_ADMIN || 'nexsteps-admin' }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for api service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER || 'nexsteps-prod' }} \
+            --services ${{ vars.ECS_SERVICE_API || 'nexsteps-api' }} \
+            --region ${{ env.AWS_REGION }}
+

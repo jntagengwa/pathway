@@ -1,0 +1,45 @@
+{
+  "family": "nexsteps-web",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "EXECUTION_ROLE_ARN_PLACEHOLDER",
+  "taskRoleArn": "TASK_ROLE_ARN_PLACEHOLDER",
+  "containerDefinitions": [
+    {
+      "name": "nexsteps-web",
+      "image": "IMAGE_URI_PLACEHOLDER",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
+          "name": "HOSTNAME",
+          "value": "0.0.0.0"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/nexsteps-web",
+          "awslogs-region": "eu-west-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+
