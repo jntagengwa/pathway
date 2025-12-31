@@ -11,6 +11,8 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 
 # Install dependencies (install all to ensure workspace package deps are hoisted)
+# Disable husky during docker build to avoid .git can't be found noise
+ENV HUSKY=0
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
@@ -24,6 +26,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
 
 # Build the app
+# Disable husky during docker build
+ENV HUSKY=0
 WORKDIR /app/apps/api
 RUN pnpm build
 
