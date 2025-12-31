@@ -23,14 +23,19 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/web ./apps/web
 
-# Copy node_modules and .pnpm store from deps stage to preserve workspace symlinks
-# pnpm stores actual packages in .pnpm and creates symlinks in node_modules
-COPY --from=deps /app/node_modules ./node_modules
+# Copy .pnpm store from deps stage (contains actual packages)
+# Then re-run pnpm install to recreate symlinks properly
+# This ensures workspace symlinks are correctly established
 COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=deps /app/pnpm-lock.yaml ./pnpm-lock.yaml
 
-# Build from repo root using pnpm filter to ensure workspace binaries (like 'next') are resolved correctly
-# This is necessary because pnpm workspace symlinks require the full workspace context
+# Re-link dependencies to recreate symlinks in node_modules
+# This is necessary because copying node_modules can break symlinks
 ENV HUSKY=0
+RUN pnpm install --frozen-lockfile --offline
+
+# Build from repo root using pnpm filter
+# pnpm --filter runs the command in the package directory but resolves dependencies from workspace root
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm --filter @pathway/web build
