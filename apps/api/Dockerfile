@@ -18,18 +18,25 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
-# Copy workspace files and dependencies
+# Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/api ./apps/api
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages ./packages
 
-# Build the app
-# Disable husky during docker build
+# Copy .pnpm store from deps stage to reuse downloaded packages
+# Then re-run pnpm install to recreate proper symlinks
+# This is necessary because copying node_modules breaks symlinks
+COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
+
+# Re-run pnpm install to recreate node_modules symlinks properly
+# Using --prefer-offline to use existing .pnpm store, --frozen-lockfile for consistency
 ENV HUSKY=0
-WORKDIR /app/apps/api
-RUN pnpm build
+RUN pnpm install --frozen-lockfile --prefer-offline
+
+# Build from workspace root using pnpm filter
+# This ensures workspace binaries and dependencies are resolved correctly
+ENV NODE_ENV=production
+RUN pnpm --filter @pathway/api build
 
 # Runtime stage  
 FROM base AS runner
