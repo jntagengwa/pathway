@@ -11,6 +11,8 @@ COPY packages ./packages
 COPY apps/admin ./apps/admin
 
 # Install dependencies (install all to ensure workspace package deps are hoisted)
+# Disable husky during docker build to avoid .git can't be found noise
+ENV HUSKY=0
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
@@ -24,9 +26,12 @@ COPY apps/admin ./apps/admin
 # Copy node_modules from deps stage (includes all workspace dependencies and hoisted deps)
 COPY --from=deps /app/node_modules ./node_modules
 
-# Build the app
-WORKDIR /app/apps/admin
-RUN pnpm build
+# Build from repo root using pnpm filter to ensure workspace binaries (like 'next') are resolved correctly
+# This is necessary because pnpm workspace symlinks require the full workspace context
+ENV HUSKY=0
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+RUN pnpm --filter @pathway/admin build
 
 # Runtime stage
 FROM node:20-alpine AS runner
@@ -45,5 +50,5 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Next.js standalone creates server.js in the app directory structure
+# Note: With standalone output, we use node directly (not pnpm start) since the output is self-contained
 CMD ["node", "apps/admin/server.js"]
-

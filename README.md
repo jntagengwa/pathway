@@ -213,6 +213,8 @@ Each app has a production-ready Dockerfile optimized for AWS ECS Fargate deploym
 
 All Dockerfiles use multi-stage builds with Node.js 20 Alpine images for minimal size.
 
+**Note:** Next.js apps (web and admin) build from the repository root using `pnpm --filter` to ensure workspace binaries (like `next`) are properly resolved. This is necessary because pnpm workspace symlinks require the full workspace context. The API Dockerfile also uses workspace-aware build commands for consistency.
+
 #### Building Individual Images
 
 Build each app's Docker image from the repository root:
