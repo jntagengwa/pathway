@@ -23,8 +23,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/web ./apps/web
 
-# Copy node_modules from deps stage (includes all workspace dependencies and hoisted deps)
+# Copy node_modules and .pnpm store from deps stage to preserve workspace symlinks
+# pnpm stores actual packages in .pnpm and creates symlinks in node_modules
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
 
 # Build from repo root using pnpm filter to ensure workspace binaries (like 'next') are resolved correctly
 # This is necessary because pnpm workspace symlinks require the full workspace context
