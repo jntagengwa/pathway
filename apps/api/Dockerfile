@@ -38,18 +38,20 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 ENV NODE_ENV=production
 RUN pnpm --filter @pathway/api build
 
-# Runtime stage  
+# Runtime stage
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy workspace structure
+# Copy workspace structure needed for production install
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/apps/api ./apps/api
+
+# Copy compiled dist output from builder (this is the critical fix)
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 # Copy .pnpm store from builder to preserve all packages
 COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
@@ -58,13 +60,11 @@ COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
 # Use --ignore-scripts to skip prepare scripts like husky
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @pathway/api
 
-# Run from the app directory
-WORKDIR /app/apps/api
-
 EXPOSE 3001
 
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "dist/src/main.js"]
+# Use absolute path to the compiled entrypoint
+CMD ["node", "/app/apps/api/dist/src/main.js"]
 
