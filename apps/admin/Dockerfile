@@ -28,18 +28,15 @@ COPY apps/admin ./apps/admin
 # Docker preserves symlinks when copying directories
 COPY --from=deps /app/node_modules ./node_modules
 
-# Build from the app directory but ensure workspace root's binaries are accessible
-# We change to the app directory and run next build directly
-# The workspace root's node_modules/.bin must be in PATH
+# Build from the app directory using the full path to the binary
+# pnpm stores binaries in workspace root's node_modules/.bin
 ENV HUSKY=0
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Add workspace root's node_modules/.bin to PATH
-ENV PATH="/app/node_modules/.bin:$PATH"
-# Change to app directory and run next build directly (not via pnpm script)
-# This ensures the binary is found via PATH
+# Change to app directory and run next build using full path to binary
 WORKDIR /app/apps/admin
-RUN next build
+# Use full path to next binary from workspace root
+RUN /app/node_modules/.bin/next build
 
 # Runtime stage
 FROM node:20-alpine AS runner
