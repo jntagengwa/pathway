@@ -23,19 +23,21 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/web ./apps/web
 
-# Copy entire node_modules structure from deps stage
-# This includes .pnpm store and all symlinks
-# Docker preserves symlinks when copying directories
-COPY --from=deps /app/node_modules ./node_modules
+# Copy .pnpm store from deps stage to reuse downloaded packages
+# Then re-run pnpm install to recreate proper symlinks
+# This is necessary because copying node_modules breaks symlinks
+COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
 
-# Build from workspace root using pnpm exec to resolve binaries correctly
-# pnpm exec will find the binary in workspace root's node_modules/.bin
+# Re-run pnpm install to recreate node_modules symlinks properly
+# Using --prefer-offline to use existing .pnpm store, --frozen-lockfile for consistency
 ENV HUSKY=0
+RUN pnpm install --frozen-lockfile --prefer-offline
+
+# Build from workspace root using pnpm filter
+# This ensures workspace binaries are resolved correctly
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Stay at workspace root and use pnpm exec to run next build in the app directory
-# pnpm exec correctly resolves workspace binaries regardless of working directory
-RUN pnpm --filter @pathway/web exec next build
+RUN pnpm --filter @pathway/web build
 
 # Runtime stage
 FROM node:20-alpine AS runner
