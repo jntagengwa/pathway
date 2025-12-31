@@ -53,6 +53,9 @@ COPY --from=builder /app/packages ./packages
 # Copy compiled dist output from builder (this is the critical fix)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
+# Copy package.json needed for pnpm install --filter to work
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+
 # Copy .pnpm store from builder to preserve all packages
 COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
 
