@@ -10,6 +10,7 @@ env:
 
 jobs:
   deploy:
+    environment: production
     name: Build and Deploy to ECS
     runs-on: ubuntu-latest
     permissions:
