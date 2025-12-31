@@ -21,12 +21,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-
-      - name: Debug GitHub context
-        id: debug-github-context
+      - name: Debug GitHub OIDC claims (sub/aud/iss)
+        shell: bash
         run: |
           echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
           echo "GITHUB_REF=$GITHUB_REF"
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          
+          # Request an OIDC token (no secrets in payload; do not print the raw token)
+          RESPONSE=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
+          
+          TOKEN=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin)['value'])")
+          
+          # Decode JWT payload (second segment)
+          export TOKEN
+          PAYLOAD=$(python3 -c "import base64,json,os,sys; token=os.environ['TOKEN']; payload=token.split('.')[1]; payload += '=' * (-len(payload) % 4); print(base64.urlsafe_b64decode(payload.encode()).decode())")
+          
+          export PAYLOAD
+          
+          python3 -c "import json,os; p=json.loads(os.environ['PAYLOAD']); print('iss:', p.get('iss')); print('aud:', p.get('aud')); print('sub:', p.get('sub')); print('repository:', p.get('repository')); print('ref:', p.get('ref')); print('job_workflow_ref:', p.get('job_workflow_ref'))"
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
