@@ -23,16 +23,20 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/admin ./apps/admin
 
-# Copy node_modules and .pnpm store from deps stage to preserve workspace symlinks
-# pnpm stores actual packages in .pnpm and creates symlinks in node_modules
+# Copy entire node_modules structure from deps stage
+# This includes .pnpm store and all symlinks
+# Docker preserves symlinks when copying directories
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
 
-# Build from repo root using pnpm filter to ensure workspace binaries (like 'next') are resolved correctly
-# This is necessary because pnpm workspace symlinks require the full workspace context
+# Build from repo root using pnpm filter
+# pnpm --filter runs the command in the package directory but resolves dependencies from workspace root
+# We need to ensure the workspace root's node_modules/.bin is in PATH
 ENV HUSKY=0
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Add workspace root's node_modules/.bin to PATH and run build
+# pnpm should handle this automatically, but we ensure it explicitly
+ENV PATH="/app/node_modules/.bin:$PATH"
 RUN pnpm --filter @pathway/admin build
 
 # Runtime stage
