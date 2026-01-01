@@ -43,6 +43,10 @@ RUN pnpm --filter @pathway/api build
 
 # Runtime stage
 FROM base AS runner
+
+# Install OpenSSL required by Prisma's native binaries
+RUN apk add --no-cache openssl openssl-dev
+
 WORKDIR /app
 
 # Don't set NODE_ENV=production yet - we need devDependencies (tsx) to be installed
