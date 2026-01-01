@@ -38,23 +38,17 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 ENV NODE_ENV=production
 RUN pnpm --filter @pathway/api build
 
-# Fix ESM imports: Add .js extensions to relative file imports
-# Note: Directory imports like "./dto" should work as-is in Node.js ESM (resolves to ./dto/index.js)
-# We only add .js to imports that look like files (contain a / and a filename, or have an extension)
-RUN find /app/apps/api/dist -name "*.js" -type f -exec sed -i.bak \
-    -e 's/from "\(\.\.\?\/[^"]*\.[^"\/]*\)"/from "\1.js"/g' \
-    -e 's/from "\(\.\.\?\/[^"]*\/[^"\/]*\)"/from "\1.js"/g' \
-    -e 's/from '\''\(\.\.\?\/[^'\'']*\.[^'\''\/]*\)'\''/from '\''\1.js'\''/g' \
-    -e 's/from '\''\(\.\.\?\/[^'\'']*\/[^'\''\/]*\)'\''/from '\''\1.js'\''/g' \
-    {} \; && find /app/apps/api/dist -name "*.js.bak" -delete
+# Note: We use tsx at runtime which handles ESM imports more leniently than plain Node.js
+# tsx can resolve imports without explicit .js extensions, so we don't need to modify the compiled code
 
 # Runtime stage
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
+# Don't set NODE_ENV=production yet - we need devDependencies (tsx) to be installed
+# We'll set it after install
 
-# Copy workspace structure needed for production install
+# Copy workspace structure needed for install
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
@@ -63,25 +57,34 @@ COPY --from=builder /app/packages ./packages
 # Copy compiled dist output from builder (this is the critical fix)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
-# Copy package.json needed for pnpm install --filter to work
+# Copy package.json and tsconfig.json needed for pnpm install and tsx to work
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/apps/api/tsconfig.json ./apps/api/tsconfig.json
 
-# Copy .pnpm store from builder to preserve all packages
+# Copy .pnpm store from builder (contains all downloaded packages)
+# Then reinstall to recreate node_modules with proper symlinks
+# We need all deps (not just prod) because workspace packages point to .ts files and need tsx
 COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
 
-# Install production dependencies - this will create proper symlinks from node_modules to .pnpm
+# Reinstall all dependencies (including dev) using existing .pnpm store
+# We need all deps because workspace packages point to .ts files and need tsx (devDep)
 # Use --ignore-scripts to skip prepare scripts like husky
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @pathway/api
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Now set NODE_ENV for runtime
+ENV NODE_ENV=production
 
 EXPOSE 3001
 
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
-# Change to the app directory so Node.js ESM module resolution works correctly
-# TypeScript with rootDir: "../../" creates nested structure: dist/apps/api/src/main.js
+# Change to API directory and use pnpm exec to find tsx
 WORKDIR /app/apps/api
 
-# Use relative path from the package directory (package.json context is needed for ESM)
-CMD ["node", "dist/apps/api/src/main.js"]
+# Use tsx to run the compiled code - this allows workspace packages (@pathway/*) to resolve correctly
+# since their package.json points to src/index.ts and tsx can handle TypeScript
+# Note: The API code is compiled JS, but workspace packages are still TypeScript
+# Pass --tsconfig so tsx knows about decorator settings when compiling workspace packages
+CMD ["pnpm", "exec", "tsx", "--tsconfig", "tsconfig.json", "dist/apps/api/src/main.js"]
 
