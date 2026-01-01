@@ -69,5 +69,6 @@ ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
 # Use absolute path to the compiled entrypoint
-CMD ["node", "/app/apps/api/dist/src/main.js"]
+# TypeScript with rootDir: "../../" creates nested structure: dist/apps/api/src/main.js
+CMD ["node", "/app/apps/api/dist/apps/api/src/main.js"]
 
