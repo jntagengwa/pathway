@@ -38,6 +38,16 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 ENV NODE_ENV=production
 RUN pnpm --filter @pathway/api build
 
+# Fix ESM imports: Add .js extensions to relative file imports
+# Note: Directory imports like "./dto" should work as-is in Node.js ESM (resolves to ./dto/index.js)
+# We only add .js to imports that look like files (contain a / and a filename, or have an extension)
+RUN find /app/apps/api/dist -name "*.js" -type f -exec sed -i.bak \
+    -e 's/from "\(\.\.\?\/[^"]*\.[^"\/]*\)"/from "\1.js"/g' \
+    -e 's/from "\(\.\.\?\/[^"]*\/[^"\/]*\)"/from "\1.js"/g' \
+    -e 's/from '\''\(\.\.\?\/[^'\'']*\.[^'\''\/]*\)'\''/from '\''\1.js'\''/g' \
+    -e 's/from '\''\(\.\.\?\/[^'\'']*\/[^'\''\/]*\)'\''/from '\''\1.js'\''/g' \
+    {} \; && find /app/apps/api/dist -name "*.js.bak" -delete
+
 # Runtime stage
 FROM base AS runner
 WORKDIR /app
@@ -68,7 +78,10 @@ EXPOSE 3001
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
-# Use absolute path to the compiled entrypoint
+# Change to the app directory so Node.js ESM module resolution works correctly
 # TypeScript with rootDir: "../../" creates nested structure: dist/apps/api/src/main.js
-CMD ["node", "/app/apps/api/dist/apps/api/src/main.js"]
+WORKDIR /app/apps/api
+
+# Use relative path from the package directory (package.json context is needed for ESM)
+CMD ["node", "dist/apps/api/src/main.js"]
 
