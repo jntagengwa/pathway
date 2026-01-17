@@ -6,10 +6,11 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow auth routes and login page
+  // Allow auth routes, login page, and health check
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/login") ||
+    pathname === "/health" ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     pathname.endsWith(".png") ||
