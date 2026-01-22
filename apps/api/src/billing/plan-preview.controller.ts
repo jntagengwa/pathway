@@ -3,10 +3,8 @@ import {
   Body,
   Controller,
   Post,
-  UseGuards,
   Inject,
 } from "@nestjs/common";
-import { AuthUserGuard } from "../auth/auth-user.guard";
 import { PlanPreviewService } from "./plan-preview.service";
 import {
   type PlanPreviewRequest,
@@ -14,7 +12,10 @@ import {
   type PlanPreviewAddons,
 } from "./plan-preview.types";
 
-@UseGuards(AuthUserGuard)
+/**
+ * Public plan preview endpoint for buy-now flow.
+ * No authentication required - plan previews are publicly available.
+ */
 @Controller("billing/plan-preview")
 export class PlanPreviewController {
   constructor(@Inject(PlanPreviewService) private readonly planPreviewService: PlanPreviewService) {}

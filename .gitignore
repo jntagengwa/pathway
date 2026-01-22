@@ -13,10 +13,19 @@ dist
 .expo
 .expo-shared
 
+# Compiled JavaScript files in source directories (should be in dist/ only)
+apps/*/src/**/*.js
+apps/*/src/**/*.js.map
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+
 # env
 .env
 .env.local
 .env.*.local
+.env.prod
+.env.production
+.env.staging
 
 # logs
 npm-debug.log*

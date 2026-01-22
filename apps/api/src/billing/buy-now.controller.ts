@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Post,
-  UseGuards,
   Inject,
 } from "@nestjs/common";
 import {
@@ -16,7 +15,6 @@ import {
   IsUrl,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { AuthUserGuard } from "../auth/auth-user.guard";
 import { BuyNowService } from "./buy-now.service";
 import type {
   BuyNowCheckoutResponse,
@@ -67,6 +65,10 @@ class BuyNowOrgDetailsDto implements BuyNowOrgDetails {
   @IsEmail()
   contactEmail!: string;
 
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+
   @IsOptional()
   @IsString()
   source?: string;
@@ -92,7 +94,10 @@ class BuyNowCheckoutRequestDto {
   cancelUrl?: string;
 }
 
-@UseGuards(AuthUserGuard)
+/**
+ * Public buy-now checkout endpoint.
+ * No authentication required - this is for new customers purchasing for the first time.
+ */
 @Controller("billing/buy-now")
 export class BuyNowController {
   constructor(@Inject(BuyNowService) private readonly buyNowService: BuyNowService) {}

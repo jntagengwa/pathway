@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import clsx from "clsx";
 import {
   PLAN_PRICES,
@@ -20,7 +21,7 @@ import {
   fetchPublicBillingPrices,
 } from "../../lib/buy-now-client";
 
-type PlanTier = "starter" | "growth" | "enterprise";
+type PlanTier = "core" | "starter" | "growth" | "enterprise";
 type BillingFrequency = "monthly" | "yearly";
 
 const MAX_QTY = 20;
@@ -29,6 +30,7 @@ const tierToPlanCode = (
   tier: PlanTier,
   frequency: BillingFrequency,
 ): PlanCode | null => {
+  if (tier === "core") return frequency === "monthly" ? "CORE_MONTHLY" : "CORE_YEARLY";
   if (tier === "starter") return frequency === "monthly" ? "STARTER_MONTHLY" : "STARTER_YEARLY";
   if (tier === "growth") return frequency === "monthly" ? "GROWTH_MONTHLY" : "GROWTH_YEARLY";
   return null;
@@ -72,6 +74,7 @@ export default function BuyNowPage() {
   const [orgName, setOrgName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const [preview, setPreview] = useState<PlanPreviewResponse | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -109,17 +112,17 @@ export default function BuyNowPage() {
   }, []);
 
   const selection: BuyNowSelection | null = planCode
-    ? {
+    ?       {
         planCode,
         frequency,
         av30AddonBlocks25:
-          planTier === "starter" ? av30Blocks : 0,
+          planTier === "core" ? 0 : planTier === "starter" ? av30Blocks : 0,
         av30AddonBlocks50:
-          planTier === "growth" ? av30Blocks : 0,
-        storageAddon100Gb: storageChoice === "100" ? 1 : 0,
-        storageAddon200Gb: storageChoice === "200" ? 1 : 0,
-        storageAddon1Tb: storageChoice === "1000" ? 1 : 0,
-        smsBundles1000: smsBundles,
+          planTier === "core" ? 0 : planTier === "growth" ? av30Blocks : 0,
+        storageAddon100Gb: planTier === "core" ? 0 : storageChoice === "100" ? 1 : 0,
+        storageAddon200Gb: planTier === "core" ? 0 : storageChoice === "200" ? 1 : 0,
+        storageAddon1Tb: planTier === "core" ? 0 : storageChoice === "1000" ? 1 : 0,
+        smsBundles1000: planTier === "core" ? 0 : smsBundles,
       }
     : null;
 
@@ -150,18 +153,22 @@ export default function BuyNowPage() {
     const handle = setTimeout(async () => {
       try {
         const extraAv30Blocks =
-          planTier === "growth"
-            ? Math.max(0, av30Blocks) * 2 // +50 blocks -> backend 25-size
-            : Math.max(0, av30Blocks);
+          planTier === "core"
+            ? 0
+            : planTier === "growth"
+              ? Math.max(0, av30Blocks) * 2 // +50 blocks -> backend 25-size
+              : Math.max(0, av30Blocks);
         const extraStorageGb =
-          storageChoice === "100"
-            ? 100
-            : storageChoice === "200"
-              ? 200
-              : storageChoice === "1000"
-                ? 1000
-                : 0;
-        const extraSmsMessages = Math.max(0, smsBundles * 1000);
+          planTier === "core"
+            ? 0
+            : storageChoice === "100"
+              ? 100
+              : storageChoice === "200"
+                ? 200
+                : storageChoice === "1000"
+                  ? 1000
+                  : 0;
+        const extraSmsMessages = planTier === "core" ? 0 : Math.max(0, smsBundles * 1000);
 
         const result = await previewPlanSelection(
           {
@@ -210,8 +217,12 @@ export default function BuyNowPage() {
       setCheckoutError("Please choose Starter or Growth to continue.");
       return;
     }
-    if (!orgName || !contactName || !contactEmail) {
-      setCheckoutError("Please complete organisation and contact details.");
+    if (!orgName || !contactName || !contactEmail || !password) {
+      setCheckoutError("Please complete all organisation and contact details including password.");
+      return;
+    }
+    if (password.length < 8) {
+      setCheckoutError("Password must be at least 8 characters long.");
       return;
     }
     setIsCheckoutLoading(true);
@@ -245,6 +256,7 @@ export default function BuyNowPage() {
         orgName,
         contactName,
         contactEmail,
+        password,
         successUrl,
         cancelUrl,
       });
@@ -305,7 +317,16 @@ export default function BuyNowPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:py-16">
       <div className="flex flex-col gap-2">
-        <p className="text-sm uppercase tracking-wide text-pw-primary">Nexsteps</p>
+        <div className="flex items-center gap-3">
+          <Image 
+            src="/NSLogo.svg" 
+            alt="Nexsteps" 
+            width={32} 
+            height={32}
+            className="h-8 w-8"
+          />
+          <p className="text-sm font-bold uppercase tracking-wide text-pw-primary">NEXSTEPS</p>
+        </div>
         <h1 className="text-3xl font-semibold text-pw-text">Choose your Nexsteps plan</h1>
         <p className="max-w-3xl text-base text-pw-text-muted">
           Select a plan, choose any add-ons, and complete your purchase on our secure
@@ -320,24 +341,30 @@ export default function BuyNowPage() {
             <p className="text-sm text-pw-text-muted">
               Starter and Growth are self-serve. Enterprise is contact-only.
             </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
               {[
+                {
+                  tier: "core" as PlanTier,
+                  title: "Core",
+                  desc: "Attendance only.",
+                  included: "Up to 15 staff/volunteers, 4 groups, 1 site",
+                },
                 {
                   tier: "starter" as PlanTier,
                   title: "Starter",
-                  desc: "For single-site organisations getting started.",
+                  desc: "Run your organisation properly.",
                   included: "Includes 50 Active People and 1 site",
                 },
                 {
                   tier: "growth" as PlanTier,
                   title: "Growth",
-                  desc: "For growing orgs with multiple groups/sites.",
+                  desc: "Operate at scale.",
                   included: "Includes 200 Active People and 3 sites",
                 },
                 {
                   tier: "enterprise" as PlanTier,
                   title: "Enterprise",
-                  desc: "Custom plan and onboarding. Talk to us.",
+                  desc: "Built around your organisation.",
                   included: "Contact our team for a tailored quote.",
                 },
               ].map((plan) => {
@@ -421,52 +448,54 @@ export default function BuyNowPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
-            <h2 className="text-lg font-semibold">Add-ons</h2>
-            <p className="text-sm text-pw-text-muted">
-              Adjust capacity now or leave at zero—you can add more later.
-            </p>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <AddonInput
-                label={`Extra ${planTier === "growth" ? "+50" : "+25"} Active People`}
-                helper={
-                  planTier === "growth"
-                    ? "£59/mo or £590/yr"
-                    : "£39/mo or £390/yr"
-                }
-                value={av30Blocks}
-                onChange={(v) => setAv30Blocks(clampQty(v))}
-              />
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">Storage (billed yearly)</label>
-                <select
-                  value={storageChoice}
-                  onChange={(e) => setStorageChoice(e.target.value as typeof storageChoice)}
-                  className="rounded-md border border-pw-border bg-white px-3 py-2 text-sm text-pw-text focus:border-pw-primary focus:outline-none"
-                >
-                  {storageOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-xs text-pw-text-muted">
-                  Storage add-ons are charged as yearly line items at checkout.
-                </span>
-              </div>
-              <AddonInput
-                label="SMS bundles (1,000 per bundle)"
-                helper={smsHelper}
-                value={smsBundles}
-                onChange={(v) => setSmsBundles(clampQty(v))}
-              />
-            </div>
-            {frequency === "monthly" && (
-              <p className="mt-3 text-xs text-pw-text-muted">
-                Storage packs are yearly only. Switch to yearly billing to include them.
+          {planTier !== "core" && (
+            <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
+              <h2 className="text-lg font-semibold">Add-ons</h2>
+              <p className="text-sm text-pw-text-muted">
+                Adjust capacity now or leave at zero—you can add more later.
               </p>
-            )}
-          </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <AddonInput
+                  label={`Extra ${planTier === "growth" ? "+50" : "+25"} Active People`}
+                  helper={
+                    planTier === "growth"
+                      ? "£59/mo or £590/yr"
+                      : "£39/mo or £390/yr"
+                  }
+                  value={av30Blocks}
+                  onChange={(v) => setAv30Blocks(clampQty(v))}
+                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium">Storage (billed yearly)</label>
+                  <select
+                    value={storageChoice}
+                    onChange={(e) => setStorageChoice(e.target.value as typeof storageChoice)}
+                    className="rounded-md border border-pw-border bg-white px-3 py-2 text-sm text-pw-text focus:border-pw-primary focus:outline-none"
+                  >
+                    {storageOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-pw-text-muted">
+                    Storage add-ons are charged as yearly line items at checkout.
+                  </span>
+                </div>
+                <AddonInput
+                  label="SMS bundles (1,000 per bundle)"
+                  helper={smsHelper}
+                  value={smsBundles}
+                  onChange={(v) => setSmsBundles(clampQty(v))}
+                />
+              </div>
+              {frequency === "monthly" && (
+                <p className="mt-3 text-xs text-pw-text-muted">
+                  Storage packs are yearly only. Switch to yearly billing to include them.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
             <h2 className="text-lg font-semibold">Organisation & contact</h2>
@@ -489,6 +518,14 @@ export default function BuyNowPage() {
                 required
                 value={contactEmail}
                 onChange={setContactEmail}
+              />
+              <Field
+                label="Password"
+                type="password"
+                required
+                value={password}
+                onChange={setPassword}
+                helper="Minimum 8 characters. You'll use this to log into Nexsteps."
               />
             </div>
           </div>
@@ -653,12 +690,14 @@ function Field({
   onChange,
   required,
   type = "text",
+  helper,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
-  type?: "text" | "email";
+  type?: "text" | "email" | "password";
+  helper?: string;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
@@ -672,6 +711,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         className="rounded-md border border-pw-border px-3 py-2 text-sm text-pw-text focus:border-pw-primary focus:outline-none"
       />
+      {helper && <span className="text-xs text-pw-text-muted">{helper}</span>}
     </label>
   );
 }

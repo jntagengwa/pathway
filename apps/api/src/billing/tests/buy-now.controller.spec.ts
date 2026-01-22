@@ -18,6 +18,7 @@ describe("BuyNowController", () => {
       orgName: "Test Org",
       contactName: "Jane Doe",
       contactEmail: "jane@example.com",
+      password: "TestPassword123!",
     },
     successUrl: "https://example.com/success",
     cancelUrl: "https://example.com/cancel",

@@ -13,6 +13,7 @@ export type BuyNowOrgDetails = {
   orgName: string;
   contactName: string;
   contactEmail: string;
+  password: string;
   source?: string;
 };
 

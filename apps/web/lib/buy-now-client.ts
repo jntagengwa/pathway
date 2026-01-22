@@ -50,6 +50,7 @@ export type BuyNowCheckoutPayload = {
   orgName: string;
   contactName: string;
   contactEmail: string;
+  password: string;
   successUrl?: string;
   cancelUrl?: string;
 };
@@ -126,6 +127,7 @@ export async function createCheckoutSession(
       orgName: payload.orgName,
       contactName: payload.contactName,
       contactEmail: payload.contactEmail,
+      password: payload.password,
     },
     successUrl: payload.successUrl,
     cancelUrl: payload.cancelUrl,

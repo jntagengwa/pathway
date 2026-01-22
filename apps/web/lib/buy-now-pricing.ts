@@ -8,6 +8,8 @@
 export type BillingInterval = "month" | "year";
 
 export type PlanCode =
+  | "CORE_MONTHLY"
+  | "CORE_YEARLY"
   | "STARTER_MONTHLY"
   | "STARTER_YEARLY"
   | "GROWTH_MONTHLY"
@@ -33,6 +35,20 @@ export type StripePriceMeta = {
 };
 
 export const PLAN_PRICES: Record<PlanCode, StripePriceMeta> = {
+  CORE_MONTHLY: {
+    stripePriceId: "price_core_monthly",
+    amountMajor: 49.99,
+    currency: "gbp",
+    interval: "month",
+    label: "£49.99 / month",
+  },
+  CORE_YEARLY: {
+    stripePriceId: "price_core_annual",
+    amountMajor: 499,
+    currency: "gbp",
+    interval: "year",
+    label: "£499 / year",
+  },
   STARTER_MONTHLY: {
     stripePriceId: "price_starter_monthly",
     amountMajor: 149,
@@ -180,6 +196,8 @@ export function calculateCartTotals(
 
   const intervalKey = selection.frequency === "yearly" ? "YEARLY" : "MONTHLY";
   const addonPrices = { ...ADDON_PRICES, ...(opts?.addonPrices ?? {}) };
+  const isMonthly = selection.frequency === "monthly";
+  const yearlyLabel = isMonthly ? " (yearly)" : "";
 
   addLine(
     "+25 Active People",
@@ -191,19 +209,20 @@ export function calculateCartTotals(
     addonPrices[`AV30_BLOCK_50_${intervalKey}` as AddonCode],
     selection.av30AddonBlocks50,
   );
+  // Storage is always billed yearly, regardless of main plan frequency
   addLine(
-    "+100GB storage",
-    addonPrices[`STORAGE_100GB_${intervalKey}` as AddonCode],
+    `+100GB storage${yearlyLabel}`,
+    addonPrices["STORAGE_100GB_YEARLY"],
     selection.storageAddon100Gb,
   );
   addLine(
-    "+200GB storage",
-    addonPrices[`STORAGE_200GB_${intervalKey}` as AddonCode],
+    `+200GB storage${yearlyLabel}`,
+    addonPrices["STORAGE_200GB_YEARLY"],
     selection.storageAddon200Gb,
   );
   addLine(
-    "+1TB storage",
-    addonPrices[`STORAGE_1TB_${intervalKey}` as AddonCode],
+    `+1TB storage${yearlyLabel}`,
+    addonPrices["STORAGE_1TB_YEARLY"],
     selection.storageAddon1Tb,
   );
   addLine(
@@ -234,17 +253,27 @@ export function mergeBillingPrices(
   > = {};
 
   prices.forEach((p) => {
-    const amountMajor = typeof p.unitAmount === "number" ? Math.round(p.unitAmount / 100) : 0;
+    const amountMajor =
+      typeof p.unitAmount === "number" ? Number((p.unitAmount / 100).toFixed(2)) : 0;
     if (!amountMajor) return;
     const interval = p.interval ?? "month";
 
+    const mappedPlanCode =
+      p.code === "MINIMUM_MONTHLY"
+        ? "CORE_MONTHLY"
+        : p.code === "MINIMUM_YEARLY"
+          ? "CORE_YEARLY"
+          : p.code;
+
     if (
-      p.code === "STARTER_MONTHLY" ||
-      p.code === "STARTER_YEARLY" ||
-      p.code === "GROWTH_MONTHLY" ||
-      p.code === "GROWTH_YEARLY"
+      mappedPlanCode === "CORE_MONTHLY" ||
+      mappedPlanCode === "CORE_YEARLY" ||
+      mappedPlanCode === "STARTER_MONTHLY" ||
+      mappedPlanCode === "STARTER_YEARLY" ||
+      mappedPlanCode === "GROWTH_MONTHLY" ||
+      mappedPlanCode === "GROWTH_YEARLY"
     ) {
-      planPrices[p.code as PlanCode] = {
+      planPrices[mappedPlanCode as PlanCode] = {
         stripePriceId: "",
         amountMajor,
         currency: "gbp",

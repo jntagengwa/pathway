@@ -3,15 +3,47 @@
 /**
  * Pricing page - driven from shared pricing package (Milestone 4).
  * Plan definitions and pricing data come from @pathway/pricing.
+ * Prices are fetched from Stripe via the billing/prices endpoint.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { PLANS, PRICING_FAQS } from "@pathway/pricing";
 import { track } from "../../../lib/analytics";
 import { getFirstTouchAttribution } from "../../../lib/attribution";
 import CtaButton from "../../../components/cta-button";
+import { fetchPublicBillingPrices } from "../../../lib/buy-now-client";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
+
+type PriceOverride = {
+  pricePerMonth?: number;
+  pricePerYear?: number;
+};
 
 export default function PricingPage() {
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, PriceOverride>>({});
+
   useEffect(() => {
     // Track pricing page view
     const attribution = getFirstTouchAttribution();
@@ -20,32 +52,185 @@ export default function PricingPage() {
       variant: null,
       utm: attribution?.utm,
     });
+
+    // Fetch prices from Stripe
+    const loadPrices = async () => {
+      try {
+        const res = await fetchPublicBillingPrices();
+        if (res?.prices?.length) {
+          const overrides: Record<string, PriceOverride> = {};
+          
+          res.prices.forEach((p) => {
+            const amountMajor = typeof p.unitAmount === "number" 
+              ? Number((p.unitAmount / 100).toFixed(2)) 
+              : 0;
+            
+            if (!amountMajor) return;
+            
+            // Map MINIMUM_* codes from Stripe to CORE_* codes
+            let code = p.code;
+            if (code === "MINIMUM_MONTHLY") code = "CORE_MONTHLY";
+            if (code === "MINIMUM_YEARLY") code = "CORE_YEARLY";
+            
+            const interval = p.interval;
+            
+            if (interval === "month") {
+              overrides[code] = { ...overrides[code], pricePerMonth: amountMajor };
+            } else if (interval === "year") {
+              overrides[code] = { ...overrides[code], pricePerYear: amountMajor };
+            }
+          });
+          
+          setPriceOverrides(overrides);
+        }
+      } catch (error) {
+        console.error("[pricing] Failed to fetch Stripe prices:", error);
+        // Fall back to catalog prices
+      }
+    };
+    
+    void loadPrices();
   }, []);
 
-  const starterMonthly = PLANS.STARTER_MONTHLY;
-  const starterYearly = PLANS.STARTER_YEARLY;
-  const growthMonthly = PLANS.GROWTH_MONTHLY;
-  const growthYearly = PLANS.GROWTH_YEARLY;
+  const coreMonthly = {
+    ...PLANS.CORE_MONTHLY,
+    pricePerMonth: priceOverrides.CORE_MONTHLY?.pricePerMonth ?? PLANS.CORE_MONTHLY.pricePerMonth,
+  };
+  const coreYearly = {
+    ...PLANS.CORE_YEARLY,
+    pricePerYear: priceOverrides.CORE_YEARLY?.pricePerYear ?? PLANS.CORE_YEARLY.pricePerYear,
+  };
+  const starterMonthly = {
+    ...PLANS.STARTER_MONTHLY,
+    pricePerMonth: priceOverrides.STARTER_MONTHLY?.pricePerMonth ?? PLANS.STARTER_MONTHLY.pricePerMonth,
+  };
+  const starterYearly = {
+    ...PLANS.STARTER_YEARLY,
+    pricePerYear: priceOverrides.STARTER_YEARLY?.pricePerYear ?? PLANS.STARTER_YEARLY.pricePerYear,
+  };
+  const growthMonthly = {
+    ...PLANS.GROWTH_MONTHLY,
+    pricePerMonth: priceOverrides.GROWTH_MONTHLY?.pricePerMonth ?? PLANS.GROWTH_MONTHLY.pricePerMonth,
+  };
+  const growthYearly = {
+    ...PLANS.GROWTH_YEARLY,
+    pricePerYear: priceOverrides.GROWTH_YEARLY?.pricePerYear ?? PLANS.GROWTH_YEARLY.pricePerYear,
+  };
   const enterprisePlan = PLANS.ENTERPRISE_CONTACT;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-16 md:py-24">
-      {/* Hero */}
-      <div className="flex flex-col gap-4 text-center">
-        <h1 className="text-4xl font-bold text-pw-text md:text-5xl">Pricing</h1>
-        <p className="text-lg text-pw-text-muted md:text-xl">
-          Choose the right plan for your organisation. All plans include secure, GDPR-compliant data
-          handling and multi-tenant support.
-        </p>
-      </div>
+        {/* Hero */}
+        <motion.div
+          className="flex flex-col gap-4 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="text-4xl font-bold text-pw-text md:text-5xl">Pricing</h1>
+          <p className="text-lg text-pw-text-muted md:text-xl">
+            Choose the level of structure your organisation actually needs.
+            All plans include secure, GDPR-compliant data handling.
+          </p>
+        </motion.div>
 
       {/* Plan Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <motion.div
+        className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Core Card */}
+        <motion.div
+          className="flex flex-col rounded-xl border border-pw-border bg-white p-6 shadow-sm transition hover:shadow-card"
+          variants={itemVariants}
+          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        >
+          <div className="mb-4">
+            <h3 className="text-2xl font-bold text-pw-text">{coreMonthly.displayName}</h3>
+            <p className="mt-1 text-sm text-pw-text-muted">{coreMonthly.tagline}</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-sm text-pw-text-muted">Replace paper and spreadsheets. Nothing more.</p>
+          </div>
+
+          {/* Pricing - Monthly and Yearly */}
+          <div className="mb-6 space-y-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-pw-text">
+                £{coreMonthly.pricePerMonth?.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="text-pw-text-muted">/month</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-pw-text">
+                £{coreYearly.pricePerYear?.toLocaleString("en-GB")}
+              </span>
+              <span className="text-pw-text-muted">/year</span>
+              <span className="ml-2 text-sm text-pw-text-muted">
+                (save £
+                {((coreMonthly.pricePerMonth || 0) * 12 - (coreYearly.pricePerYear || 0)).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                )
+              </span>
+            </div>
+          </div>
+
+          <ul className="mb-6 flex-1 space-y-2 text-sm">
+            {coreMonthly.features.map((feature, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <span className="mt-1 text-pw-primary">✓</span>
+                <span className="text-pw-text-muted">{feature}</span>
+              </li>
+            ))}
+          </ul>
+
+          {coreMonthly.doesNotInclude && coreMonthly.doesNotInclude.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-xs font-semibold text-pw-text-muted">Does not include:</p>
+              <ul className="space-y-1 text-xs text-pw-text-muted">
+                {coreMonthly.doesNotInclude.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="mt-1 text-pw-text-muted/60">✗</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {coreMonthly.bestFor && (
+            <p className="mb-4 text-xs text-pw-text-muted italic">{coreMonthly.bestFor}</p>
+          )}
+
+          {coreMonthly.upgradeWhen && (
+            <p className="mb-6 text-xs text-pw-text-muted">
+              <strong className="text-pw-text">Upgrade when:</strong> {coreMonthly.upgradeWhen}
+            </p>
+          )}
+
+          <CtaButton
+            href="/buy"
+            location="pricing_core"
+          >
+            Start with Core
+          </CtaButton>
+        </motion.div>
+
         {/* Starter Card */}
-        <div className="flex flex-col rounded-xl border border-pw-border bg-white p-6 shadow-sm">
+        <motion.div
+          className="flex flex-col rounded-xl border border-pw-border bg-white p-6 shadow-sm transition hover:shadow-card"
+          variants={itemVariants}
+          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        >
           <div className="mb-4">
             <h3 className="text-2xl font-bold text-pw-text">{starterMonthly.displayName}</h3>
             <p className="mt-1 text-sm text-pw-text-muted">{starterMonthly.tagline}</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-sm text-pw-text-muted">Everything you need to manage people, sessions, and safeguarding — in one place.</p>
           </div>
 
           {/* Pricing - Monthly and Yearly */}
@@ -95,23 +280,42 @@ export default function PricingPage() {
             ))}
           </ul>
 
+          {starterMonthly.addons && starterMonthly.addons.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-xs font-semibold text-pw-text">Add-ons available:</p>
+              <ul className="space-y-1 text-xs text-pw-text-muted">
+                {starterMonthly.addons.map((addon, idx) => (
+                  <li key={idx}>• {addon.label}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {starterMonthly.bestFor && (
             <p className="mb-6 text-xs text-pw-text-muted italic">{starterMonthly.bestFor}</p>
           )}
 
           <CtaButton
-            href={`/demo?plan=${starterMonthly.tier}`}
+            href="/buy"
             location="pricing_starter"
           >
-            Talk to us
+            Start with Starter
           </CtaButton>
-        </div>
+        </motion.div>
 
         {/* Growth Card */}
-        <div className="flex flex-col rounded-xl border border-pw-border bg-white p-6 shadow-sm">
+        <motion.div
+          className="flex flex-col rounded-xl border border-pw-border bg-white p-6 shadow-sm transition hover:shadow-card"
+          variants={itemVariants}
+          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        >
           <div className="mb-4">
             <h3 className="text-2xl font-bold text-pw-text">{growthMonthly.displayName}</h3>
             <p className="mt-1 text-sm text-pw-text-muted">{growthMonthly.tagline}</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-sm text-pw-text-muted">Designed for organisations managing multiple sites or larger teams.</p>
           </div>
 
           {/* Pricing - Monthly and Yearly */}
@@ -161,32 +365,51 @@ export default function PricingPage() {
             ))}
           </ul>
 
+          {growthMonthly.addons && growthMonthly.addons.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-xs font-semibold text-pw-text">Add-ons available:</p>
+              <ul className="space-y-1 text-xs text-pw-text-muted">
+                {growthMonthly.addons.map((addon, idx) => (
+                  <li key={idx}>• {addon.label}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {growthMonthly.bestFor && (
             <p className="mb-6 text-xs text-pw-text-muted italic">{growthMonthly.bestFor}</p>
           )}
 
           <CtaButton
-            href={`/demo?plan=${growthMonthly.tier}`}
+            href="/buy"
             location="pricing_growth"
           >
-            Talk to us
+            Start with Growth
           </CtaButton>
-        </div>
+        </motion.div>
 
         {/* Enterprise Card */}
-        <div className="flex flex-col rounded-xl border-2 border-pw-primary bg-white p-6 shadow-sm">
+        <motion.div
+          className="flex flex-col rounded-xl border-2 border-pw-primary bg-white p-6 shadow-sm transition hover:shadow-card"
+          variants={itemVariants}
+          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        >
           <div className="mb-4">
             <h3 className="text-2xl font-bold text-pw-text">{enterprisePlan.displayName}</h3>
             <p className="mt-1 text-sm text-pw-text-muted">{enterprisePlan.tagline}</p>
           </div>
 
+          <div className="mb-4">
+            <p className="text-sm text-pw-text-muted">For complex environments with bespoke requirements.</p>
+          </div>
+
           <div className="mb-6 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-pw-text">Contact us</span>
+            <span className="text-3xl font-bold text-pw-text">Custom pricing</span>
           </div>
 
           <div className="mb-6 space-y-2 text-sm text-pw-text-muted">
             <p>
-              <strong className="text-pw-text">Unlimited active people</strong>
+              <strong className="text-pw-text">Unlimited staff / volunteers</strong>
             </p>
             <p>
               <strong className="text-pw-text">Unlimited sites</strong>
@@ -212,11 +435,11 @@ export default function PricingPage() {
           >
             Contact sales
           </CtaButton>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* What's Included vs Add-ons */}
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
         <section className="rounded-xl border border-pw-border bg-white p-6">
           <h2 className="mb-4 text-2xl font-semibold text-pw-text">What's included</h2>
           <ul className="space-y-3 text-sm text-pw-text-muted">
@@ -271,7 +494,7 @@ export default function PricingPage() {
       </div>
 
       {/* Plain-language promises */}
-      <section className="rounded-xl border border-pw-border bg-white p-6">
+      <section className="mx-auto max-w-5xl rounded-xl border border-pw-border bg-white p-6">
         <h2 className="mb-4 text-2xl font-semibold text-pw-text">Our commitment to you</h2>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
