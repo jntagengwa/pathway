@@ -13,7 +13,12 @@ export class PlanPreviewService {
   private readonly av30BlockSize = 25;
 
   preview(input: PlanPreviewRequest): PlanPreviewResponse {
-    const trimmedPlanCode = (input.planCode ?? "").trim();
+    let trimmedPlanCode = (input.planCode ?? "").trim();
+    
+    // Normalize CORE_* to MINIMUM_* for Stripe compatibility
+    if (trimmedPlanCode === "CORE_MONTHLY") trimmedPlanCode = "MINIMUM_MONTHLY";
+    if (trimmedPlanCode === "CORE_YEARLY") trimmedPlanCode = "MINIMUM_YEARLY";
+    
     const planDefinition = getPlanDefinition(trimmedPlanCode);
     const addons = input.addons ?? {};
 

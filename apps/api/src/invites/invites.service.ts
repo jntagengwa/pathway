@@ -9,6 +9,7 @@ import { prisma, OrgRole, SiteRole, Role, Prisma } from "@pathway/db";
 import { createHash, randomBytes } from "crypto";
 import type { CreateInviteDto } from "./dto/create-invite.dto";
 import { MailerService } from "../mailer/mailer.service";
+import { Auth0ManagementService } from "../auth/auth0-management.service";
 
 type InviteSummary = {
   id: string;
@@ -32,7 +33,11 @@ type ActiveSiteState = {
 
 @Injectable()
 export class InvitesService {
-  constructor(@Inject(MailerService) private readonly mailerService: MailerService) {}
+  constructor(
+    @Inject(MailerService) private readonly mailerService: MailerService,
+    @Inject(Auth0ManagementService)
+    private readonly auth0Management: Auth0ManagementService,
+  ) {}
 
   /**
    * Create a new invite for a user to join an Org and optionally specific Sites.
@@ -110,6 +115,9 @@ export class InvitesService {
       },
     });
 
+    // Create user in DB and Auth0 if they don't exist
+    await this.ensureUserExistsForInvite(normalizedEmail, dto.name?.trim() || null);
+
     // Send invite email
     const baseUrl = process.env.ADMIN_URL || "https://localhost:3000";
     const inviteUrl = `${baseUrl}/accept-invite?token=${rawToken}`;
@@ -139,6 +147,114 @@ export class InvitesService {
     }
 
     return this.toSummary(invite);
+  }
+
+  /**
+   * Ensure a user exists in DB and Auth0 for an invite.
+   * Creates the user if they don't exist, using a temporary password.
+   */
+  private async ensureUserExistsForInvite(
+    email: string,
+    name: string | null,
+  ): Promise<void> {
+    try {
+      // Check if user already exists in DB
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: { equals: email, mode: "insensitive" },
+        },
+      });
+
+      if (existingUser) {
+        // User exists in DB, check if they have Auth0 identity
+        const existingIdentity = await prisma.userIdentity.findFirst({
+          where: {
+            userId: existingUser.id,
+            provider: "auth0",
+          },
+        });
+
+        if (existingIdentity) {
+          // User already has Auth0 account, nothing to do
+          console.log(
+            `[INVITE] User ${email} already exists in DB and Auth0`,
+          );
+          return;
+        }
+
+        // User exists in DB but no Auth0 identity - create Auth0 user
+        const safeName = name && !name.includes("@") ? name : null;
+        const tempPassword = randomBytes(32).toString("hex"); // Temporary password
+        const auth0UserId = await this.auth0Management.createUser({
+          email,
+          password: tempPassword,
+          name: safeName || email,
+          emailVerified: false, // They'll verify via password reset
+        });
+
+        if (auth0UserId) {
+          // Link Auth0 identity to existing user
+          await prisma.userIdentity.create({
+            data: {
+              userId: existingUser.id,
+              provider: "auth0",
+              providerSubject: auth0UserId,
+              email,
+              displayName: safeName,
+            },
+          });
+          console.log(
+            `[INVITE] ✅ Created Auth0 account for existing user ${email}`,
+          );
+        }
+        return;
+      }
+
+      // User doesn't exist - create in DB first
+      const safeName = name && !name.includes("@") ? name : null;
+      const newUser = await prisma.user.create({
+        data: {
+          email,
+          name: safeName,
+          displayName: safeName,
+        },
+      });
+
+      // Create Auth0 user
+      const tempPassword = randomBytes(32).toString("hex"); // Temporary password
+      const auth0UserId = await this.auth0Management.createUser({
+        email,
+        password: tempPassword,
+        name: safeName || email,
+        emailVerified: false, // They'll verify via password reset
+      });
+
+      if (auth0UserId) {
+        // Link Auth0 identity
+        await prisma.userIdentity.create({
+          data: {
+            userId: newUser.id,
+            provider: "auth0",
+            providerSubject: auth0UserId,
+            email,
+            displayName: safeName,
+          },
+        });
+        console.log(
+          `[INVITE] ✅ Created user ${email} in DB and Auth0`,
+        );
+      } else {
+        console.warn(
+          `[INVITE] ⚠️ Created user ${email} in DB but failed to create Auth0 account. User will need to sign up manually.`,
+        );
+      }
+    } catch (error) {
+      // Don't fail invite creation if user creation fails
+      console.error(
+        `[INVITE] ❌ Error ensuring user exists for invite ${email}:`,
+        error,
+      );
+    }
   }
 
   /**

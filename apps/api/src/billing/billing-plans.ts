@@ -1,8 +1,12 @@
 // Plan catalogue derived from Option A spec (`pathway-buy-now-option-a.md`).
 // Keep PlanCode values in sync with Subscription.planCode and Buy Now flow inputs.
-export type PlanTier = "starter" | "growth" | "enterprise";
+export type PlanTier = "core" | "starter" | "growth" | "enterprise";
 
 export type PlanCode =
+  | "CORE_MONTHLY"
+  | "CORE_YEARLY"
+  | "MINIMUM_MONTHLY" // Stripe alias for CORE_MONTHLY
+  | "MINIMUM_YEARLY" // Stripe alias for CORE_YEARLY
   | "STARTER_MONTHLY"
   | "STARTER_YEARLY"
   | "GROWTH_MONTHLY"
@@ -24,6 +28,54 @@ export type PlanDefinition = {
 };
 
 export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
+  CORE_MONTHLY: {
+    code: "CORE_MONTHLY",
+    tier: "core",
+    displayName: "Core",
+    billingPeriod: "monthly",
+    selfServe: true,
+    av30Included: 15,
+    storageGbIncluded: null,
+    smsMessagesIncluded: null,
+    leaderSeatsIncluded: null,
+    maxSitesIncluded: 1,
+  },
+  CORE_YEARLY: {
+    code: "CORE_YEARLY",
+    tier: "core",
+    displayName: "Core",
+    billingPeriod: "yearly",
+    selfServe: true,
+    av30Included: 15,
+    storageGbIncluded: null,
+    smsMessagesIncluded: null,
+    leaderSeatsIncluded: null,
+    maxSitesIncluded: 1,
+  },
+  MINIMUM_MONTHLY: {
+    code: "MINIMUM_MONTHLY",
+    tier: "core",
+    displayName: "Core",
+    billingPeriod: "monthly",
+    selfServe: true,
+    av30Included: 15,
+    storageGbIncluded: null,
+    smsMessagesIncluded: null,
+    leaderSeatsIncluded: null,
+    maxSitesIncluded: 1,
+  },
+  MINIMUM_YEARLY: {
+    code: "MINIMUM_YEARLY",
+    tier: "core",
+    displayName: "Core",
+    billingPeriod: "yearly",
+    selfServe: true,
+    av30Included: 15,
+    storageGbIncluded: null,
+    smsMessagesIncluded: null,
+    leaderSeatsIncluded: null,
+    maxSitesIncluded: 1,
+  },
   STARTER_MONTHLY: {
     code: "STARTER_MONTHLY",
     tier: "starter",

@@ -4,6 +4,7 @@ import { BuyNowProvider } from "../buy-now.provider";
 import { BillingProvider } from "@pathway/db";
 import { type BillingProviderConfig } from "../billing-provider.config";
 import type { PathwayRequestContext } from "@pathway/auth";
+import { Auth0ManagementService } from "../../auth/auth0-management.service";
 
 const prismaMock = {
   pendingOrder: { create: jest.fn(), update: jest.fn() },
@@ -35,11 +36,16 @@ describe("BuyNowService", () => {
     goCardless: {},
   };
 
+  const auth0ManagementMock: Partial<Auth0ManagementService> = {
+    createUser: jest.fn().mockResolvedValue("auth0|123456"),
+  };
+
   const baseRequest = {
     org: {
       orgName: "Test Org",
       contactName: "Alice Doe",
       contactEmail: "alice@example.com",
+      password: "test-password-123",
     },
     successUrl: "https://example.com/success",
     cancelUrl: "https://example.com/cancel",
@@ -64,6 +70,7 @@ describe("BuyNowService", () => {
     const service = new BuyNowService(
       previewService,
       providerMock,
+      auth0ManagementMock as Auth0ManagementService,
       contextMock as PathwayRequestContext,
       providerConfig,
     );
@@ -104,6 +111,7 @@ describe("BuyNowService", () => {
     const service = new BuyNowService(
       previewService,
       providerMock,
+      auth0ManagementMock as Auth0ManagementService,
       contextMock as PathwayRequestContext,
       providerConfig,
     );
@@ -125,6 +133,7 @@ describe("BuyNowService", () => {
     const service = new BuyNowService(
       previewService,
       providerMock,
+      auth0ManagementMock as Auth0ManagementService,
       contextMock as PathwayRequestContext,
       providerConfig,
     );

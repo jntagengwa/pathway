@@ -1,8 +1,10 @@
-import { Controller, Get, Query, UseGuards, Inject } from "@nestjs/common";
-import { AuthUserGuard } from "../auth/auth-user.guard";
+import { Controller, Get, Query, Inject } from "@nestjs/common";
 import { BillingPricingService, type BillingPricesResponse } from "./pricing.service";
 
-@UseGuards(AuthUserGuard)
+/**
+ * Public pricing endpoint for marketing site and buy-now flow.
+ * No authentication required - prices are publicly available.
+ */
 @Controller("billing/prices")
 export class BillingPricingController {
   constructor(@Inject(BillingPricingService) private readonly pricing: BillingPricingService) {}

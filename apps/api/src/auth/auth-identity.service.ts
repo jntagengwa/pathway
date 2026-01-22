@@ -109,33 +109,79 @@ export class AuthIdentityService {
     // Only use name if it's not an email
     const safeName = name?.trim() && !isEmail(name) ? name.trim() : null;
 
-    const user =
-      existingUser ??
-      (await prisma.user.create({
-        data: {
-          email: normalizedEmail,
-          name: safeName ?? null,
-          displayName: safeName ?? null,
-          firstLoginAt: new Date(), // Mark first login for new users
-        },
-      }));
+    const user = existingUser
+      ? existingUser
+      : await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            name: safeName ?? null,
+            displayName: safeName ?? null,
+            firstLoginAt: new Date(), // Mark first login for new users
+          },
+        });
 
-    await prisma.userIdentity.create({
-      data: {
-        userId: user.id,
-        provider,
-        providerSubject: subject,
-        email: normalizedEmail,
-        displayName: safeName ?? null,
+    // Check if identity already exists (shouldn't happen, but handle gracefully)
+    const existingIdentity = await prisma.userIdentity.findUnique({
+      where: {
+        provider_providerSubject: {
+          provider,
+          providerSubject: subject,
+        },
       },
     });
+
+    if (!existingIdentity) {
+      await prisma.userIdentity.create({
+        data: {
+          userId: user.id,
+          provider,
+          providerSubject: subject,
+          email: normalizedEmail,
+          displayName: safeName ?? null,
+        },
+      });
+    } else if (existingIdentity.userId !== user.id) {
+      // Identity exists but linked to different user - update it
+      await prisma.userIdentity.update({
+        where: {
+          provider_providerSubject: {
+            provider,
+            providerSubject: subject,
+          },
+        },
+        data: {
+          userId: user.id,
+          email: normalizedEmail,
+          displayName: safeName ?? null,
+        },
+      });
+    }
+
+    // Update user name if provided and user doesn't have one
+    if (safeName && !user.name?.trim() && !user.displayName?.trim()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: safeName,
+          displayName: safeName,
+        },
+      });
+    }
+
+    // Track first login if not already set
+    if (!user.firstLoginAt) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { firstLoginAt: new Date() },
+      });
+    }
 
     // If this is a new user (not existingUser), check for pending invites and mark them as used
     if (!existingUser && normalizedEmail) {
       await this.markPendingInvitesAsUsed(normalizedEmail, user.id);
     }
 
-    // Auto-provision site membership for new users
+    // Auto-provision site membership for new users (skip if user already has memberships)
     await this.ensureUserHasSiteAccess(user.id);
 
     // Return safe display name using fallback logic

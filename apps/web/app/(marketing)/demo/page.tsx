@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { createDemoLead } from "../../../lib/leads-client";
 import type { CreateDemoLeadPayload } from "../../../lib/leads-client";
 import { track } from "../../../lib/analytics";
 import { getFirstTouchAttribution } from "../../../lib/attribution";
+import PageWrapper from "../../../components/page-wrapper";
 
 const sectors = ["schools", "clubs", "churches", "charities"] as const;
 const roles = [
@@ -91,16 +93,27 @@ export default function DemoPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-16 md:py-24">
-      <div className="flex flex-col gap-4">
-        <h1 className="text-4xl font-bold text-pw-text">Book a Demo</h1>
-        <p className="text-lg text-pw-text-muted">
-          See how Nexsteps can help your organisation manage attendance, rotas, safeguarding,
-          and parent communication. Schedule a demo with our team.
-        </p>
-      </div>
+    <PageWrapper>
+      <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-16 md:py-24">
+        <motion.div
+          className="flex flex-col gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="text-4xl font-bold text-pw-text">Book a Demo</h1>
+          <p className="text-lg text-pw-text-muted">
+            See how Nexsteps can help your organisation manage attendance, rotas, safeguarding,
+            and parent communication. Schedule a demo with our team.
+          </p>
+        </motion.div>
 
-      <section className="rounded-xl border border-pw-border bg-white p-6">
+        <motion.section
+          className="rounded-xl border border-pw-border bg-white p-6 shadow-soft"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
         <h2 className="mb-4 text-xl font-semibold text-pw-text">Demo Request Form</h2>
 
         {submitStatus === "success" ? (
@@ -240,7 +253,8 @@ export default function DemoPage() {
             </button>
           </form>
         )}
-      </section>
-    </div>
+        </motion.section>
+      </div>
+    </PageWrapper>
   );
 }

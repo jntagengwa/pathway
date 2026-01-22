@@ -3,11 +3,13 @@
  * Plan codes align with backend billing-plans.ts to prevent drift.
  */
 
-export type PlanTier = "starter" | "growth" | "enterprise";
+export type PlanTier = "core" | "starter" | "growth" | "enterprise";
 
 export type BillingPeriod = "monthly" | "yearly" | "contact";
 
 export type PlanCode =
+  | "CORE_MONTHLY"
+  | "CORE_YEARLY"
   | "STARTER_MONTHLY"
   | "STARTER_YEARLY"
   | "GROWTH_MONTHLY"
@@ -27,6 +29,8 @@ export interface PlanDefinition {
   av30Included: number | null; // Active People (AV30) included
   maxSitesIncluded: number | null; // Number of sites included
   features: string[];
+  doesNotInclude?: string[]; // For Core plan - features not included
+  upgradeWhen?: string; // For Core plan - when to upgrade
   addons?: {
     label: string;
     description: string;
