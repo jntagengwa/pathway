@@ -107,6 +107,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
           TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+          INTERNAL_AUTH_SECRET: ${{ secrets.INTERNAL_AUTH_SECRET }}
           # Production environment variables from GitHub Secrets
           # These are injected at deploy time to prevent AWS from overwriting them
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
@@ -186,6 +187,8 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
           TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+          INTERNAL_AUTH_SECRET: ${{ secrets.INTERNAL_AUTH_SECRET }}
+
           # Production environment variables from GitHub Secrets
           # These are injected at deploy time to prevent AWS from overwriting them
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
