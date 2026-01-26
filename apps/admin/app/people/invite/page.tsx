@@ -125,6 +125,11 @@ export default function InvitePersonPage() {
       return;
     }
 
+    if (!orgId) {
+      setError("Active organisation not found.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload: CreateInvitePayload = {
