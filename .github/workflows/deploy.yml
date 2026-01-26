@@ -63,10 +63,13 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPO_WEB || 'nexsteps-web' }}
           IMAGE_TAG: ${{ github.sha }}
+          # Pass NEXT_PUBLIC_API_URL as build arg so Next.js embeds it at build time
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           docker buildx build \
             --platform linux/amd64 \
             --file apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push \
@@ -77,10 +80,14 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPO_ADMIN || 'nexsteps-admin' }}
           IMAGE_TAG: ${{ github.sha }}
+          # Pass NEXT_PUBLIC_API_URL as build arg so Next.js embeds it at build time
+          # This prevents the app from using mock API mode in production
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           docker buildx build \
             --platform linux/amd64 \
             --file apps/admin/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push \

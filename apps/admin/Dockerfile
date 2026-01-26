@@ -35,6 +35,10 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 
 # Build from workspace root using pnpm filter
 # This ensures workspace binaries are resolved correctly
+# Accept NEXT_PUBLIC_API_URL as build argument for production builds
+# This is required because Next.js embeds NEXT_PUBLIC_* vars at build time
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm --filter @pathway/admin build
