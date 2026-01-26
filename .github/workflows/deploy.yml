@@ -149,6 +149,7 @@ jobs:
              --arg nodeEnv "$NODE_ENV" \
              --arg port "$PORT" \
              --arg hostname "$HOSTNAME" \
+             --arg internalAuthSecret "$INTERNAL_AUTH_SECRET" \
              --arg apiUrl "$NEXT_PUBLIC_API_URL" \
              --arg nextauthUrl "$NEXTAUTH_URL" \
              --arg nextauthSecret "$NEXTAUTH_SECRET" \
@@ -169,6 +170,7 @@ jobs:
                {"name": "NODE_ENV", "value": $nodeEnv},
                {"name": "PORT", "value": $port},
                {"name": "HOSTNAME", "value": $hostname},
+               {"name": "INTERNAL_AUTH_SECRET", "value": $internalAuthSecret},
                 {"name": "NEXT_PUBLIC_API_URL", "value": $apiUrl},
                 {"name": "NEXTAUTH_URL", "value": $nextauthUrl},
                 {"name": "NEXTAUTH_SECRET", "value": $nextauthSecret},
@@ -234,6 +236,7 @@ jobs:
              --arg nodeEnv "$NODE_ENV" \
              --arg port "$PORT" \
              --arg hostname "$HOSTNAME" \
+             --arg internalAuthSecret "$INTERNAL_AUTH_SECRET" \
              --arg apiUrl "$NEXT_PUBLIC_API_URL" \
              --arg nextauthUrl "$NEXTAUTH_URL" \
              --arg nextauthSecret "$NEXTAUTH_SECRET" \
@@ -247,6 +250,7 @@ jobs:
                {"name": "NODE_ENV", "value": $nodeEnv},
                {"name": "PORT", "value": $port},
                {"name": "HOSTNAME", "value": $hostname},
+               {"name": "INTERNAL_AUTH_SECRET", "value": $internalAuthSecret},
                 {"name": "NEXT_PUBLIC_API_URL", "value": $apiUrl},
                 {"name": "NEXTAUTH_URL", "value": $nextauthUrl},
                 {"name": "NEXTAUTH_SECRET", "value": $nextauthSecret},
