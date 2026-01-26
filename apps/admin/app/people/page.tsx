@@ -12,6 +12,7 @@ import {
   type ColumnDef,
 } from "@pathway/ui";
 import {
+  fetchActiveSiteState,
   fetchPeopleForOrg,
   fetchInvitesForOrg,
   resendInvite,
@@ -21,8 +22,10 @@ import {
 } from "../../lib/api-client";
 import { getSafeDisplayName } from "../../lib/names";
 
-// TODO: Get actual orgId from session/context
-const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; orgId: string }>) => {
+  const activeSite = sites.find((site) => site.id === activeSiteId) ?? sites[0];
+  return activeSite?.orgId ?? null;
+};
 
 export default function PeoplePage() {
   const router = useRouter();
@@ -31,6 +34,7 @@ export default function PeoplePage() {
   const [invites, setInvites] = React.useState<InviteRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [orgId, setOrgId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<"people" | "invites">("people");
 
@@ -38,9 +42,12 @@ export default function PeoplePage() {
     setIsLoading(true);
     setError(null);
     try {
+      if (!orgId) {
+        throw new Error("Active organisation not found.");
+      }
       const [peopleData, invitesData] = await Promise.all([
-        fetchPeopleForOrg(DEMO_ORG_ID),
-        fetchInvitesForOrg(DEMO_ORG_ID, "pending"),
+        fetchPeopleForOrg(orgId),
+        fetchInvitesForOrg(orgId, "pending"),
       ]);
       setPeople(peopleData);
       setInvites(invitesData);
@@ -49,18 +56,34 @@ export default function PeoplePage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   React.useEffect(() => {
     // Only load data when session is authenticated
-    if (sessionStatus === "authenticated" && session) {
-      void load();
-    }
-  }, [sessionStatus, session, load]);
+    if (sessionStatus !== "authenticated" || !session) return;
+    const loadOrg = async () => {
+      try {
+        const state = await fetchActiveSiteState();
+        const resolvedOrgId = resolveOrgId(state.activeSiteId, state.sites);
+        setOrgId(resolvedOrgId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load active site");
+      }
+    };
+    void loadOrg();
+  }, [sessionStatus, session]);
+
+  React.useEffect(() => {
+    if (!orgId) return;
+    void load();
+  }, [orgId, load]);
 
   const handleResendInvite = async (inviteId: string) => {
     try {
-      await resendInvite(DEMO_ORG_ID, inviteId);
+      if (!orgId) {
+        throw new Error("Active organisation not found.");
+      }
+      await resendInvite(orgId, inviteId);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend invite");
@@ -70,7 +93,10 @@ export default function PeoplePage() {
   const handleRevokeInvite = async (inviteId: string) => {
     if (!confirm("Are you sure you want to revoke this invite?")) return;
     try {
-      await revokeInvite(DEMO_ORG_ID, inviteId);
+      if (!orgId) {
+        throw new Error("Active organisation not found.");
+      }
+      await revokeInvite(orgId, inviteId);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to revoke invite");

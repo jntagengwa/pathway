@@ -14,6 +14,7 @@ export function createBuyNowProvider(
 ): BuyNowProvider {
   switch (config.activeProvider) {
     case "STRIPE":
+    case "STRIPE_TEST":
       if (!config.stripe.secretKey) {
         return new FakeBuyNowProvider();
       }
@@ -32,6 +33,7 @@ export function createBillingWebhookProvider(
 ): BillingWebhookProvider {
   switch (config.activeProvider) {
     case "STRIPE":
+    case "STRIPE_TEST":
       if (
         !config.stripe.secretKey ||
         !config.stripe.webhookSecretSnapshot
@@ -49,6 +51,6 @@ export function createBillingWebhookProvider(
 }
 
 export function isRealProvider(active: ActiveBillingProvider): boolean {
-  return active === "STRIPE" || active === "GOCARDLESS";
+  return active === "STRIPE" || active === "STRIPE_TEST" || active === "GOCARDLESS";
 }
 

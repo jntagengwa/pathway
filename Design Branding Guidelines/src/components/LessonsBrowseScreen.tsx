@@ -75,10 +75,10 @@ interface FilterState {
 
 const ageGroups = [
   { value: 'all', label: 'All Ages' },
-  { value: 'toddlers', label: 'Toddlers (2–4)' },
-  { value: 'younger', label: 'Younger (5–7)' },
-  { value: 'middle', label: 'Middle (8–10)' },
-  { value: 'older', label: 'Older (11–13)' }
+  { value: 'toddlers', label: 'Toddlers (2-4)' },
+  { value: 'younger', label: 'Younger (5-7)' },
+  { value: 'middle', label: 'Middle (8-10)' },
+  { value: 'older', label: 'Older (11-13)' }
 ];
 
 const resourceTypes = ['PDF', 'Link', 'Video', 'Image', 'Slides'];

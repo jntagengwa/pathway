@@ -62,7 +62,7 @@ function formatTimeRange(startsAt?: string, endsAt?: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return { date, range: `${startTime} – ${endTime}` };
+  return { date, range: `${startTime} - ${endTime}` };
 }
 
 export default function SessionDetailPage() {

@@ -18,19 +18,37 @@ export class Auth0ManagementService {
   private readonly domain: string;
   private readonly clientId: string;
   private readonly clientSecret: string;
+  private readonly isConfigured: boolean;
   private accessToken: string | null = null;
   private tokenExpiresAt: number = 0;
 
   constructor() {
-    this.domain = process.env.AUTH0_DOMAIN || "";
-    this.clientId = process.env.AUTH0_M2M_CLIENT_ID || "";
-    this.clientSecret = process.env.AUTH0_M2M_CLIENT_SECRET || "";
+    // Extract domain from AUTH0_ISSUER if AUTH0_DOMAIN not set
+    const issuer = process.env.AUTH0_ISSUER || "";
+    this.domain = process.env.AUTH0_DOMAIN || issuer.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    
+    // Use AUTH0_CLIENT_ID/SECRET (now authorized for Management API)
+    this.clientId = process.env.AUTH0_CLIENT_ID || "";
+    this.clientSecret = process.env.AUTH0_CLIENT_SECRET || "";
 
-    if (!this.domain || !this.clientId || !this.clientSecret) {
+    this.isConfigured = !!(this.domain && this.clientId && this.clientSecret);
+
+    if (!this.isConfigured) {
       this.logger.warn(
         "Auth0 Management API credentials not configured. User creation will be skipped.",
       );
+    } else {
+      this.logger.log(
+        `Auth0 Management API configured: ${this.domain}`,
+      );
     }
+  }
+
+  /**
+   * Check if the service is properly configured.
+   */
+  isReady(): boolean {
+    return this.isConfigured;
   }
 
   /**

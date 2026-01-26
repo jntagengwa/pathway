@@ -86,7 +86,7 @@ export default function ChildrenPage() {
         header: "Age group",
         cell: (row) => (
           <span className="text-sm text-text-primary">
-            {row.ageGroup ?? "—"}
+            {row.ageGroup ?? "-"}
           </span>
         ),
         width: "120px",
@@ -96,7 +96,7 @@ export default function ChildrenPage() {
         header: "Primary group/class",
         cell: (row) => (
           <span className="text-sm text-text-primary">
-            {row.primaryGroup ?? "—"}
+            {row.primaryGroup ?? "-"}
           </span>
         ),
         width: "160px",

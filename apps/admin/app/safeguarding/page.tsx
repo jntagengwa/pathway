@@ -120,7 +120,7 @@ export default function SafeguardingPage() {
         header: "Category",
         cell: (row) => (
           <span className="text-sm text-text-muted">
-            {row.category ?? "—"}
+            {row.category ?? "-"}
           </span>
         ),
         width: "140px",
@@ -130,7 +130,7 @@ export default function SafeguardingPage() {
         header: "Reported by",
         cell: (row) => (
           <span className="text-sm text-text-muted">
-            {row.reportedByLabel ?? "—"}
+            {row.reportedByLabel ?? "-"}
           </span>
         ),
         width: "140px",
@@ -281,7 +281,7 @@ export default function SafeguardingPage() {
         <Card title="Open Concerns">
           {concernContent()}
           <p className="mt-3 text-xs text-text-muted">
-            Metadata only — open safeguarding details in the dedicated workflow.
+            Metadata only - open safeguarding details in the dedicated workflow.
           </p>
         </Card>
         <Card title="Positive Notes & Wellbeing Summary">

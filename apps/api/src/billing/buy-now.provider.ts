@@ -12,6 +12,8 @@ export interface BuyNowCheckoutParams {
   successUrl?: string;
   cancelUrl?: string;
   pendingOrderId: string;
+  userId?: string;
+  stripeCustomerId?: string;
 }
 
 export interface BuyNowProviderContext {

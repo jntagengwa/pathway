@@ -127,7 +127,7 @@ export class OrgsService {
           }
           adminOutcome = { assignedUserId: dto.admin.userId };
         } else if (dto.admin.email && dto.admin.fullName) {
-          // No userId provided — return invite intent; actual invite flow handled elsewhere
+          // No userId provided - return invite intent; actual invite flow handled elsewhere
           adminOutcome = {
             invite: { email: dto.admin.email, fullName: dto.admin.fullName },
           };

@@ -49,7 +49,7 @@ const planOptions = [
   {
     code: "ENTERPRISE_CONTACT",
     label: "Enterprise (contact us)",
-    description: "Custom plan and onboarding – we’ll be in touch.",
+    description: "Custom plan and onboarding - we’ll be in touch.",
     baseAv30: null,
     baseSites: null,
     tier: "enterprise",
@@ -357,22 +357,22 @@ export default function BuyNowPage() {
       value: "100",
       meta: mergedAddonPrices.STORAGE_100GB_YEARLY,
       label: mergedAddonPrices.STORAGE_100GB_YEARLY
-        ? `+100GB — £${formatAmount(mergedAddonPrices.STORAGE_100GB_YEARLY.amountMajor)} / year`
-        : "+100GB — £250 / year",
+        ? `+100GB - £${formatAmount(mergedAddonPrices.STORAGE_100GB_YEARLY.amountMajor)} / year`
+        : "+100GB - £250 / year",
     },
     {
       value: "200",
       meta: mergedAddonPrices.STORAGE_200GB_YEARLY,
       label: mergedAddonPrices.STORAGE_200GB_YEARLY
-        ? `+200GB — £${formatAmount(mergedAddonPrices.STORAGE_200GB_YEARLY.amountMajor)} / year`
-        : "+200GB — £450 / year",
+        ? `+200GB - £${formatAmount(mergedAddonPrices.STORAGE_200GB_YEARLY.amountMajor)} / year`
+        : "+200GB - £450 / year",
     },
     {
       value: "1000",
       meta: mergedAddonPrices.STORAGE_1TB_YEARLY,
       label: mergedAddonPrices.STORAGE_1TB_YEARLY
-        ? `+1TB — £${formatAmount(mergedAddonPrices.STORAGE_1TB_YEARLY.amountMajor)} / year`
-        : "+1TB — £1,500 / year",
+        ? `+1TB - £${formatAmount(mergedAddonPrices.STORAGE_1TB_YEARLY.amountMajor)} / year`
+        : "+1TB - £1,500 / year",
     },
   ] as const;
   const totals = planCode

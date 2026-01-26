@@ -101,7 +101,7 @@ export class OrgsController {
         throw new UnauthorizedException("User ID not found in request");
       }
 
-      // Check if user has ADMIN access to this org
+      // Check if user has ADMIN access to this org (OrgMembership or UserOrgRole)
       const membership = await prisma.orgMembership.findFirst({
         where: {
           userId,
@@ -109,8 +109,17 @@ export class OrgsController {
           role: { in: [OrgRole.ORG_ADMIN] },
         },
       });
+      const orgRole = membership
+        ? null
+        : await prisma.userOrgRole.findFirst({
+            where: {
+              userId,
+              orgId,
+              role: { in: [OrgRole.ORG_ADMIN] },
+            },
+          });
 
-      if (!membership) {
+      if (!membership && !orgRole) {
         throw new UnauthorizedException(
           "You must be an Org Admin to view people",
         );
@@ -130,9 +139,39 @@ export class OrgsController {
           },
         },
       });
+      const orgRoleMembers = await prisma.userOrgRole.findMany({
+        where: { orgId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              displayName: true,
+              email: true,
+            },
+          },
+        },
+      });
 
-      // Filter out any memberships where user is null (shouldn't happen, but be defensive)
-      const validMembers = orgMembers.filter((m) => m.user !== null);
+      const memberByUserId = new Map<
+        string,
+        { user: { id: string; name: string | null; displayName: string | null; email: string | null }; role: OrgRole }
+      >();
+      for (const member of orgRoleMembers) {
+        if (!member.user) continue;
+        memberByUserId.set(member.user.id, {
+          user: member.user,
+          role: member.role,
+        });
+      }
+      for (const member of orgMembers) {
+        if (!member.user) continue;
+        memberByUserId.set(member.user.id, {
+          user: member.user,
+          role: member.role,
+        });
+      }
+      const validMembers = Array.from(memberByUserId.values());
 
       // Get site memberships for users in this org
       const orgSites = await prisma.tenant.findMany({
@@ -160,8 +199,7 @@ export class OrgsController {
       // Build response
       const people = validMembers.map((m) => {
         try {
-          // At this point, we know m.user is not null due to filter above
-          const user = m.user!;
+          const user = m.user;
           const siteCount = siteCountMap.get(user.id) || 0;
           const allSites = m.role === OrgRole.ORG_ADMIN; // Admins have implicit access
 

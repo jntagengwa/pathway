@@ -59,7 +59,7 @@ export default function HeroSection() {
           variants={itemVariants}
         >
           Streamline your school operations with attendance tracking, rota
-          management, safeguarding notes, and parent communication—all from one
+          management, safeguarding notes, and parent communication-all from one
           secure dashboard.
         </motion.p>
         <motion.div

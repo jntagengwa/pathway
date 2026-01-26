@@ -148,7 +148,7 @@ describe("Postgres RLS policies", () => {
 
       if (!tenant) {
         throw new Error(
-          `E2E tenant ${tenantId} missing — ensure test.setup.e2e.ts seeded Tenant A & B`,
+          `E2E tenant ${tenantId} missing - ensure test.setup.e2e.ts seeded Tenant A & B`,
         );
       }
 

@@ -6,11 +6,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label, Select } from "@pathway/ui";
 import {
   createInvite,
+  fetchActiveSiteState,
   type CreateInvitePayload,
 } from "../../../lib/api-client";
 
-// TODO: Get actual orgId from session/context
-const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; orgId: string }>) => {
+  const activeSite = sites.find((site) => site.id === activeSiteId) ?? sites[0];
+  return activeSite?.orgId ?? null;
+};
 
 const PRIMARY_HEX = "#0ec2a2";
 
@@ -75,12 +78,26 @@ export default function InvitePersonPage() {
     "SITE_ADMIN" | "STAFF" | "VIEWER" | ""
   >("");
   const [error, setError] = React.useState<string | null>(null);
+  const [orgId, setOrgId] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = React.useState<{
     email?: string;
     orgRole?: string;
     siteRole?: string;
   }>({});
   const [submitting, setSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    const loadOrg = async () => {
+      try {
+        const state = await fetchActiveSiteState();
+        const resolvedOrgId = resolveOrgId(state.activeSiteId, state.sites);
+        setOrgId(resolvedOrgId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load active site");
+      }
+    };
+    void loadOrg();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +114,10 @@ export default function InvitePersonPage() {
 
     if (siteAccessMode !== "NONE" && !siteRole) {
       nextErrors.siteRole = "Site role is required when granting site access.";
+    }
+
+    if (!orgId) {
+      nextErrors.orgRole = "Active organisation not found.";
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -126,7 +147,7 @@ export default function InvitePersonPage() {
         };
       }
 
-      await createInvite(DEMO_ORG_ID, payload);
+      await createInvite(orgId, payload);
       router.push("/people");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send invite");

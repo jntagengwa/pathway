@@ -97,7 +97,7 @@ export const securityContent: SecurityContent = {
         "• Staff assignments and role changes",
         "• Child profile views and updates",
         "• Schedule and rota modifications",
-        "All audit events include the user who performed the action, a timestamp, and relevant context. These logs are used for accountability, safeguarding reviews, and compliance purposes—not for marketing or analytics.",
+        "All audit events include the user who performed the action, a timestamp, and relevant context. These logs are used for accountability, safeguarding reviews, and compliance purposes-not for marketing or analytics.",
         "Audit logs are retained according to your organisation's retention policy and can be exported for review or compliance reporting.",
       ],
     },

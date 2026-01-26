@@ -24,6 +24,12 @@ export type BuyNowCheckoutRequest = {
   cancelUrl?: string;
 };
 
+export type OrgPurchaseRequest = {
+  planCode: string;
+  successUrl?: string;
+  cancelUrl?: string;
+};
+
 export type BuyNowCheckoutPreview = {
   planCode: string;
   planTier: PlanTier | null;

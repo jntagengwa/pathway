@@ -71,7 +71,7 @@ export class RetentionService {
           now.getTime() - policy.auditEventRetentionDays * 24 * 60 * 60 * 1000,
         );
 
-        // Least sensitive: staff activity — hard delete old rows
+        // Least sensitive: staff activity - hard delete old rows
         const delegates = tx as unknown as Record<string, unknown>;
         const staffActivityDelegate = delegates["staffActivity"] as {
           deleteMany: DeleteMany;

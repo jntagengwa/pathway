@@ -230,7 +230,7 @@ export default function PricingPage() {
           </div>
 
           <div className="mb-4">
-            <p className="text-sm text-pw-text-muted">Everything you need to manage people, sessions, and safeguarding — in one place.</p>
+            <p className="text-sm text-pw-text-muted">Everything you need to manage people, sessions, and safeguarding - in one place.</p>
           </div>
 
           {/* Pricing - Monthly and Yearly */}

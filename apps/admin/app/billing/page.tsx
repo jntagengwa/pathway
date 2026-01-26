@@ -207,7 +207,7 @@ export default function BillingPage() {
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-muted">Current</span>
             <span className="font-semibold text-text-primary">
-              {data.currentAv30 ?? "—"}
+              {data.currentAv30 ?? "-"}
               {data.av30Cap ? ` / ${data.av30Cap}` : ""}
             </span>
           </div>
@@ -244,25 +244,25 @@ export default function BillingPage() {
           <div className="rounded-md border border-border-subtle bg-surface px-3 py-2">
             <p className="text-xs text-text-muted">Storage</p>
             <p className="text-sm font-semibold text-text-primary">
-              {data.storageGbUsage ?? "—"} / {data.storageGbCap ?? "—"} GB
+              {data.storageGbUsage ?? "-"} / {data.storageGbCap ?? "-"} GB
             </p>
           </div>
           <div className="rounded-md border border-border-subtle bg-surface px-3 py-2">
             <p className="text-xs text-text-muted">SMS (month)</p>
             <p className="text-sm font-semibold text-text-primary">
-              {data.smsMonthUsage ?? "—"} / {data.smsMessagesCap ?? "—"}
+              {data.smsMonthUsage ?? "-"} / {data.smsMessagesCap ?? "-"}
             </p>
           </div>
           <div className="rounded-md border border-border-subtle bg-surface px-3 py-2">
             <p className="text-xs text-text-muted">Leader seats included</p>
             <p className="text-sm font-semibold text-text-primary">
-              {data.leaderSeatsIncluded ?? "—"}
+              {data.leaderSeatsIncluded ?? "-"}
             </p>
           </div>
           <div className="rounded-md border border-border-subtle bg-surface px-3 py-2">
             <p className="text-xs text-text-muted">Max sites</p>
             <p className="text-sm font-semibold text-text-primary">
-              {data.maxSites ?? "—"}
+              {data.maxSites ?? "-"}
             </p>
           </div>
           <p className="col-span-full text-xs text-text-muted">
