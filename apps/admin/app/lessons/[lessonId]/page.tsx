@@ -137,7 +137,7 @@ export default function LessonDetailPage() {
                 {lesson.groupLabel ?? "Not set"}
               </p>
               <p className="text-xs text-text-muted">
-                Updated: {lesson.updatedAt ? new Date(lesson.updatedAt).toLocaleString() : "—"}
+                Updated: {lesson.updatedAt ? new Date(lesson.updatedAt).toLocaleString() : "-"}
               </p>
             </div>
           </Card>

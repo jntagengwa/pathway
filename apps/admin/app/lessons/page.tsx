@@ -18,9 +18,9 @@ const statusTone: Record<
 };
 
 function formatDate(value?: string | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleDateString();
 }
 
@@ -71,7 +71,7 @@ export default function LessonsPage() {
         header: "Age group",
         cell: (row) => (
           <span className="text-sm text-text-primary">
-            {row.ageGroupLabel ?? "—"}
+            {row.ageGroupLabel ?? "-"}
           </span>
         ),
         width: "140px",
@@ -81,7 +81,7 @@ export default function LessonsPage() {
         header: "Group/Class",
         cell: (row) => (
           <span className="text-sm text-text-primary">
-            {row.groupLabel ?? "—"}
+            {row.groupLabel ?? "-"}
           </span>
         ),
         width: "140px",

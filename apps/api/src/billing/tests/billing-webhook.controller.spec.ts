@@ -5,6 +5,7 @@ import {
   ParsedBillingWebhookEvent,
 } from "../billing-webhook.provider";
 import { EntitlementsService } from "../entitlements.service";
+import { ModuleRef } from "@nestjs/core";
 import { LoggingService } from "../../common/logging/logging.service";
 import {
   BillingProvider,
@@ -87,9 +88,18 @@ describe("BillingWebhookController", () => {
       resolve: jest.fn().mockResolvedValue(baseEvent),
     };
 
+    const auth0Management = {
+      createUser: jest.fn().mockResolvedValue("auth0|123"),
+      isReady: jest.fn().mockReturnValue(true),
+    };
+    const moduleRef = {
+      get: jest.fn().mockReturnValue(auth0Management),
+    } as unknown as ModuleRef;
+
     controller = new BillingWebhookController(
       provider as unknown as BillingWebhookProvider,
       entitlements as unknown as EntitlementsService,
+      moduleRef,
       logging,
     );
   });

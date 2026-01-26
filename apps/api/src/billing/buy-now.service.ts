@@ -1,13 +1,28 @@
-import { Inject, Injectable, Optional, Logger } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  Optional,
+  Logger,
+  ForbiddenException,
+  BadRequestException,
+  ConflictException,
+} from "@nestjs/common";
 import { PathwayRequestContext } from "@pathway/auth";
-import { prisma, PendingOrderStatus } from "@pathway/db";
+import {
+  prisma,
+  PendingOrderStatus,
+  SubscriptionStatus,
+  OrgRole,
+} from "@pathway/db";
 import { getPlanDefinition } from "./billing-plans";
+import type { PlanTier } from "./billing-plans";
 import { PlanPreviewService } from "./plan-preview.service";
 import type { PlanPreviewAddons } from "./plan-preview.types";
 import {
   type BuyNowCheckoutRequest,
   type BuyNowCheckoutResponse,
   type BuyNowCheckoutPreview,
+  type OrgPurchaseRequest,
 } from "./buy-now.types";
 import {
   BuyNowProvider,
@@ -84,85 +99,29 @@ export class BuyNowService {
       source: planDefinition ? "plan_catalogue" : "fallback",
     };
 
-    // For public buy-now, create org, tenant, and user on-the-fly from provided org details
-    let orgId = this.requestContext?.currentOrgId;
-    let tenantId = this.requestContext?.currentTenantId;
+    // For authenticated purchases, use existing org/tenant context
+    const orgId = this.requestContext?.currentOrgId;
+    const tenantId = this.requestContext?.currentTenantId;
+    
+    // For public buy-now, store org details to be created after payment confirmation
+    let pendingOrgDetails: Record<string, string> | undefined;
     
     if (!orgId || !tenantId) {
-      // Public buy-now: create org, tenant, and user
+      // Public buy-now: defer org/tenant/user creation until webhook confirms payment
       const orgSlug = this.generateSlug(request.org.orgName);
-      const tenantSlug = orgSlug; // Use same slug for initial tenant
       const normalizedEmail = request.org.contactEmail.toLowerCase().trim();
       
-      // Create org
-      const org = await prisma.org.create({
-        data: {
-          name: request.org.orgName,
-          slug: orgSlug,
-          planCode: sanitisedPlan.planCode,
-          isSuite: false,
-        },
-      });
-      
-      // Create tenant
-      const tenant = await prisma.tenant.create({
-        data: {
-          name: request.org.orgName,
-          slug: tenantSlug,
-          orgId: org.id,
-        },
-      });
-      
-      orgId = org.id;
-      tenantId = tenant.id;
-      
-      // Create user in DB
-      const user = await prisma.user.create({
-        data: {
-          email: normalizedEmail,
-          name: request.org.contactName,
-          displayName: request.org.contactName,
-        },
-      });
-      
-      // Create user in Auth0 with provided password
-      this.logger.log(`Creating Auth0 user for purchase: ${normalizedEmail}`);
-      const auth0UserId = await this.auth0Management.createUser({
-        email: normalizedEmail,
+      pendingOrgDetails = {
+        orgName: request.org.orgName,
+        slug: orgSlug,
+        contactName: request.org.contactName,
+        contactEmail: normalizedEmail,
         password: request.org.password,
-        name: request.org.contactName,
-        emailVerified: false,
-      });
-      
-      if (auth0UserId) {
-        // Link Auth0 identity to DB user
-        await prisma.userIdentity.create({
-          data: {
-            userId: user.id,
-            provider: "auth0",
-            providerSubject: auth0UserId,
-            email: normalizedEmail,
-            displayName: request.org.contactName,
-          },
-        });
-        this.logger.log(`✅ Linked Auth0 user ${auth0UserId} to DB user ${user.id}`);
-      } else {
-        this.logger.warn(
-          `Failed to create Auth0 user for ${normalizedEmail}. User can still complete purchase but may need invite link to set up Auth0 account.`,
-        );
-      }
-      
-      // Link user to org and tenant
-      await prisma.userTenantRole.create({
-        data: {
-          userId: user.id,
-          tenantId: tenant.id,
-          role: "ADMIN",
-        },
-      });
+        planCode: sanitisedPlan.planCode,
+      };
       
       this.logger.log(
-        `✅ Created org ${org.id}, tenant ${tenant.id}, and user ${user.id} for purchase`,
+        `Deferring org/user creation for ${normalizedEmail} until payment confirmed`,
       );
     }
 
@@ -172,8 +131,8 @@ export class BuyNowService {
 
     const pendingOrder = await prisma.pendingOrder.create({
       data: {
-        tenantId,
-        orgId,
+        tenantId: tenantId ?? undefined,
+        orgId: orgId ?? undefined,
         planCode: sanitisedPlan.planCode,
         av30Cap: previewResult.effectiveCaps.av30Cap ?? undefined,
         storageGbCap: previewResult.effectiveCaps.storageGbCap ?? undefined,
@@ -188,6 +147,7 @@ export class BuyNowService {
         warnings: previewResult.notes?.warnings ?? [],
         provider: prismaProvider,
         status: PendingOrderStatus.PENDING,
+        pendingOrgDetails: pendingOrgDetails ?? undefined,
       },
     });
 
@@ -200,7 +160,11 @@ export class BuyNowService {
       pendingOrderId: pendingOrder.id,
     };
 
-    const providerCtx: BuyNowProviderContext = { tenantId, orgId };
+    // Use placeholder IDs for public checkout (will be replaced after payment)
+    const providerCtx: BuyNowProviderContext = {
+      tenantId: tenantId ?? "pending",
+      orgId: orgId ?? "pending",
+    };
 
     const session = await this.provider.createCheckoutSession(
       providerParams,
@@ -242,6 +206,228 @@ export class BuyNowService {
     // Add random suffix to avoid collisions
     const suffix = Math.random().toString(36).substring(2, 8);
     return `${base}-${suffix}`;
+  }
+
+  /**
+   * Purchase endpoint for authenticated organisation admins.
+   * Creates Stripe Checkout session with enhanced metadata and validations.
+   */
+  async purchaseForOrg(
+    request: OrgPurchaseRequest,
+  ): Promise<BuyNowCheckoutResponse> {
+    const orgId = this.requestContext?.currentOrgId;
+    const tenantId = this.requestContext?.currentTenantId;
+    const userId = this.requestContext?.currentUserId;
+
+    if (!orgId || !userId) {
+      throw new ForbiddenException(
+        "Authentication required - org and user context missing",
+      );
+    }
+
+    // 1. Verify user is org admin
+    await this.ensureOrgAdmin(userId, orgId);
+
+    // 2. Check for existing active subscription
+    await this.preventDuplicateSubscription(orgId);
+
+    // 3. Validate upgrade path (no downgrades)
+    await this.validateUpgradePath(orgId, request.planCode);
+
+    // 4. Normalize plan code for Stripe compatibility
+    const normalizedPlanCode = this.normalizePlanCode(request.planCode);
+
+    const planDefinition = getPlanDefinition(normalizedPlanCode);
+    if (!planDefinition) {
+      throw new BadRequestException(`Invalid plan code: ${request.planCode}`);
+    }
+
+    if (!planDefinition.selfServe) {
+      throw new BadRequestException(
+        `Plan ${request.planCode} requires contact with sales`,
+      );
+    }
+
+    // 5. Build preview
+    const previewResult = this.planPreviewService.preview({
+      planCode: normalizedPlanCode,
+      addons: {},
+    });
+
+    const billingPeriodNormalized =
+      previewResult.billingPeriod && previewResult.billingPeriod !== "none"
+        ? previewResult.billingPeriod
+        : null;
+
+    const preview: BuyNowCheckoutPreview = {
+      planCode: previewResult.planCode,
+      planTier: previewResult.planTier,
+      billingPeriod: billingPeriodNormalized,
+      av30Cap: previewResult.effectiveCaps.av30Cap,
+      maxSites: previewResult.effectiveCaps.maxSites,
+      storageGbCap: previewResult.effectiveCaps.storageGbCap,
+      smsMessagesCap: previewResult.effectiveCaps.smsMessagesCap,
+      leaderSeatsIncluded: previewResult.effectiveCaps.leaderSeatsIncluded,
+      source: "plan_catalogue",
+    };
+
+    // 6. Fetch org details for metadata
+    const org = await prisma.org.findUnique({
+      where: { id: orgId },
+      select: { name: true, stripeCustomerId: true },
+    });
+
+    if (!org) {
+      throw new BadRequestException("Organisation not found");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true },
+    });
+
+    // 7. Create pending order
+    const prismaProvider = activeProviderToPrismaProvider(
+      this.providerConfig?.activeProvider ?? "FAKE",
+    );
+
+    const pendingOrder = await prisma.pendingOrder.create({
+      data: {
+        tenantId: tenantId ?? orgId,
+        orgId,
+        planCode: normalizedPlanCode,
+        av30Cap: previewResult.effectiveCaps.av30Cap ?? undefined,
+        storageGbCap: previewResult.effectiveCaps.storageGbCap ?? undefined,
+        smsMessagesCap: previewResult.effectiveCaps.smsMessagesCap ?? undefined,
+        leaderSeatsIncluded:
+          previewResult.effectiveCaps.leaderSeatsIncluded ?? undefined,
+        maxSites: previewResult.effectiveCaps.maxSites ?? undefined,
+        provider: prismaProvider,
+        status: PendingOrderStatus.PENDING,
+      },
+    });
+
+    // 8. Build provider params with org details
+    const providerParams: BuyNowCheckoutParams = {
+      plan: { planCode: normalizedPlanCode },
+      org: {
+        orgName: org.name,
+        contactName: user?.name ?? "Unknown",
+        contactEmail: user?.email ?? "",
+        password: "", // Not used for existing orgs
+      },
+      preview,
+      successUrl: request.successUrl,
+      cancelUrl: request.cancelUrl,
+      pendingOrderId: pendingOrder.id,
+      userId, // Pass initiating user ID
+      stripeCustomerId: org.stripeCustomerId ?? undefined,
+    };
+
+    const providerCtx: BuyNowProviderContext = {
+      tenantId: tenantId ?? orgId,
+      orgId,
+    };
+
+    // 9. Create checkout session
+    const session = await this.provider.createCheckoutSession(
+      providerParams,
+      providerCtx,
+    );
+
+    await prisma.pendingOrder.update({
+      where: { id: pendingOrder.id },
+      data: { providerCheckoutId: session.sessionId },
+    });
+
+    return {
+      preview,
+      provider: session.provider,
+      sessionId: session.sessionId,
+      sessionUrl: session.sessionUrl,
+      warnings: [],
+    };
+  }
+
+  private async ensureOrgAdmin(userId: string, orgId: string): Promise<void> {
+    const membership = await prisma.orgMembership.findUnique({
+      where: { orgId_userId: { orgId, userId } },
+      select: { role: true },
+    });
+
+    if (!membership || membership.role !== OrgRole.ORG_ADMIN) {
+      throw new ForbiddenException(
+        "Only organisation administrators can purchase plans",
+      );
+    }
+  }
+
+  private async preventDuplicateSubscription(orgId: string): Promise<void> {
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        orgId,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+        },
+      },
+      select: { id: true, planCode: true, status: true },
+    });
+
+    if (activeSubscription) {
+      throw new ConflictException(
+        `Organisation already has an active subscription (${activeSubscription.planCode}). Please cancel your current subscription before purchasing a new plan.`,
+      );
+    }
+  }
+
+  private async validateUpgradePath(
+    orgId: string,
+    newPlanCode: string,
+  ): Promise<void> {
+    const normalizedNewPlan = this.normalizePlanCode(newPlanCode);
+    const newPlanDef = getPlanDefinition(normalizedNewPlan);
+
+    if (!newPlanDef) {
+      throw new BadRequestException(`Invalid plan code: ${newPlanCode}`);
+    }
+
+    // Check if org has any previous subscriptions (active, canceled, or past_due)
+    const latestSubscription = await prisma.subscription.findFirst({
+      where: { orgId },
+      orderBy: { createdAt: "desc" },
+      select: { planCode: true, status: true },
+    });
+
+    if (!latestSubscription) {
+      // First subscription - allow any plan
+      return;
+    }
+
+    const currentPlanDef = getPlanDefinition(latestSubscription.planCode);
+    if (!currentPlanDef) {
+      // Unknown current plan - allow upgrade
+      this.logger.warn(
+        `Unknown current plan ${latestSubscription.planCode} for org ${orgId}`,
+      );
+      return;
+    }
+
+    // Define tier hierarchy
+    const tierHierarchy: Record<PlanTier, number> = {
+      core: 1,
+      starter: 2,
+      growth: 3,
+      enterprise: 4,
+    };
+
+    const currentTierLevel = tierHierarchy[currentPlanDef.tier];
+    const newTierLevel = tierHierarchy[newPlanDef.tier];
+
+    if (newTierLevel < currentTierLevel) {
+      throw new BadRequestException(
+        `Downgrade from ${currentPlanDef.displayName} to ${newPlanDef.displayName} is not supported. Please contact support for assistance with plan changes.`,
+      );
+    }
   }
 
   /**

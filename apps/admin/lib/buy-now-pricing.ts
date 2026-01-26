@@ -47,39 +47,39 @@ export const PLAN_PRICES: Record<Exclude<PlanCode, "ENTERPRISE_CONTACT">, Stripe
 export const ADDON_PRICES = {
   AV30_BLOCK_25_MONTHLY: {
     amountMajor: 39,
-    label: "+25 Active People — £39 / month",
+    label: "+25 Active People - £39 / month",
   },
   AV30_BLOCK_25_YEARLY: {
     amountMajor: 390,
-    label: "+25 Active People — £390 / year",
+    label: "+25 Active People - £390 / year",
   },
   AV30_BLOCK_50_MONTHLY: {
     amountMajor: 59,
-    label: "+50 Active People — £59 / month",
+    label: "+50 Active People - £59 / month",
   },
   AV30_BLOCK_50_YEARLY: {
     amountMajor: 590,
-    label: "+50 Active People — £590 / year",
+    label: "+50 Active People - £590 / year",
   },
   STORAGE_100GB_YEARLY: {
     amountMajor: 250,
-    label: "+100GB storage — £250 / year",
+    label: "+100GB storage - £250 / year",
   },
   STORAGE_200GB_YEARLY: {
     amountMajor: 450,
-    label: "+200GB storage — £450 / year",
+    label: "+200GB storage - £450 / year",
   },
   STORAGE_1TB_YEARLY: {
     amountMajor: 1500,
-    label: "+1TB storage — £1,500 / year",
+    label: "+1TB storage - £1,500 / year",
   },
   SMS_1000_MONTHLY: {
     amountMajor: 15,
-    label: "1,000 SMS — £15 / month",
+    label: "1,000 SMS - £15 / month",
   },
   SMS_1000_YEARLY: {
     amountMajor: 150,
-    label: "1,000 SMS — £150 / year",
+    label: "1,000 SMS - £150 / year",
   },
 } as const;
 

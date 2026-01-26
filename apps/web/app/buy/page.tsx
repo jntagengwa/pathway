@@ -230,10 +230,6 @@ export default function BuyNowPage() {
       const buildRedirectUrl = (path: string) => {
         if (typeof window === "undefined" || !window.location) return null;
         const url = new URL(path, window.location.href);
-        // class-validator requires a URL with TLD; localhost can fail, so normalise to 127.0.0.1
-        if (url.hostname === "localhost") {
-          url.hostname = "127.0.0.1";
-        }
         return url.toString();
       };
 
@@ -289,28 +285,28 @@ export default function BuyNowPage() {
       value: "100",
       label:
         mergedAddonPrices.STORAGE_100GB_YEARLY !== undefined
-          ? `+100GB — ${formatAmount(
+          ? `+100GB - ${formatAmount(
               mergedAddonPrices.STORAGE_100GB_YEARLY?.amountMajor ?? 250,
             )} / year`
-          : "+100GB — £250 / year",
+          : "+100GB - £250 / year",
     },
     {
       value: "200",
       label:
         mergedAddonPrices.STORAGE_200GB_YEARLY !== undefined
-          ? `+200GB — ${formatAmount(
+          ? `+200GB - ${formatAmount(
               mergedAddonPrices.STORAGE_200GB_YEARLY?.amountMajor ?? 450,
             )} / year`
-          : "+200GB — £450 / year",
+          : "+200GB - £450 / year",
     },
     {
       value: "1000",
       label:
         mergedAddonPrices.STORAGE_1TB_YEARLY !== undefined
-          ? `+1TB — ${formatAmount(
+          ? `+1TB - ${formatAmount(
               mergedAddonPrices.STORAGE_1TB_YEARLY?.amountMajor ?? 1500,
             )} / year`
-          : "+1TB — £1,500 / year",
+          : "+1TB - £1,500 / year",
     },
   ];
 
@@ -452,7 +448,7 @@ export default function BuyNowPage() {
             <div className="rounded-xl border border-pw-border bg-white p-4 shadow-sm">
               <h2 className="text-lg font-semibold">Add-ons</h2>
               <p className="text-sm text-pw-text-muted">
-                Adjust capacity now or leave at zero—you can add more later.
+                Adjust capacity now or leave at zero-you can add more later.
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <AddonInput
@@ -603,7 +599,7 @@ export default function BuyNowPage() {
             </div>
             {preview && (
               <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                <PreviewRow label="Plan" value={preview.displayName ?? "—"} />
+                <PreviewRow label="Plan" value={preview.displayName ?? "-"} />
                 <PreviewRow
                   label="Billing"
                   value={
@@ -611,24 +607,24 @@ export default function BuyNowPage() {
                       ? "Monthly"
                       : preview.billingPeriod === "yearly"
                         ? "Yearly"
-                        : "—"
+                        : "-"
                   }
                 />
                 <PreviewRow
                   label="Active People cap"
-                  value={preview.effectiveCaps.av30Cap ?? "—"}
+                  value={preview.effectiveCaps.av30Cap ?? "-"}
                 />
                 <PreviewRow
                   label="Sites cap"
-                  value={preview.effectiveCaps.maxSites ?? "—"}
+                  value={preview.effectiveCaps.maxSites ?? "-"}
                 />
                 <PreviewRow
                   label="Storage (GB)"
-                  value={preview.effectiveCaps.storageGbCap ?? "—"}
+                  value={preview.effectiveCaps.storageGbCap ?? "-"}
                 />
                 <PreviewRow
                   label="SMS messages"
-                  value={preview.effectiveCaps.smsMessagesCap ?? "—"}
+                  value={preview.effectiveCaps.smsMessagesCap ?? "-"}
                 />
               </dl>
             )}
@@ -720,7 +716,7 @@ function PreviewRow({ label, value }: { label: string; value: string | number })
   return (
     <>
       <dt className="text-xs text-pw-text-muted">{label}</dt>
-      <dd className="text-sm font-medium">{value ?? "—"}</dd>
+      <dd className="text-sm font-medium">{value ?? "-"}</dd>
     </>
   );
 }

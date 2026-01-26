@@ -44,23 +44,55 @@ export class StripeBuyNowProvider extends BuyNowProvider {
     const cancelUrl =
       params.cancelUrl ?? this.config.stripe.cancelUrlDefault ?? "";
 
-    const session = await this.stripe.checkout.sessions.create({
+    // Extract billing interval from plan code
+    const billingInterval = planCode.endsWith("_MONTHLY")
+      ? "monthly"
+      : planCode.endsWith("_YEARLY")
+        ? "yearly"
+        : "unknown";
+
+    // Build enhanced metadata as per requirements
+    const metadata: Record<string, string> = {
+      pendingOrderId: params.pendingOrderId,
+      tenantId: ctx.tenantId,
+      orgId: ctx.orgId,
+      organisation_id: ctx.orgId,
+      organisation_name: params.org.orgName,
+      plan_key: planCode.split("_")[0].toLowerCase(), // core, starter, growth
+      billing_interval: billingInterval,
+      planCode: params.plan.planCode,
+      av30Cap: String(params.preview.av30Cap ?? ""),
+      maxSites: String(params.preview.maxSites ?? ""),
+    };
+
+    // Add initiating user ID if provided
+    if (params.userId) {
+      metadata.initiated_by_user_id = params.userId;
+    }
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       success_url: successUrl,
       cancel_url: cancelUrl,
       line_items: [{ price: priceId, quantity: 1 }],
-      metadata: {
-        pendingOrderId: params.pendingOrderId,
-        tenantId: ctx.tenantId,
-        orgId: ctx.orgId,
-        planCode: params.plan.planCode,
-        av30Cap: String(params.preview.av30Cap ?? ""),
-        maxSites: String(params.preview.maxSites ?? ""),
+      metadata,
+      subscription_data: {
+        metadata,
       },
-    });
+    };
+
+    // If org already has a Stripe customer ID, use it
+    if (params.stripeCustomerId) {
+      sessionParams.customer = params.stripeCustomerId;
+    } else {
+      // For new customers, let Stripe create the customer and we'll store the ID via webhook
+      sessionParams.customer_email = params.org.contactEmail;
+    }
+
+    const session = await this.stripe.checkout.sessions.create(sessionParams);
 
     this.logger.log(
-      `Created Stripe checkout session for plan ${params.plan.planCode} pendingOrder=${params.pendingOrderId}`,
+      `Created Stripe checkout session ${session.id} for org ${ctx.orgId} plan ${params.plan.planCode}`,
     );
 
     return {

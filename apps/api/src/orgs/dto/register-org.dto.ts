@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Business plan code — keep union to allow forward-compatible custom codes
+// Business plan code - keep union to allow forward-compatible custom codes
 export const planCode = z.union([
   z.enum(["trial", "starter", "pro", "enterprise"]).catch("trial"),
   z.string().min(1),

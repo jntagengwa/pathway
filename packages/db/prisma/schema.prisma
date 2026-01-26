@@ -569,10 +569,10 @@ model BillingEvent {
 
 model PendingOrder {
   id                     String             @id @default(uuid())
-  tenantId               String
-  tenant                 Tenant             @relation(fields: [tenantId], references: [id])
-  orgId                  String
-  org                    Org                @relation(fields: [orgId], references: [id])
+  tenantId               String?
+  tenant                 Tenant?            @relation(fields: [tenantId], references: [id])
+  orgId                  String?
+  org                    Org?               @relation(fields: [orgId], references: [id])
   planCode               String
   av30Cap                Int?
   storageGbCap           Int?
@@ -589,6 +589,9 @@ model PendingOrder {
   createdAt              DateTime           @default(now())
   completedAt            DateTime?
   updatedAt              DateTime           @updatedAt
+  
+  // For public checkout: store org/user details until payment confirmed
+  pendingOrgDetails      Json?              // { orgName, slug, contactName, contactEmail, password }
 
   @@index([tenantId, orgId, provider, providerCheckoutId])
   @@index([provider, providerSubscriptionId])

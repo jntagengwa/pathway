@@ -11,3 +11,9 @@ https://localhost:3000 {
 	reverse_proxy http://127.0.0.1:3001
 }
 
+# API (https://api.localhost:3000)
+# API runs on port 3003 internally, but exposed via HTTPS on 3000 for Stripe webhooks
+https://api.localhost:3000 {
+	reverse_proxy http://127.0.0.1:3003
+}
+

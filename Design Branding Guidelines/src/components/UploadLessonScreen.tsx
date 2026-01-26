@@ -30,10 +30,10 @@ interface ExternalResource {
 }
 
 const ageGroups = [
-  { value: 'toddlers', label: 'Toddlers (2–4)' },
-  { value: 'younger', label: 'Younger (5–7)' },
-  { value: 'middle', label: 'Middle (8–10)' },
-  { value: 'older', label: 'Older (11–13)' }
+  { value: 'toddlers', label: 'Toddlers (2-4)' },
+  { value: 'younger', label: 'Younger (5-7)' },
+  { value: 'middle', label: 'Middle (8-10)' },
+  { value: 'older', label: 'Older (11-13)' }
 ];
 
 const suggestedTags = ['game', 'craft', 'memory verse', 'video', 'worksheet', 'activity', 'discussion', 'prayer'];
@@ -359,7 +359,7 @@ export function UploadLessonScreen({ onBack, onClose }: UploadLessonScreenProps)
                   fontSize: '0.75rem',
                   fontWeight: 500
                 }}>
-                  Offline – will sync later
+                  Offline - will sync later
                 </span>
               </div>
             )}
@@ -516,7 +516,7 @@ export function UploadLessonScreen({ onBack, onClose }: UploadLessonScreenProps)
                     </label>
                     <Textarea
                       id="description"
-                      placeholder="1–3 lines: objective, key points."
+                      placeholder="1-3 lines: objective, key points."
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       className="min-h-[100px] resize-none"
@@ -532,7 +532,7 @@ export function UploadLessonScreen({ onBack, onClose }: UploadLessonScreenProps)
                         fontSize: '0.75rem'
                       }}
                     >
-                      1–3 lines: objective, key points.
+                      1-3 lines: objective, key points.
                     </p>
                   </div>
 
@@ -985,7 +985,7 @@ export function UploadLessonScreen({ onBack, onClose }: UploadLessonScreenProps)
                   color: '#F59E0B',
                   fontWeight: 500
                 }}>
-                  • Offline – will sync later
+                  • Offline - will sync later
                 </span>
               </div>
             )}

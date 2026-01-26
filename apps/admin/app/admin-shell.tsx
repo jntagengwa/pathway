@@ -19,7 +19,12 @@ import { getSafeDisplayName } from "@/lib/names";
 import { cn } from "@pathway/ui";
 
 const getDevRuntimeState = () => {
-  const isMockApi = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  // Check if we have any API URL configured (supports both old and new env var names)
+  const hasApiUrl = Boolean(
+    process.env.NEXT_PUBLIC_API_URL || 
+    process.env.NEXT_PUBLIC_API_BASE_URL
+  );
+  const isMockApi = !hasApiUrl;
   const hasDevToken = Boolean(process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN);
   return { isMockApi, hasDevToken };
 };
@@ -71,9 +76,17 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
   const isAuthRoute = pathname === "/login";
   const title = resolveTitle(pathname);
   const { isMockApi, hasDevToken } = getDevRuntimeState();
-  const showMockBanner = isMockApi;
-  const showMissingTokenBanner = !isMockApi && !hasDevToken;
   const { data: session } = useSession();
+  
+  // Only show mock banner if truly in mock mode
+  const showMockBanner = isMockApi;
+  
+  // Only show missing token banner in development when:
+  // - Not in mock mode
+  // - No dev token configured
+  // - No active session (would indicate NextAuth is working)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const showMissingTokenBanner = isDevelopment && !isMockApi && !hasDevToken && !session;
 
   // Get role information for access control
   const { role } = useAdminAccess();
@@ -188,12 +201,12 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
             <div className="mx-auto w-full max-w-5xl space-y-4">
               {showMockBanner && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-                  Running in mock API mode – some data is sample only.
+                  Running in mock API mode - some data is sample only.
                 </div>
               )}
               {showMissingTokenBanner && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-                  No dev auth token configured – some API calls may fail.
+                  No dev auth token configured - some API calls may fail.
                 </div>
               )}
               {children}

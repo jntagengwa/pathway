@@ -54,6 +54,7 @@ export class AuthUserGuard implements CanActivate {
               },
             },
             orgMemberships: true,
+            orgRoles: true,
           },
         },
       },
@@ -110,23 +111,29 @@ export class AuthUserGuard implements CanActivate {
 
     // Map new role system to old role system for backwards compatibility
     // OLD system uses enum values like "org:admin", "tenant:admin"
-    const orgRoles: string[] = [];
-    const tenantRoles: string[] = [];
+    const orgRoles = new Set<string>();
+    const tenantRoles = new Set<string>();
 
     // Map OrgMembership roles to old UserOrgRole enum values
     user.orgMemberships.forEach((om) => {
       if (orgId && om.orgId !== orgId) return; // Only include roles for current org
-      if (om.role === "ORG_ADMIN") orgRoles.push("org:admin"); // Match UserOrgRole.ORG_ADMIN
-      if (om.role === "ORG_BILLING") orgRoles.push("org:billing_manager"); // Match UserOrgRole.BILLING_MANAGER
-      if (om.role === "ORG_MEMBER") orgRoles.push("org:support"); // Generic member role
+      if (om.role === "ORG_ADMIN") orgRoles.add("org:admin"); // Match UserOrgRole.ORG_ADMIN
+      if (om.role === "ORG_BILLING") orgRoles.add("org:billing_manager"); // Match UserOrgRole.BILLING_MANAGER
+      if (om.role === "ORG_MEMBER") orgRoles.add("org:support"); // Generic member role
+    });
+    user.orgRoles.forEach((or) => {
+      if (orgId && or.orgId !== orgId) return; // Only include roles for current org
+      if (or.role === "ORG_ADMIN") orgRoles.add("org:admin");
+      if (or.role === "ORG_BILLING") orgRoles.add("org:billing_manager");
+      if (or.role === "ORG_MEMBER") orgRoles.add("org:support");
     });
 
     // Map SiteMembership roles to old UserTenantRole enum values
     user.siteMemberships.forEach((sm) => {
       if (tenantId && sm.tenantId !== tenantId) return; // Only include roles for current site
-      if (sm.role === "SITE_ADMIN") tenantRoles.push("tenant:admin"); // Match UserTenantRole.ADMIN
-      if (sm.role === "STAFF") tenantRoles.push("tenant:staff"); // Match UserTenantRole.STAFF
-      if (sm.role === "VIEWER") tenantRoles.push("tenant:staff"); // VIEWER can also act as STAFF for read access
+      if (sm.role === "SITE_ADMIN") tenantRoles.add("tenant:admin"); // Match UserTenantRole.ADMIN
+      if (sm.role === "STAFF") tenantRoles.add("tenant:staff"); // Match UserTenantRole.STAFF
+      if (sm.role === "VIEWER") tenantRoles.add("tenant:staff"); // VIEWER can also act as STAFF for read access
     });
 
     // Set up PathwayRequestContext for RLS interceptor and downstream services
@@ -147,7 +154,7 @@ export class AuthUserGuard implements CanActivate {
         tenantId: tenantId || "",
         orgId: orgId || "",
       },
-      roles: { org: orgRoles, tenant: tenantRoles },
+      roles: { org: Array.from(orgRoles), tenant: Array.from(tenantRoles) },
       permissions: [],
       rawClaims: claims as Record<string, unknown>,
     };

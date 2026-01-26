@@ -92,7 +92,7 @@ export default function ParentsPage() {
               {row.email}
             </a>
           ) : (
-            <span className="text-sm text-text-muted">—</span>
+            <span className="text-sm text-text-muted">-</span>
           ),
       },
       {
@@ -104,7 +104,7 @@ export default function ParentsPage() {
               ? row.childrenCount === 1
                 ? "1 child"
                 : `${row.childrenCount} children`
-              : "—"}
+              : "-"}
           </span>
         ),
         align: "right",

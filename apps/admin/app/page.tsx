@@ -41,7 +41,7 @@ const formatTimeRange = (startsAt?: string, endsAt?: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return { date, range: `${startTime} – ${endTime}`, sameDay };
+  return { date, range: `${startTime} - ${endTime}`, sameDay };
 };
 
 const isTodayLocal = (dateString?: string) => {

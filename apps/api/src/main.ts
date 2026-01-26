@@ -35,6 +35,7 @@ async function bootstrap() {
       credentials: true,
     },
     ...(httpsOptions ? { httpsOptions } : {}),
+    rawBody: true, // Enable raw body for all routes
   });
 
   app.use(cookieParser());

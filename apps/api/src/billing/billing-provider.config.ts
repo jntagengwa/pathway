@@ -1,7 +1,7 @@
 import { BillingProvider } from "@pathway/db";
 import { type PlanCode } from "./billing-plans";
 
-export type ActiveBillingProvider = "FAKE" | "STRIPE" | "GOCARDLESS";
+export type ActiveBillingProvider = "FAKE" | "STRIPE" | "STRIPE_TEST" | "GOCARDLESS";
 
 export type AddonPriceCode =
   | "AV30_BLOCK_25_MONTHLY"
@@ -103,11 +103,23 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
   const fallbackCancel = process.env.BILLING_CANCEL_URL_DEFAULT ??
     "http://localhost:3000/billing/checkout/cancel";
 
+  // Use test keys and webhook secret when in STRIPE_TEST mode
+  const isTestMode = active === "STRIPE_TEST";
+  const secretKey = isTestMode
+    ? (process.env.STRIPE_SECRET_KEY_TEST ?? process.env.STRIPE_SECRET_KEY)
+    : process.env.STRIPE_SECRET_KEY;
+  const webhookSecretSnapshot = isTestMode
+    ? process.env.STRIPE_WEBHOOK_SECRET_TEST
+    : process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT;
+  const priceMapRaw = isTestMode
+    ? (process.env.STRIPE_PRICE_MAP_TEST ?? process.env.STRIPE_PRICE_MAP)
+    : process.env.STRIPE_PRICE_MAP;
+
   const stripeConfig = {
-    secretKey: process.env.STRIPE_SECRET_KEY,
-    webhookSecretSnapshot: process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT,
+    secretKey,
+    webhookSecretSnapshot,
     webhookSecretThin: process.env.STRIPE_WEBHOOK_SECRET_THIN,
-    priceMap: parsePriceMap(process.env.STRIPE_PRICE_MAP),
+    priceMap: parsePriceMap(priceMapRaw),
     successUrlDefault: process.env.STRIPE_SUCCESS_URL ?? fallbackSuccess,
     cancelUrlDefault: process.env.STRIPE_CANCEL_URL ?? fallbackCancel,
   };
@@ -128,10 +140,13 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
     cancelUrlDefault: process.env.GOCARDLESS_CANCEL_URL ?? fallbackCancel,
   };
 
-  if (active === "STRIPE" && isProd) {
+  if ((active === "STRIPE" || active === "STRIPE_TEST") && isProd) {
     if (!stripeConfig.secretKey || !stripeConfig.webhookSecretSnapshot) {
+      const secretName = active === "STRIPE_TEST" 
+        ? "STRIPE_WEBHOOK_SECRET_TEST" 
+        : "STRIPE_WEBHOOK_SECRET_SNAPSHOT";
       throw new Error(
-        "Stripe billing provider requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET_SNAPSHOT in production",
+        `Stripe billing provider requires STRIPE_SECRET_KEY and ${secretName} in production`,
       );
     }
   }
@@ -145,7 +160,9 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
   }
 
   const safeActive: ActiveBillingProvider =
-    active === "STRIPE" || active === "GOCARDLESS" ? active : "FAKE";
+    active === "STRIPE" || active === "STRIPE_TEST" || active === "GOCARDLESS" 
+      ? active 
+      : "FAKE";
 
   // Temporarily disable GoCardless until implementation is ready.
   const effectiveActive: ActiveBillingProvider =

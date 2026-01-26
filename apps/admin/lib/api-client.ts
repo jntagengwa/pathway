@@ -510,7 +510,7 @@ const buildTimeRangeLabel = (
     hour: "2-digit",
     minute: "2-digit",
   });
-  return `${startTime} – ${endTime}`;
+  return `${startTime} - ${endTime}`;
 };
 
 const isTodayLocal = (dateString?: string) => {
@@ -736,8 +736,8 @@ const mapApiSessionDetailToAdmin = (
   title: s.title ?? "Session",
   startsAt: s.startsAt,
   endsAt: s.endsAt,
-  ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "—",
-  room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "—",
+  ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "-",
+  room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "-",
   status: mapSessionStatus(s.startsAt, s.endsAt),
   attendanceMarked:
     s.attendanceMarked ??
@@ -855,8 +855,8 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     title: s.title ?? "Session",
     startsAt: s.startsAt,
     endsAt: s.endsAt,
-    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "—",
-    room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "—",
+    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "-",
+    room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "-",
     status: mapSessionStatus(s.startsAt, s.endsAt),
     attendanceMarked:
       s.attendanceMarked ??
@@ -867,7 +867,7 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
       s.attendanceTotal ??
       (typeof s.presentCount === "number" ? s.presentCount : 0) +
         (typeof s.absentCount === "number" ? s.absentCount : 0) +
-        (typeof s.lateCount === "number" ? s.lateCount : 0), // TODO: BLOCKED – awaiting attendance totals from API.
+        (typeof s.lateCount === "number" ? s.lateCount : 0), // TODO: BLOCKED - awaiting attendance totals from API.
     leadStaff: undefined,
     supportStaff: undefined,
   }));
@@ -1320,14 +1320,14 @@ const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
   id: c.id,
   fullName: `${c.firstName} ${c.lastName}`.trim(),
   preferredName: c.preferredName ?? null,
-  ageGroup: c.ageGroupLabel ?? c.ageGroup ?? "—",
-  primaryGroup: c.primaryGroupLabel ?? c.primaryGroup ?? c.groupId ?? "—",
+  ageGroup: c.ageGroupLabel ?? c.ageGroup ?? "-",
+  primaryGroup: c.primaryGroupLabel ?? c.primaryGroup ?? c.groupId ?? "-",
   hasPhotoConsent: Boolean(c.hasPhotoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:
     (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
     (Array.isArray(c.additionalNeeds) && c.additionalNeeds.length > 0),
-  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs child.status from API to reflect archived/deactivated children.
+  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs child.status from API to reflect archived/deactivated children.
 });
 
 const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
@@ -1341,7 +1341,7 @@ const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
   hasAdditionalNeeds:
     (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
     (Array.isArray(c.additionalNeeds) && c.additionalNeeds.length > 0),
-  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs child.status from API to reflect archived/deactivated children.
+  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs child.status from API to reflect archived/deactivated children.
 });
 
 export async function fetchChildById(
@@ -1467,11 +1467,11 @@ const mapApiParentToAdminParentRow = (
   id: api.id,
   fullName: api.fullName || "Unknown parent",
   email: api.email ?? "",
-  phone: null, // TODO: BLOCKED – requires phone field from parents list API.
-  children: [], // TODO: BLOCKED – list endpoint does not include child summaries yet.
+  phone: null, // TODO: BLOCKED - requires phone field from parents list API.
+  children: [], // TODO: BLOCKED - list endpoint does not include child summaries yet.
   childrenCount: api.childrenCount,
-  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED – needs primaryContact flag from API list.
-  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs parent.status to reflect archived/deactivated parents.
+  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED - needs primaryContact flag from API list.
+  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs parent.status to reflect archived/deactivated parents.
 });
 
 const mapApiParentDetailToAdmin = (
@@ -1480,7 +1480,7 @@ const mapApiParentDetailToAdmin = (
   id: api.id,
   fullName: api.fullName || "Unknown parent",
   email: api.email ?? "",
-  phone: api.phone ?? null, // TODO: BLOCKED – requires phone from API.
+  phone: api.phone ?? null, // TODO: BLOCKED - requires phone from API.
   children:
     api.children?.map((child) => ({
       id: child.id,
@@ -1490,8 +1490,8 @@ const mapApiParentDetailToAdmin = (
         (`${child.firstName ?? ""} ${child.lastName ?? ""}`.trim() || "Child"),
     })) ?? [],
   childrenCount: api.children?.length ?? undefined,
-  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED – needs primaryContact flag from API.
-  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED – needs parent.status to reflect archived/deactivated parents.
+  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED - needs primaryContact flag from API.
+  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs parent.status to reflect archived/deactivated parents.
 });
 
 export async function fetchParentById(
@@ -1588,7 +1588,7 @@ const mapApiAnnouncementToAdminRow = (
   id: api.id,
   title: api.title,
   audienceLabel:
-    (api.audience && audienceLabelMap[api.audience]) || api.audience || "—",
+    (api.audience && audienceLabelMap[api.audience]) || api.audience || "-",
   statusLabel: statusLabelMap[api.status] ?? api.status ?? "Unknown",
   createdAt: api.createdAt,
   scheduledAt: api.scheduledAt ?? null,
@@ -1901,7 +1901,7 @@ const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
     : [], // NOTE: resources are label-only here; do not expose storage keys or URLs.
 });
 
-// LESSONS: content/curriculum only – no safeguarding notes or secrets. Do not expose raw S3 URLs or provider payloads; show safe labels only.
+// LESSONS: content/curriculum only - no safeguarding notes or secrets. Do not expose raw S3 URLs or provider payloads; show safe labels only.
 export async function fetchLessons(): Promise<AdminLessonRow[]> {
   const useMock = isUsingMockApi();
   if (useMock) {
@@ -1909,7 +1909,7 @@ export async function fetchLessons(): Promise<AdminLessonRow[]> {
     return [
       {
         id: "l1",
-        title: "Year 3 Maths – Fractions",
+        title: "Year 3 Maths - Fractions",
         ageGroupLabel: "Year 3",
         groupLabel: "3A",
         status: "published",
@@ -1917,7 +1917,7 @@ export async function fetchLessons(): Promise<AdminLessonRow[]> {
       },
       {
         id: "l2",
-        title: "Year 4 Science – Habitats",
+        title: "Year 4 Science - Habitats",
         ageGroupLabel: "Year 4",
         groupLabel: "4B",
         status: "draft",
@@ -2069,7 +2069,7 @@ export async function fetchAttendanceSummariesForToday(): Promise<
         sessionId: "s1",
         title: "Year 3 Maths",
         date: new Date().toISOString(),
-        timeRangeLabel: "09:00 – 09:50",
+        timeRangeLabel: "09:00 - 09:50",
         roomLabel: "Room 12",
         ageGroupLabel: "Year 3",
         attendanceMarked: 18,
@@ -2158,7 +2158,7 @@ export async function fetchAttendanceDetailBySessionId(
       sessionId,
       title: "Year 3 Maths",
       date: new Date().toISOString(),
-      timeRangeLabel: "09:00 – 09:50",
+      timeRangeLabel: "09:00 - 09:50",
       roomLabel: "Room 12",
       ageGroupLabel: "Year 3",
       rows: [
@@ -2791,13 +2791,13 @@ const mapUserToStaffRow = (u: ApiUser): AdminStaffRow => {
     id: u.id,
     fullName,
     email: u.email,
-    rolesLabel: roles.length ? roles.join(", ") : "—",
+    rolesLabel: roles.length ? roles.join(", ") : "-",
     status:
       u.status === "inactive"
         ? "inactive"
         : u.status === "active" || u.status === undefined || u.status === null
           ? "active"
-          : "unknown", // TODO: BLOCKED – map real user status when API exposes it.
+          : "unknown", // TODO: BLOCKED - map real user status when API exposes it.
   };
 };
 
@@ -2820,7 +2820,7 @@ const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
         ? "inactive"
         : u.status === "active" || u.status === undefined || u.status === null
           ? "active"
-          : "unknown", // TODO: BLOCKED – map real user status when API exposes it.
+          : "unknown", // TODO: BLOCKED - map real user status when API exposes it.
     groups: undefined, // TODO: map staff groups/classes when API exposes them.
     sessionsCount: undefined, // TODO: derive from assignments when available.
   };

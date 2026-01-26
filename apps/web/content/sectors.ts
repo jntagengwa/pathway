@@ -21,7 +21,7 @@ export const sectors: SectorDefinition[] = [
     slug: "schools",
     heroTitle: "Nexsteps for Schools",
     heroSubtitle:
-      "A comprehensive school management platform designed for busy school staff. Manage attendance, rotas, safeguarding workflows, and parent communication—all in one secure, GDPR-compliant system.",
+      "A comprehensive school management platform designed for busy school staff. Manage attendance, rotas, safeguarding workflows, and parent communication-all in one secure, GDPR-compliant system.",
     primaryCtaLabel: "Book a demo",
     secondaryCtaLabel: "View pricing",
     primaryCtaHref: "/demo?sector=schools",
@@ -42,7 +42,7 @@ export const sectors: SectorDefinition[] = [
     slug: "clubs",
     heroTitle: "Nexsteps for Clubs",
     heroSubtitle:
-      "Perfect for youth clubs, sports clubs, and after-school programmes. Manage multiple groups, track attendance, coordinate volunteers, and keep parents informed—all from one platform.",
+      "Perfect for youth clubs, sports clubs, and after-school programmes. Manage multiple groups, track attendance, coordinate volunteers, and keep parents informed-all from one platform.",
     primaryCtaLabel: "Book a demo",
     secondaryCtaLabel: "View pricing",
     primaryCtaHref: "/demo?sector=clubs",

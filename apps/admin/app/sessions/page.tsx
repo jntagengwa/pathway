@@ -46,7 +46,7 @@ const assignmentStatusTone: Record<
 };
 
 function formatTimeRange(startsAt?: string, endsAt?: string) {
-  if (!startsAt || !endsAt) return { date: "Unknown", range: "—" };
+  if (!startsAt || !endsAt) return { date: "Unknown", range: "-" };
   const start = new Date(startsAt);
   const end = new Date(endsAt);
   const date = start.toLocaleDateString(undefined, {
@@ -62,7 +62,7 @@ function formatTimeRange(startsAt?: string, endsAt?: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return { date, range: `${startTime} – ${endTime}` };
+  return { date, range: `${startTime} - ${endTime}` };
 }
 
 const addDays = (date: Date, days: number) => {
@@ -92,7 +92,7 @@ const formatWeekRange = (start: Date) => {
     day: "numeric",
     month: "short",
   });
-  return `${startLabel} – ${endLabel}`;
+  return `${startLabel} - ${endLabel}`;
 };
 
 export default function SessionsPage() {

@@ -127,7 +127,7 @@ export default function NewLessonPage() {
               id="title"
               value={form.title}
               onChange={(e) => handleFieldChange("title", e.target.value)}
-              placeholder="e.g. Year 4 Science – Habitats"
+              placeholder="e.g. Year 4 Science - Habitats"
               required
             />
             {fieldErrors.title ? (

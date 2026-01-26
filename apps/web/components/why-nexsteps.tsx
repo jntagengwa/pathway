@@ -43,7 +43,7 @@ const features = [
   {
     title: "Parent communication",
     description:
-      "Send announcements, share attendance history, and keep families informed—all from one platform.",
+      "Send announcements, share attendance history, and keep families informed-all from one platform.",
   },
 ];
 

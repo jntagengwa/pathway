@@ -14,7 +14,7 @@ import { canAccessAdminSection } from "../../lib/access";
 import { NoAccessCard } from "../../components/no-access-card";
 
 const numberOrDash = (value?: number | null) =>
-  typeof value === "number" ? value : "—";
+  typeof value === "number" ? value : "-";
 
 export default function ReportsPage() {
   const { role, isLoading: isLoadingAccess } = useAdminAccess();
@@ -117,7 +117,7 @@ export default function ReportsPage() {
   const concernsCount = numberOrDash(kpis?.openConcerns);
   const av30Label =
     kpis?.av30Used !== undefined && kpis?.av30Cap !== undefined
-      ? `${kpis.av30Used ?? "—"} / ${kpis.av30Cap ?? "—"}`
+      ? `${kpis.av30Used ?? "-"} / ${kpis.av30Cap ?? "-"}`
       : "AV30 not available yet";
 
   const concernsBadge =
@@ -210,13 +210,13 @@ export default function ReportsPage() {
                 Open concerns:{" "}
                 {typeof kpis?.openConcerns === "number"
                   ? kpis.openConcerns
-                  : "—"}
+                  : "-"}
               </p>
               <p>
                 Positive notes recorded:{" "}
                 {typeof kpis?.positiveNotesCount === "number"
                   ? kpis.positiveNotesCount
-                  : "—"}
+                  : "-"}
               </p>
               <Link
                 href="/safeguarding"
@@ -226,7 +226,7 @@ export default function ReportsPage() {
               </Link>
               <p className="text-xs text-text-muted">
                 {/* REPORTS: safeguarding area here must remain metadata-only (no note/concern text or DSAR-like detail). */}
-                Metadata only — safeguarding details live in Safeguarding.
+                Metadata only - safeguarding details live in Safeguarding.
               </p>
             </div>
           )}

@@ -108,7 +108,11 @@ jobs:
           EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
           TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
           # Production environment variables from GitHub Secrets
-          # These are injected at deploy time to prevent AWS from overwriting them
+          # These are injected at deploy time because ECS replaces task env vars on each deploy
+          # and would otherwise wipe manually configured values in AWS.
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          PORT: ${{ secrets.PORT }}
+          HOSTNAME: ${{ secrets.HOSTNAME }}
           INTERNAL_AUTH_SECRET: ${{ secrets.INTERNAL_AUTH_SECRET }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
@@ -124,6 +128,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET_SNAPSHOT: ${{ secrets.STRIPE_WEBHOOK_SECRET_SNAPSHOT }}
           STRIPE_THIN_URL: ${{ secrets.STRIPE_THIN_URL }}
           STRIPE_PRICE_MAP: ${{ secrets.STRIPE_PRICE_MAP }}
+          BILLING_PROVIDER: ${{ secrets.BILLING_PROVIDER }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
 
@@ -132,6 +137,9 @@ jobs:
           jq --arg image "$IMAGE_URI" \
              --arg execRole "$EXECUTION_ROLE_ARN" \
              --arg taskRole "$TASK_ROLE_ARN" \
+             --arg nodeEnv "$NODE_ENV" \
+             --arg port "$PORT" \
+             --arg hostname "$HOSTNAME" \
              --arg apiUrl "$NEXT_PUBLIC_API_URL" \
              --arg nextauthUrl "$NEXTAUTH_URL" \
              --arg nextauthSecret "$NEXTAUTH_SECRET" \
@@ -144,10 +152,14 @@ jobs:
              --arg stripeCancelUrl "$STRIPE_CANCEL_URL" \
              --arg stripeThinUrl "$STRIPE_THIN_URL" \
              --arg stripePriceMap "$STRIPE_PRICE_MAP" \
+             --arg billingProvider "$BILLING_PROVIDER" \
              '.executionRoleArn = $execRole |
               .taskRoleArn = $taskRole |
               .containerDefinitions[0].image = $image |
               .containerDefinitions[0].environment += [
+               {"name": "NODE_ENV", "value": $nodeEnv},
+               {"name": "PORT", "value": $port},
+               {"name": "HOSTNAME", "value": $hostname},
                 {"name": "NEXT_PUBLIC_API_URL", "value": $apiUrl},
                 {"name": "NEXTAUTH_URL", "value": $nextauthUrl},
                 {"name": "NEXTAUTH_SECRET", "value": $nextauthSecret},
@@ -159,7 +171,8 @@ jobs:
                 {"name": "STRIPE_SUCCESS_URL", "value": $stripeSuccessUrl},
                 {"name": "STRIPE_CANCEL_URL", "value": $stripeCancelUrl},
                 {"name": "STRIPE_THIN_URL", "value": $stripeThinUrl},
-                {"name": "STRIPE_PRICE_MAP", "value": $stripePriceMap}
+                {"name": "STRIPE_PRICE_MAP", "value": $stripePriceMap},
+                {"name": "BILLING_PROVIDER", "value": $billingProvider}
               ]' \
              infra/ecs/web.taskdef.json > /tmp/web-taskdef.json
 
@@ -189,7 +202,11 @@ jobs:
           TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
 
           # Production environment variables from GitHub Secrets
-          # These are injected at deploy time to prevent AWS from overwriting them
+          # These are injected at deploy time because ECS replaces task env vars on each deploy
+          # and would otherwise wipe manually configured values in AWS.
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          PORT: ${{ secrets.PORT }}
+          HOSTNAME: ${{ secrets.HOSTNAME }}
           INTERNAL_AUTH_SECRET: ${{ secrets.INTERNAL_AUTH_SECRET }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
@@ -205,6 +222,9 @@ jobs:
           jq --arg image "$IMAGE_URI" \
              --arg execRole "$EXECUTION_ROLE_ARN" \
              --arg taskRole "$TASK_ROLE_ARN" \
+             --arg nodeEnv "$NODE_ENV" \
+             --arg port "$PORT" \
+             --arg hostname "$HOSTNAME" \
              --arg apiUrl "$NEXT_PUBLIC_API_URL" \
              --arg nextauthUrl "$NEXTAUTH_URL" \
              --arg nextauthSecret "$NEXTAUTH_SECRET" \
@@ -215,6 +235,9 @@ jobs:
               .taskRoleArn = $taskRole |
               .containerDefinitions[0].image = $image |
               .containerDefinitions[0].environment += [
+               {"name": "NODE_ENV", "value": $nodeEnv},
+               {"name": "PORT", "value": $port},
+               {"name": "HOSTNAME", "value": $hostname},
                 {"name": "NEXT_PUBLIC_API_URL", "value": $apiUrl},
                 {"name": "NEXTAUTH_URL", "value": $nextauthUrl},
                 {"name": "NEXTAUTH_SECRET", "value": $nextauthSecret},
@@ -249,7 +272,11 @@ jobs:
           EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
           TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
           # Production environment variables from GitHub Secrets
-          # These are injected at deploy time to prevent AWS from overwriting them
+          # These are injected at deploy time because ECS replaces task env vars on each deploy
+          # and would otherwise wipe manually configured values in AWS.
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          PORT: ${{ secrets.PORT }}
+          HOSTNAME: ${{ secrets.HOSTNAME }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
           AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
@@ -262,6 +289,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM: ${{ secrets.RESEND_FROM }}
           RETENTION_ENABLED: ${{ secrets.RETENTION_ENABLED }}
+          BILLING_PROVIDER: ${{ secrets.BILLING_PROVIDER }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
 
@@ -270,6 +298,9 @@ jobs:
           jq --arg image "$IMAGE_URI" \
              --arg execRole "$EXECUTION_ROLE_ARN" \
              --arg taskRole "$TASK_ROLE_ARN" \
+             --arg nodeEnv "$NODE_ENV" \
+             --arg port "$PORT" \
+             --arg hostname "$HOSTNAME" \
              --arg databaseUrl "$DATABASE_URL" \
              --arg auth0ClientId "$AUTH0_CLIENT_ID" \
              --arg auth0ClientSecret "$AUTH0_CLIENT_SECRET" \
@@ -282,10 +313,14 @@ jobs:
              --arg resendApiKey "$RESEND_API_KEY" \
              --arg resendFrom "$RESEND_FROM" \
              --arg retentionEnabled "$RETENTION_ENABLED" \
+             --arg billingProvider "$BILLING_PROVIDER" \
              '.executionRoleArn = $execRole |
               .taskRoleArn = $taskRole |
               .containerDefinitions[0].image = $image |
               .containerDefinitions[0].environment += [
+               {"name": "NODE_ENV", "value": $nodeEnv},
+               {"name": "PORT", "value": $port},
+               {"name": "HOSTNAME", "value": $hostname},
                 {"name": "DATABASE_URL", "value": $databaseUrl},
                 {"name": "AUTH0_CLIENT_ID", "value": $auth0ClientId},
                 {"name": "AUTH0_CLIENT_SECRET", "value": $auth0ClientSecret},
@@ -297,7 +332,8 @@ jobs:
                 {"name": "STRIPE_WEBHOOK_SECRET_THIN", "value": $stripeWebhookSecretThin},
                 {"name": "RESEND_API_KEY", "value": $resendApiKey},
                 {"name": "RESEND_FROM", "value": $resendFrom},
-                {"name": "RETENTION_ENABLED", "value": $retentionEnabled}
+                {"name": "RETENTION_ENABLED", "value": $retentionEnabled},
+                {"name": "BILLING_PROVIDER", "value": $billingProvider}
               ]' \
              infra/ecs/api.taskdef.json > /tmp/api-taskdef.json
 

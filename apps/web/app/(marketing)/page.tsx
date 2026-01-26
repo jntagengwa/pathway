@@ -6,7 +6,7 @@ import SectorGrid from "../../components/sector-grid";
 import WhyNexsteps from "../../components/why-nexsteps";
 
 export const metadata: Metadata = {
-  title: "Nexsteps — Safeguarding & attendance for schools, clubs, churches & charities",
+  title: "Nexsteps - Safeguarding & attendance for schools, clubs, churches & charities",
   description:
     "Nexsteps helps schools, clubs, churches, and charities manage attendance, rotas, safeguarding, and parent communication.",
 };
