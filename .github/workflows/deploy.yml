@@ -129,6 +129,7 @@ jobs:
           AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
           AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
           AUTH0_ISSUER: ${{ secrets.AUTH0_ISSUER }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
           STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
           STRIPE_BASE_URL: ${{ secrets.STRIPE_BASE_URL }}
           STRIPE_SUCCESS_URL: ${{ secrets.STRIPE_SUCCESS_URL }}
@@ -156,6 +157,7 @@ jobs:
              --arg auth0ClientId "$AUTH0_CLIENT_ID" \
              --arg auth0ClientSecret "$AUTH0_CLIENT_SECRET" \
              --arg auth0Issuer "$AUTH0_ISSUER" \
+             --arg auth0Audience "$AUTH0_AUDIENCE" \
              --arg stripePublishableKey "$STRIPE_PUBLISHABLE_KEY" \
              --arg stripeBaseUrl "$STRIPE_BASE_URL" \
              --arg stripeSuccessUrl "$STRIPE_SUCCESS_URL" \
@@ -177,6 +179,7 @@ jobs:
                 {"name": "AUTH0_CLIENT_ID", "value": $auth0ClientId},
                 {"name": "AUTH0_CLIENT_SECRET", "value": $auth0ClientSecret},
                 {"name": "AUTH0_ISSUER", "value": $auth0Issuer},
+                {"name": "AUTH0_AUDIENCE", "value": $auth0Audience},
                 {"name": "STRIPE_PUBLISHABLE_KEY", "value": $stripePublishableKey},
                 {"name": "STRIPE_BASE_URL", "value": $stripeBaseUrl},
                 {"name": "STRIPE_SUCCESS_URL", "value": $stripeSuccessUrl},
@@ -225,6 +228,7 @@ jobs:
           AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
           AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
           AUTH0_ISSUER: ${{ secrets.AUTH0_ISSUER }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
 
@@ -243,6 +247,7 @@ jobs:
              --arg auth0ClientId "$AUTH0_CLIENT_ID" \
              --arg auth0ClientSecret "$AUTH0_CLIENT_SECRET" \
              --arg auth0Issuer "$AUTH0_ISSUER" \
+             --arg auth0Audience "$AUTH0_AUDIENCE" \
              '.executionRoleArn = $execRole |
               .taskRoleArn = $taskRole |
               .containerDefinitions[0].image = $image |
@@ -256,7 +261,8 @@ jobs:
                 {"name": "NEXTAUTH_SECRET", "value": $nextauthSecret},
                 {"name": "AUTH0_CLIENT_ID", "value": $auth0ClientId},
                 {"name": "AUTH0_CLIENT_SECRET", "value": $auth0ClientSecret},
-                {"name": "AUTH0_ISSUER", "value": $auth0Issuer}
+                {"name": "AUTH0_ISSUER", "value": $auth0Issuer},
+                {"name": "AUTH0_AUDIENCE", "value": $auth0Audience}
               ]' \
              infra/ecs/admin.taskdef.json > /tmp/admin-taskdef.json
 
