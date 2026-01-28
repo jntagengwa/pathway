@@ -8,7 +8,14 @@ function ApiTokenSync() {
   const { data } = useSession();
 
   useEffect(() => {
-    setApiClientToken((data as any)?.accessToken ?? null);
+    const token = (data as any)?.accessToken ?? null;
+    console.log("[ApiTokenSync] Setting access token:", {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 20),
+      hasSession: !!data,
+    });
+    setApiClientToken(token);
   }, [data]);
 
   return null;
