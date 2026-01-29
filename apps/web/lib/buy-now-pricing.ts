@@ -20,8 +20,11 @@ export type AddonCode =
   | "AV30_BLOCK_25_YEARLY"
   | "AV30_BLOCK_50_MONTHLY"
   | "AV30_BLOCK_50_YEARLY"
+  | "STORAGE_100GB_MONTHLY"
   | "STORAGE_100GB_YEARLY"
+  | "STORAGE_200GB_MONTHLY"
   | "STORAGE_200GB_YEARLY"
+  | "STORAGE_1TB_MONTHLY"
   | "STORAGE_1TB_YEARLY"
   | "SMS_1000_MONTHLY"
   | "SMS_1000_YEARLY";
@@ -108,6 +111,13 @@ export const ADDON_PRICES: Record<AddonCode, StripePriceMeta> = {
     interval: "year",
     label: "+50 Active People - £590 / year",
   },
+  STORAGE_100GB_MONTHLY: {
+    stripePriceId: "price_storage_100gb_monthly",
+    amountMajor: 25,
+    currency: "gbp",
+    interval: "month",
+    label: "+100GB storage - £25 / month",
+  },
   STORAGE_100GB_YEARLY: {
     stripePriceId: "price_storage_100gb_annual",
     amountMajor: 250,
@@ -115,12 +125,26 @@ export const ADDON_PRICES: Record<AddonCode, StripePriceMeta> = {
     interval: "year",
     label: "+100GB storage - £250 / year",
   },
+  STORAGE_200GB_MONTHLY: {
+    stripePriceId: "price_storage_200gb_monthly",
+    amountMajor: 45,
+    currency: "gbp",
+    interval: "month",
+    label: "+200GB storage - £45 / month",
+  },
   STORAGE_200GB_YEARLY: {
     stripePriceId: "price_storage_200gb_annual",
     amountMajor: 450,
     currency: "gbp",
     interval: "year",
     label: "+200GB storage - £450 / year",
+  },
+  STORAGE_1TB_MONTHLY: {
+    stripePriceId: "price_storage_1tb_monthly",
+    amountMajor: 59.99,
+    currency: "gbp",
+    interval: "month",
+    label: "+1TB storage - £59.99 / month",
   },
   STORAGE_1TB_YEARLY: {
     stripePriceId: "price_storage_1tb_annual",
@@ -196,8 +220,7 @@ export function calculateCartTotals(
 
   const intervalKey = selection.frequency === "yearly" ? "YEARLY" : "MONTHLY";
   const addonPrices = { ...ADDON_PRICES, ...(opts?.addonPrices ?? {}) };
-  const isMonthly = selection.frequency === "monthly";
-  const yearlyLabel = isMonthly ? " (yearly)" : "";
+  const intervalLabel = selection.frequency === "monthly" ? " (monthly)" : " (yearly)";
 
   addLine(
     "+25 Active People",
@@ -209,20 +232,19 @@ export function calculateCartTotals(
     addonPrices[`AV30_BLOCK_50_${intervalKey}` as AddonCode],
     selection.av30AddonBlocks50,
   );
-  // Storage is always billed yearly, regardless of main plan frequency
   addLine(
-    `+100GB storage${yearlyLabel}`,
-    addonPrices["STORAGE_100GB_YEARLY"],
+    `+100GB storage${intervalLabel}`,
+    addonPrices[`STORAGE_100GB_${intervalKey}` as AddonCode],
     selection.storageAddon100Gb,
   );
   addLine(
-    `+200GB storage${yearlyLabel}`,
-    addonPrices["STORAGE_200GB_YEARLY"],
+    `+200GB storage${intervalLabel}`,
+    addonPrices[`STORAGE_200GB_${intervalKey}` as AddonCode],
     selection.storageAddon200Gb,
   );
   addLine(
-    `+1TB storage${yearlyLabel}`,
-    addonPrices["STORAGE_1TB_YEARLY"],
+    `+1TB storage${intervalLabel}`,
+    addonPrices[`STORAGE_1TB_${intervalKey}` as AddonCode],
     selection.storageAddon1Tb,
   );
   addLine(

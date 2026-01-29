@@ -62,6 +62,9 @@ const clampNonNegative = (value: number | null | undefined) =>
 const warningCopy: Record<string, string> = {
   mock_mode: "Running against mock data; for development only.",
   unknown_plan_code: "Plan code not recognised; caps may be incomplete.",
+  price_not_included: "Final price and tax confirmed in Stripe checkout.",
+  storage_skipped_monthly_plan:
+    "Storage add-ons are only available on yearly plans; not included in this checkout.",
 };
 
 const formatAmount = (value: number) => {
@@ -351,28 +354,33 @@ export default function BuyNowPage() {
   const selectedPlan = planOptions.find((p) => p.code === planTier);
   const mergedPlanPrices = { ...PLAN_PRICES, ...planPriceOverrides };
   const mergedAddonPrices = { ...ADDON_PRICES, ...addonPriceOverrides };
+  const storageSuffix = billingPeriod === "yearly" ? "YEARLY" : "MONTHLY";
+  const storageUnit = billingPeriod === "yearly" ? "year" : "month";
+  const storage100 = mergedAddonPrices[`STORAGE_100GB_${storageSuffix}` as keyof typeof mergedAddonPrices];
+  const storage200 = mergedAddonPrices[`STORAGE_200GB_${storageSuffix}` as keyof typeof mergedAddonPrices];
+  const storage1tb = mergedAddonPrices[`STORAGE_1TB_${storageSuffix}` as keyof typeof mergedAddonPrices];
   const storageOptions = [
     { value: "none", meta: null, label: "No additional storage" },
     {
       value: "100",
-      meta: mergedAddonPrices.STORAGE_100GB_YEARLY,
-      label: mergedAddonPrices.STORAGE_100GB_YEARLY
-        ? `+100GB - £${formatAmount(mergedAddonPrices.STORAGE_100GB_YEARLY.amountMajor)} / year`
-        : "+100GB - £250 / year",
+      meta: storage100,
+      label: storage100
+        ? `+100GB - £${formatAmount(storage100.amountMajor)} / ${storageUnit}`
+        : `+100GB / ${storageUnit}`,
     },
     {
       value: "200",
-      meta: mergedAddonPrices.STORAGE_200GB_YEARLY,
-      label: mergedAddonPrices.STORAGE_200GB_YEARLY
-        ? `+200GB - £${formatAmount(mergedAddonPrices.STORAGE_200GB_YEARLY.amountMajor)} / year`
-        : "+200GB - £450 / year",
+      meta: storage200,
+      label: storage200
+        ? `+200GB - £${formatAmount(storage200.amountMajor)} / ${storageUnit}`
+        : `+200GB / ${storageUnit}`,
     },
     {
       value: "1000",
-      meta: mergedAddonPrices.STORAGE_1TB_YEARLY,
-      label: mergedAddonPrices.STORAGE_1TB_YEARLY
-        ? `+1TB - £${formatAmount(mergedAddonPrices.STORAGE_1TB_YEARLY.amountMajor)} / year`
-        : "+1TB - £1,500 / year",
+      meta: storage1tb,
+      label: storage1tb
+        ? `+1TB - £${formatAmount(storage1tb.amountMajor)} / ${storageUnit}`
+        : `+1TB / ${storageUnit}`,
     },
   ] as const;
   const totals = planCode
@@ -542,7 +550,9 @@ export default function BuyNowPage() {
               </div>
 
               <div className="space-y-1 md:col-span-2">
-                <Label htmlFor="storageChoice">Storage (billed yearly)</Label>
+                <Label htmlFor="storageChoice">
+                  Storage (billed {billingPeriod})
+                </Label>
                 <select
                   id="storageChoice"
                   value={storageChoice}
@@ -556,7 +566,7 @@ export default function BuyNowPage() {
                   ))}
                 </select>
                 <p className="text-xs text-text-muted">
-                  Storage add-ons are charged as yearly line items at checkout.
+                  Storage add-ons are charged as {billingPeriod} line items at checkout.
                 </p>
               </div>
             </div>

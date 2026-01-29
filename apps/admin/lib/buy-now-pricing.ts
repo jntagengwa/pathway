@@ -61,13 +61,25 @@ export const ADDON_PRICES = {
     amountMajor: 590,
     label: "+50 Active People - £590 / year",
   },
+  STORAGE_100GB_MONTHLY: {
+    amountMajor: 25,
+    label: "+100GB storage - £25 / month",
+  },
   STORAGE_100GB_YEARLY: {
     amountMajor: 250,
     label: "+100GB storage - £250 / year",
   },
+  STORAGE_200GB_MONTHLY: {
+    amountMajor: 45,
+    label: "+200GB storage - £45 / month",
+  },
   STORAGE_200GB_YEARLY: {
     amountMajor: 450,
     label: "+200GB storage - £450 / year",
+  },
+  STORAGE_1TB_MONTHLY: {
+    amountMajor: 59.99,
+    label: "+1TB storage - £59.99 / month",
   },
   STORAGE_1TB_YEARLY: {
     amountMajor: 1500,
@@ -147,16 +159,20 @@ export function calculateCartTotals(
   }
 
   if (selection.storageChoice && selection.storageChoice !== "none") {
+    const isYearly = selection.planCode.endsWith("YEARLY");
+    const suffix = isYearly ? "YEARLY" : "MONTHLY";
     const storageLine =
       selection.storageChoice === "100"
-        ? addonPrices.STORAGE_100GB_YEARLY
+        ? addonPrices[`STORAGE_100GB_${suffix}` as keyof typeof addonPrices]
         : selection.storageChoice === "200"
-          ? addonPrices.STORAGE_200GB_YEARLY
-          : addonPrices.STORAGE_1TB_YEARLY;
-    lines.push({
-      label: storageLine.label,
-      amountMajor: storageLine.amountMajor,
-    });
+          ? addonPrices[`STORAGE_200GB_${suffix}` as keyof typeof addonPrices]
+          : addonPrices[`STORAGE_1TB_${suffix}` as keyof typeof addonPrices];
+    if (storageLine) {
+      lines.push({
+        label: storageLine.label,
+        amountMajor: storageLine.amountMajor,
+      });
+    }
   }
 
   const smsBundles = Math.max(0, Math.trunc(selection.smsBundles1000 ?? 0));

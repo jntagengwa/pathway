@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, Inject, forwardRef } from "@nestjs/common";
 import { EntitlementsService } from "./entitlements.service";
 
 export const AV30_SOFT_CAP_RATIO = 1.0;
@@ -35,7 +35,12 @@ export class Av30HardCapExceededError extends ForbiddenException {
 
 @Injectable()
 export class EntitlementsEnforcementService {
-  constructor(private readonly entitlements: EntitlementsService) {}
+  constructor(
+    @Inject(forwardRef(() => EntitlementsService))
+    private readonly entitlements: EntitlementsService,
+  ) {
+    console.log("[EntitlementsEnforcementService] Constructor called, entitlements:", !!this.entitlements);
+  }
 
   async checkAv30ForOrg(orgId: string): Promise<Av30EnforcementResult> {
     const resolved = await this.entitlements.resolve(orgId);
