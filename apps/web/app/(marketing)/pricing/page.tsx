@@ -12,7 +12,10 @@ import { PLANS, PRICING_FAQS } from "@pathway/pricing";
 import { track } from "../../../lib/analytics";
 import { getFirstTouchAttribution } from "../../../lib/attribution";
 import CtaButton from "../../../components/cta-button";
-import { fetchPublicBillingPrices } from "../../../lib/buy-now-client";
+import {
+  fetchPublicBillingPrices,
+  type PublicBillingPrices,
+} from "../../../lib/buy-now-client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
