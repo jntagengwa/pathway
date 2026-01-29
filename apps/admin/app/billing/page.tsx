@@ -6,6 +6,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Badge, Button, Card } from "@pathway/ui";
 import { AdminBillingOverview, fetchBillingOverview } from "../../lib/api-client";
 import { useAdminAccess } from "../../lib/use-admin-access";
@@ -16,6 +17,8 @@ import {
   getPlanPriceDisplay,
   formatRenewalDate,
   getPlanInfo,
+  isRenewalDateInPast,
+  getDisplayPeriodEnd,
 } from "../../lib/plan-info";
 
 const statusTone: Record<
@@ -46,13 +49,41 @@ const getStatusLabel = (status: AdminBillingOverview["subscriptionStatus"]): str
   }
 };
 
-const ratioLabel = (current?: number | null, cap?: number | null) => {
-  if (cap === null || cap === undefined || cap <= 0) return "Usage not capped";
-  if (current === null || current === undefined) return "Usage not available";
-  const ratio = current / cap;
-  if (ratio <= 1) return "Within plan";
-  if (ratio <= 1.2) return "Over included AV30";
-  return "Over hard cap";
+// AV30 enforcement thresholds (must match backend)
+const AV30_SOFT_CAP_RATIO = 1.0; // 100%
+const AV30_GRACE_RATIO = 1.1; // 110%
+const AV30_HARD_CAP_RATIO = 1.2; // 120%
+
+const getAv30StatusLabel = (enforcement?: AdminBillingOverview["av30Enforcement"]): string => {
+  if (!enforcement) return "Usage not available";
+  switch (enforcement.status) {
+    case "OK":
+      return "Within plan";
+    case "SOFT_CAP":
+      return "At capacity";
+    case "GRACE":
+      return "Grace period";
+    case "HARD_CAP":
+      return "Hard cap reached";
+    default:
+      return "Unknown status";
+  }
+};
+
+const getAv30StatusColor = (enforcement?: AdminBillingOverview["av30Enforcement"]): string => {
+  if (!enforcement) return "bg-muted";
+  switch (enforcement.status) {
+    case "OK":
+      return "bg-status-success";
+    case "SOFT_CAP":
+      return "bg-status-warning";
+    case "GRACE":
+      return "bg-status-warning";
+    case "HARD_CAP":
+      return "bg-status-danger";
+    default:
+      return "bg-muted";
+  }
 };
 
 const ratioPercent = (current?: number | null, cap?: number | null) => {
@@ -62,6 +93,7 @@ const ratioPercent = (current?: number | null, cap?: number | null) => {
 
 export default function BillingPage() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [data, setData] = React.useState<AdminBillingOverview | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -84,8 +116,9 @@ export default function BillingPage() {
   }, []);
 
   React.useEffect(() => {
+    if (sessionStatus !== "authenticated" || !session) return;
     void load();
-  }, [load]);
+  }, [sessionStatus, session, load]);
 
   // Access control guard
   if (isLoadingAccess) {
@@ -150,11 +183,20 @@ export default function BillingPage() {
               {getStatusLabel(data.subscriptionStatus)}
             </Badge>
           </div>
-          {data.subscriptionStatus === "ACTIVE" && !data.cancelAtPeriodEnd && (
-            <p className="text-sm text-text-muted">
-              Renews on <strong>{formatRenewalDate(data.periodEnd)}</strong>
-            </p>
-          )}
+          {data.subscriptionStatus === "ACTIVE" && !data.cancelAtPeriodEnd && (() => {
+            const displayEnd = getDisplayPeriodEnd(data.periodStart, data.periodEnd);
+            const isEstimated = isRenewalDateInPast(data.periodEnd);
+            return (
+              <p className="text-sm text-text-muted">
+                Renews on <strong>{displayEnd ? formatRenewalDate(displayEnd.toISOString()) : "—"}</strong>
+                {isEstimated && (
+                  <span className="block mt-0.5 text-xs text-text-muted">
+                    Subject to change (e.g. bank holidays).
+                  </span>
+                )}
+              </p>
+            );
+          })()}
           {data.cancelAtPeriodEnd && (
             <div className="rounded-md border border-warning/20 bg-warning/5 p-3">
               <p className="text-sm font-semibold text-warning-strong">
@@ -211,19 +253,65 @@ export default function BillingPage() {
               {data.av30Cap ? ` / ${data.av30Cap}` : ""}
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
+            {/* Threshold markers */}
+            {data.av30Cap && (
+              <>
+                <div
+                  className="absolute top-0 h-full w-px bg-text-muted/30"
+                  style={{ left: `${AV30_SOFT_CAP_RATIO * 100}%` }}
+                  title="100% - Soft cap"
+                />
+                <div
+                  className="absolute top-0 h-full w-px bg-status-warning/50"
+                  style={{ left: `${AV30_GRACE_RATIO * 100}%` }}
+                  title="110% - Grace period starts"
+                />
+                <div
+                  className="absolute top-0 h-full w-px bg-status-danger/70"
+                  style={{ left: `${AV30_HARD_CAP_RATIO * 100}%` }}
+                  title="120% - Hard cap"
+                />
+              </>
+            )}
             <div
-              className="h-full rounded-full bg-accent"
+              className={`h-full rounded-full transition-colors ${getAv30StatusColor(data.av30Enforcement)}`}
               style={{ width: `${ratioPercent(data.currentAv30, data.av30Cap)}%` }}
             />
           </div>
           <p className="text-xs text-text-muted">
-            {ratioLabel(data.currentAv30, data.av30Cap)}
+            {getAv30StatusLabel(data.av30Enforcement)}
           </p>
-          <p className="text-xs text-text-muted">
-            {/* TODO: keep AV30 thresholds visually in sync with backend enforcement (soft/grace/hard caps). */}
-            TODO: keep AV30 thresholds visually in sync with backend enforcement (soft/grace/hard caps).
-          </p>
+          {data.av30Enforcement?.status === "GRACE" && data.av30Enforcement.graceUntil && (
+            <div className="rounded-md border border-status-warning/20 bg-status-warning/10 px-3 py-2">
+              <p className="text-xs font-semibold text-status-warning">Grace period active</p>
+              <p className="text-xs text-text-muted">
+                Upgrade by {new Date(data.av30Enforcement.graceUntil).toLocaleDateString("en-GB")} to avoid restrictions
+              </p>
+            </div>
+          )}
+          {data.av30Enforcement?.status === "HARD_CAP" && (
+            <div className="rounded-md border border-status-danger/20 bg-status-danger/10 px-3 py-2">
+              <p className="text-xs font-semibold text-status-danger">Hard cap reached</p>
+              <p className="text-xs text-text-muted">
+                Publishing new rotas/announcements is blocked. Upgrade to continue.
+              </p>
+            </div>
+          )}
+          <div className="flex items-center gap-3 text-xs text-text-muted">
+            <div className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-status-success" />
+              <span>0-100%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-status-warning" />
+              <span>100-120%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-status-danger" />
+              <span>120%+</span>
+            </div>
+          </div>
         </div>
       ) : (
         <p className="text-sm text-text-muted">No AV30 data available.</p>

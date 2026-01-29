@@ -245,9 +245,9 @@ export default function BuyNowPage() {
         billingPeriod: frequency,
         av30AddonBlocks25: planTier === "starter" ? av30Blocks : 0,
         av30AddonBlocks50: planTier === "growth" ? av30Blocks : 0,
-        storageAddon100Gb: frequency === "yearly" ? (storageChoice === "100" ? 1 : 0) : 0,
-        storageAddon200Gb: frequency === "yearly" ? (storageChoice === "200" ? 1 : 0) : 0,
-        storageAddon1Tb: frequency === "yearly" ? (storageChoice === "1000" ? 1 : 0) : 0,
+        storageAddon100Gb: storageChoice === "100" ? 1 : 0,
+        storageAddon200Gb: storageChoice === "200" ? 1 : 0,
+        storageAddon1Tb: storageChoice === "1000" ? 1 : 0,
         smsBundles1000: smsBundles,
         orgName,
         contactName,
@@ -279,34 +279,33 @@ export default function BuyNowPage() {
         ? "£15/mo"
         : "£150/yr";
 
+  const storageKey = frequency === "yearly" ? "YEARLY" : "MONTHLY";
+  const storageUnit = frequency === "yearly" ? "year" : "month";
+  const storage100 = mergedAddonPrices[`STORAGE_100GB_${storageKey}` as keyof typeof mergedAddonPrices];
+  const storage200 = mergedAddonPrices[`STORAGE_200GB_${storageKey}` as keyof typeof mergedAddonPrices];
+  const storage1tb = mergedAddonPrices[`STORAGE_1TB_${storageKey}` as keyof typeof mergedAddonPrices];
   const storageOptions = [
     { value: "none", label: "No additional storage" },
     {
       value: "100",
       label:
-        mergedAddonPrices.STORAGE_100GB_YEARLY !== undefined
-          ? `+100GB - ${formatAmount(
-              mergedAddonPrices.STORAGE_100GB_YEARLY?.amountMajor ?? 250,
-            )} / year`
-          : "+100GB - £250 / year",
+        storage100 !== undefined
+          ? `+100GB - ${formatAmount(storage100?.amountMajor ?? 25)} / ${storageUnit}`
+          : `+100GB / ${storageUnit}`,
     },
     {
       value: "200",
       label:
-        mergedAddonPrices.STORAGE_200GB_YEARLY !== undefined
-          ? `+200GB - ${formatAmount(
-              mergedAddonPrices.STORAGE_200GB_YEARLY?.amountMajor ?? 450,
-            )} / year`
-          : "+200GB - £450 / year",
+        storage200 !== undefined
+          ? `+200GB - ${formatAmount(storage200?.amountMajor ?? 45)} / ${storageUnit}`
+          : `+200GB / ${storageUnit}`,
     },
     {
       value: "1000",
       label:
-        mergedAddonPrices.STORAGE_1TB_YEARLY !== undefined
-          ? `+1TB - ${formatAmount(
-              mergedAddonPrices.STORAGE_1TB_YEARLY?.amountMajor ?? 1500,
-            )} / year`
-          : "+1TB - £1,500 / year",
+        storage1tb !== undefined
+          ? `+1TB - ${formatAmount(storage1tb?.amountMajor ?? 59.99)} / ${storageUnit}`
+          : `+1TB / ${storageUnit}`,
     },
   ];
 
@@ -462,7 +461,9 @@ export default function BuyNowPage() {
                   onChange={(v) => setAv30Blocks(clampQty(v))}
                 />
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">Storage (billed yearly)</label>
+                  <label className="text-sm font-medium">
+                    Storage (billed {frequency})
+                  </label>
                   <select
                     value={storageChoice}
                     onChange={(e) => setStorageChoice(e.target.value as typeof storageChoice)}
@@ -475,7 +476,7 @@ export default function BuyNowPage() {
                     ))}
                   </select>
                   <span className="text-xs text-pw-text-muted">
-                    Storage add-ons are charged as yearly line items at checkout.
+                    Storage add-ons are charged as {frequency} line items at checkout.
                   </span>
                 </div>
                 <AddonInput

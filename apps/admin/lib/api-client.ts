@@ -231,6 +231,11 @@ export type AdminBillingOverview = {
   cancelAtPeriodEnd?: boolean | null;
   av30Cap?: number | null;
   currentAv30?: number | null;
+  av30Enforcement?: {
+    status: "OK" | "SOFT_CAP" | "GRACE" | "HARD_CAP";
+    graceUntil: string | null;
+    messageCode: string;
+  };
   storageGbCap?: number | null;
   storageGbUsage?: number | null;
   smsMessagesCap?: number | null;
@@ -2366,15 +2371,20 @@ type ApiEntitlements = {
     periodStart?: string | null;
     periodEnd?: string | null;
     cancelAtPeriodEnd?: boolean | null;
-  };
+  } | null;
   av30Cap?: number | null;
+  currentAv30?: number | null;
+  av30Enforcement?: {
+    status: "OK" | "SOFT_CAP" | "GRACE" | "HARD_CAP";
+    graceUntil: string | null;
+    messageCode: string;
+  };
   storageGbCap?: number | null;
+  storageGbUsage?: number | null;
   smsMessagesCap?: number | null;
+  smsMonthUsage?: number | null;
   leaderSeatsIncluded?: number | null;
   maxSites?: number | null;
-  currentAv30?: number | null;
-  storageGbUsage?: number | null;
-  smsMonthUsage?: number | null;
   usageCalculatedAt?: string | null;
 };
 
@@ -2389,6 +2399,7 @@ const mapApiEntitlementsToAdmin = (
   cancelAtPeriodEnd: api.subscription?.cancelAtPeriodEnd ?? null,
   av30Cap: api.av30Cap ?? null,
   currentAv30: api.currentAv30 ?? null,
+  av30Enforcement: api.av30Enforcement,
   storageGbCap: api.storageGbCap ?? null,
   storageGbUsage: api.storageGbUsage ?? null,
   smsMessagesCap: api.smsMessagesCap ?? null,

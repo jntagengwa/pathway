@@ -2,6 +2,8 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { BillingController } from "../billing.controller";
 import { BillingService } from "../billing.service";
+import { EntitlementsService } from "../entitlements.service";
+import { EntitlementsEnforcementService } from "../entitlements-enforcement.service";
 
 describe("BillingController", () => {
   let controller: BillingController;
@@ -10,7 +12,17 @@ describe("BillingController", () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BillingController],
-      providers: [BillingService],
+      providers: [
+        BillingService,
+        {
+          provide: EntitlementsService,
+          useValue: { resolve: jest.fn() },
+        },
+        {
+          provide: EntitlementsEnforcementService,
+          useValue: { checkAv30ForOrg: jest.fn() },
+        },
+      ],
     }).compile();
 
     controller = module.get(BillingController);

@@ -1,7 +1,11 @@
-import { BadRequestException, Body, Controller, Post, Inject } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Post, Get, Inject, UseGuards, forwardRef } from "@nestjs/common";
 import { z } from "zod";
 import { BillingService } from "./billing.service";
 import { checkoutDto } from "./dto/checkout.dto";
+import { EntitlementsService } from "./entitlements.service";
+import { EntitlementsEnforcementService } from "./entitlements-enforcement.service";
+import { AuthUserGuard } from "../auth/auth-user.guard";
+import { CurrentOrg } from "@pathway/auth";
 
 const parseOrBadRequest = async <T>(
   schema: z.ZodTypeAny,
@@ -27,7 +31,16 @@ const parseOrBadRequest = async <T>(
 
 @Controller("billing")
 export class BillingController {
-  constructor(@Inject(BillingService) private readonly service: BillingService) {}
+  constructor(
+    @Inject(BillingService) private readonly service: BillingService,
+    @Inject(forwardRef(() => EntitlementsService)) private readonly entitlements: EntitlementsService,
+    @Inject(forwardRef(() => EntitlementsEnforcementService)) private readonly enforcement: EntitlementsEnforcementService,
+  ) {
+    console.log("[BillingController] Constructor called - TIMESTAMP:", Date.now());
+    console.log("[BillingController] service:", !!this.service, this.service?.constructor?.name);
+    console.log("[BillingController] entitlements:", !!this.entitlements, this.entitlements?.constructor?.name);
+    console.log("[BillingController] enforcement:", !!this.enforcement, this.enforcement?.constructor?.name);
+  }
 
   @Post("checkout")
   async checkout(@Body() body: unknown) {
@@ -36,5 +49,43 @@ export class BillingController {
       body,
     );
     return this.service.checkout(dto);
+  }
+
+  @Get("entitlements")
+  @UseGuards(AuthUserGuard)
+  async getEntitlements(@CurrentOrg("orgId") orgId: string) {
+    console.log("[getEntitlements] Starting...");
+    console.log("[getEntitlements] orgId:", orgId);
+    console.log("[getEntitlements] this.entitlements:", !!this.entitlements, typeof this.entitlements);
+    console.log("[getEntitlements] this.enforcement:", !!this.enforcement, typeof this.enforcement);
+    
+    const resolved = await this.entitlements.resolve(orgId);
+    const av30Status = await this.enforcement.checkAv30ForOrg(orgId);
+    
+    return {
+      orgId: resolved.orgId,
+      subscriptionStatus: resolved.subscriptionStatus,
+      subscription: resolved.subscription ? {
+        planCode: resolved.subscription.planCode,
+        status: resolved.subscription.status,
+        periodStart: resolved.subscription.periodStart.toISOString(),
+        periodEnd: resolved.subscription.periodEnd.toISOString(),
+        cancelAtPeriodEnd: resolved.subscription.cancelAtPeriodEnd,
+      } : null,
+      av30Cap: resolved.av30Cap,
+      currentAv30: resolved.currentAv30,
+      av30Enforcement: {
+        status: av30Status.status,
+        graceUntil: av30Status.graceUntil?.toISOString() ?? null,
+        messageCode: av30Status.messageCode,
+      },
+      storageGbCap: resolved.storageGbCap,
+      storageGbUsage: resolved.storageGbUsage,
+      smsMessagesCap: resolved.smsMessagesCap,
+      smsMonthUsage: resolved.smsMonthUsage,
+      leaderSeatsIncluded: resolved.leaderSeatsIncluded,
+      maxSites: resolved.maxSites,
+      usageCalculatedAt: resolved.usageCalculatedAt?.toISOString() ?? null,
+    };
   }
 }

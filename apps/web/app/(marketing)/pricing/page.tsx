@@ -41,8 +41,82 @@ type PriceOverride = {
   pricePerYear?: number;
 };
 
+type AddonDescriptions = {
+  starterExtraPeople?: string;
+  growthExtraPeople?: string;
+  storage?: string;
+  sms?: string;
+};
+
+const formatMoney = (amount?: number | null) => {
+  if (typeof amount !== "number") return null;
+  return amount.toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const buildAddonDescriptions = (prices: PublicBillingPrices["prices"]): AddonDescriptions => {
+  const byCode = new Map(prices.map((price) => [price.code, price]));
+  const getMajor = (code: string) => {
+    const price = byCode.get(code);
+    if (!price || typeof price.unitAmount !== "number") return null;
+    return Number((price.unitAmount / 100).toFixed(2));
+  };
+
+  const starterMonthly = getMajor("AV30_BLOCK_25_MONTHLY");
+  const starterYearly = getMajor("AV30_BLOCK_25_YEARLY");
+  const growthMonthly = getMajor("AV30_BLOCK_50_MONTHLY");
+  const growthYearly = getMajor("AV30_BLOCK_50_YEARLY");
+
+  const storage100 = getMajor("STORAGE_100GB_YEARLY");
+  const storage200 = getMajor("STORAGE_200GB_YEARLY");
+  const storage1tb = getMajor("STORAGE_1TB_YEARLY");
+
+  const smsMonthly = getMajor("SMS_1000_MONTHLY");
+  const smsYearly = getMajor("SMS_1000_YEARLY");
+
+  const starterExtraPeople =
+    starterMonthly && starterYearly
+      ? `Add +25 Active People blocks for £${formatMoney(starterMonthly)}/month or £${formatMoney(
+          starterYearly,
+        )}/year`
+      : undefined;
+
+  const growthExtraPeople =
+    growthMonthly && growthYearly
+      ? `Add +50 Active People blocks for £${formatMoney(growthMonthly)}/month or £${formatMoney(
+          growthYearly,
+        )}/year`
+      : undefined;
+
+  const storage =
+    storage100 && storage200 && storage1tb
+      ? `Additional storage packs: 100GB (£${formatMoney(
+          storage100,
+        )}/year), 200GB (£${formatMoney(storage200)}/year), 1TB (£${formatMoney(
+          storage1tb,
+        )}/year)`
+      : undefined;
+
+  const sms =
+    smsMonthly && smsYearly
+      ? `Add SMS messaging bundles (1,000 messages) for £${formatMoney(
+          smsMonthly,
+        )}/month or £${formatMoney(smsYearly)}/year`
+      : undefined;
+
+  return {
+    starterExtraPeople,
+    growthExtraPeople,
+    storage,
+    sms,
+  };
+};
+
 export default function PricingPage() {
   const [priceOverrides, setPriceOverrides] = useState<Record<string, PriceOverride>>({});
+  const [addonDescriptions, setAddonDescriptions] = useState<AddonDescriptions>({});
 
   useEffect(() => {
     // Track pricing page view
@@ -82,6 +156,7 @@ export default function PricingPage() {
           });
           
           setPriceOverrides(overrides);
+          setAddonDescriptions(buildAddonDescriptions(res.prices));
         }
       } catch (error) {
         console.error("[pricing] Failed to fetch Stripe prices:", error);
@@ -117,6 +192,30 @@ export default function PricingPage() {
     pricePerYear: priceOverrides.GROWTH_YEARLY?.pricePerYear ?? PLANS.GROWTH_YEARLY.pricePerYear,
   };
   const enterprisePlan = PLANS.ENTERPRISE_CONTACT;
+  const starterAddons = starterMonthly.addons?.map((addon) => {
+    if (addon.label === "Extra Active People" && addonDescriptions.starterExtraPeople) {
+      return { ...addon, description: addonDescriptions.starterExtraPeople };
+    }
+    if (addon.label === "Storage" && addonDescriptions.storage) {
+      return { ...addon, description: addonDescriptions.storage };
+    }
+    if (addon.label === "SMS bundles" && addonDescriptions.sms) {
+      return { ...addon, description: addonDescriptions.sms };
+    }
+    return addon;
+  });
+  const growthAddons = growthMonthly.addons?.map((addon) => {
+    if (addon.label === "Extra Active People" && addonDescriptions.growthExtraPeople) {
+      return { ...addon, description: addonDescriptions.growthExtraPeople };
+    }
+    if (addon.label === "Storage" && addonDescriptions.storage) {
+      return { ...addon, description: addonDescriptions.storage };
+    }
+    if (addon.label === "SMS bundles" && addonDescriptions.sms) {
+      return { ...addon, description: addonDescriptions.sms };
+    }
+    return addon;
+  });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-16 md:py-24">
@@ -280,11 +379,11 @@ export default function PricingPage() {
             ))}
           </ul>
 
-          {starterMonthly.addons && starterMonthly.addons.length > 0 && (
+          {starterAddons && starterAddons.length > 0 && (
             <div className="mb-6">
               <p className="mb-2 text-xs font-semibold text-pw-text">Add-ons available:</p>
               <ul className="space-y-1 text-xs text-pw-text-muted">
-                {starterMonthly.addons.map((addon, idx) => (
+                {starterAddons.map((addon, idx) => (
                   <li key={idx}>• {addon.label}</li>
                 ))}
               </ul>
@@ -365,11 +464,11 @@ export default function PricingPage() {
             ))}
           </ul>
 
-          {growthMonthly.addons && growthMonthly.addons.length > 0 && (
+          {growthAddons && growthAddons.length > 0 && (
             <div className="mb-6">
               <p className="mb-2 text-xs font-semibold text-pw-text">Add-ons available:</p>
               <ul className="space-y-1 text-xs text-pw-text-muted">
-                {growthMonthly.addons.map((addon, idx) => (
+                {growthAddons.map((addon, idx) => (
                   <li key={idx}>• {addon.label}</li>
                 ))}
               </ul>
@@ -480,7 +579,7 @@ export default function PricingPage() {
             Extend your plan with optional add-ons to meet your organisation's needs.
           </p>
           <ul className="space-y-3 text-sm text-pw-text-muted">
-            {starterMonthly.addons?.map((addon, idx) => (
+            {starterAddons?.map((addon, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <span className="mt-1 text-pw-primary">+</span>
                 <div>

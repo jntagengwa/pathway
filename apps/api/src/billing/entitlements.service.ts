@@ -37,7 +37,9 @@ export class EntitlementsService {
   constructor(
     @Optional()
     private readonly requestContext?: PathwayRequestContext,
-  ) {}
+  ) {
+    console.log("[EntitlementsService] Constructor called, requestContext:", !!requestContext);
+  }
 
   /**
    * Resolve entitlements for an org. If orgId is omitted, uses the current
