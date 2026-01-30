@@ -54,9 +54,14 @@ export class BillingPricingService {
       return this.cache.data;
     }
 
+    // Report provider from config so response matches billing provider (STRIPE vs FAKE)
+    const isStripeMode =
+      this.config.activeProvider === "STRIPE" ||
+      this.config.activeProvider === "STRIPE_TEST";
+
     if (!this.stripe || !this.config.stripe.priceMap) {
       const data: BillingPricesResponse = {
-        provider: "fake",
+        provider: isStripeMode ? "stripe" : "fake",
         prices: [],
         warnings: ["pricing_unavailable"],
       };

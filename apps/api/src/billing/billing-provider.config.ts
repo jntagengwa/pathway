@@ -103,8 +103,8 @@ const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
 };
 
 export function loadBillingProviderConfig(): BillingProviderConfig {
-  // Treat empty/whitespace as unset so we can apply production fallback
-  const raw = process.env.BILLING_PROVIDER?.trim();
+  // Treat empty/whitespace as unset; strip surrounding quotes (e.g. GitHub Secrets "STRIPE")
+  const raw = process.env.BILLING_PROVIDER?.trim().replace(/^["']|["']$/g, "")?.trim();
   const active = (raw?.toUpperCase() ?? "FAKE") as ActiveBillingProvider;
   const fallbackSuccess = process.env.BILLING_SUCCESS_URL_DEFAULT ??
     "http://localhost:3000/billing/checkout/success";
@@ -173,20 +173,25 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
       ? active 
       : "FAKE";
 
-  // In production, if provider would be FAKE but Stripe keys are present, use STRIPE
-  // so that setting Stripe secrets (without BILLING_PROVIDER) still enables Stripe.
-  const prodStripeFallback =
-    isProd &&
+  // When provider would be FAKE but Stripe keys are present, use STRIPE so that
+  // setting Stripe secrets (without BILLING_PROVIDER or with wrong NODE_ENV) still enables Stripe.
+  const stripeFallback =
     safeActive === "FAKE" &&
-    stripeConfig.secretKey &&
-    stripeConfig.webhookSecretSnapshot;
+    Boolean(stripeConfig.secretKey && stripeConfig.webhookSecretSnapshot);
 
   // Temporarily disable GoCardless until implementation is ready.
-  const effectiveActive: ActiveBillingProvider = prodStripeFallback
+  const effectiveActive: ActiveBillingProvider = stripeFallback
     ? "STRIPE"
     : safeActive === "GOCARDLESS"
       ? "FAKE"
       : safeActive;
+
+  // Log effective provider at config load (no secrets) for prod debugging
+  if (process.env.NODE_ENV === "production") {
+    console.log(
+      `[billing] BILLING_PROVIDER env=${raw ?? "(unset)"} → effective=${effectiveActive}`,
+    );
+  }
 
   return {
     activeProvider: effectiveActive,

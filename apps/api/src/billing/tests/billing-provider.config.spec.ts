@@ -7,8 +7,10 @@ describe("billing provider config", () => {
     process.env = { ...originalEnv };
   });
 
-  it("defaults to FAKE when env is missing", () => {
+  it("defaults to FAKE when env is missing and Stripe keys absent", () => {
     delete process.env.BILLING_PROVIDER;
+    delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT;
     const config = loadBillingProviderConfig();
     expect(config.activeProvider).toBe("FAKE");
   });
@@ -25,18 +27,16 @@ describe("billing provider config", () => {
     expect(config.stripe.webhookSecretSnapshot).toBe("whsec_snapshot");
   });
 
-  it("in production, uses STRIPE when BILLING_PROVIDER is unset but Stripe keys are present", () => {
+  it("uses STRIPE when BILLING_PROVIDER unset but Stripe keys present (fallback)", () => {
     delete process.env.BILLING_PROVIDER;
-    process.env.NODE_ENV = "production";
     process.env.STRIPE_SECRET_KEY = "sk_live_xxx";
     process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT = "whsec_live";
     const config = loadBillingProviderConfig();
     expect(config.activeProvider).toBe("STRIPE");
   });
 
-  it("in production, stays FAKE when BILLING_PROVIDER unset and Stripe keys missing", () => {
+  it("stays FAKE when BILLING_PROVIDER unset and Stripe keys missing", () => {
     delete process.env.BILLING_PROVIDER;
-    process.env.NODE_ENV = "production";
     delete process.env.STRIPE_SECRET_KEY;
     delete process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT;
     const config = loadBillingProviderConfig();
