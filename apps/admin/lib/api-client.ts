@@ -308,6 +308,18 @@ export type AdminBuyNowCheckoutResponse = {
   preview?: AdminPlanPreview;
 };
 
+/** Request for authenticated org admin purchase (no org/password; uses session org). */
+export type AdminBuyNowPurchaseRequest = {
+  planCode: string;
+  extraAv30Blocks?: number | null;
+  extraStorageGb?: number | null;
+  extraSmsMessages?: number | null;
+  extraLeaderSeats?: number | null;
+  extraSites?: number | null;
+  successUrl?: string | null;
+  cancelUrl?: string | null;
+};
+
 export type AdminOrgOverview = {
   id: string;
   name: string;
@@ -2667,6 +2679,98 @@ export async function createBuyNowCheckout(
       },
       successUrl: input.successUrl ?? undefined,
       cancelUrl: input.cancelUrl ?? undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to start checkout: ${res.status} ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as {
+    sessionId: string;
+    sessionUrl: string;
+    warnings?: string[];
+    preview?: {
+      planCode: string | null;
+      planTier: "starter" | "growth" | "enterprise" | null;
+      billingPeriod: string | null;
+      av30Cap: number | null;
+      maxSites: number | null;
+      storageGbCap: number | null;
+      smsMessagesCap: number | null;
+      leaderSeatsIncluded: number | null;
+      source: string | null;
+    };
+  };
+
+  return {
+    sessionId: json.sessionId,
+    sessionUrl: json.sessionUrl,
+    warnings: json.warnings ?? [],
+    preview: json.preview
+      ? mapPreviewToAdmin({
+          planCode: json.preview.planCode,
+          planTier: json.preview.planTier,
+          base: {
+            av30Cap: null,
+            maxSites: null,
+            storageGbCap: null,
+            smsMessagesCap: null,
+            leaderSeatsIncluded: null,
+          },
+          effectiveCaps: {
+            av30Cap: json.preview.av30Cap,
+            maxSites: json.preview.maxSites,
+            storageGbCap: json.preview.storageGbCap,
+            smsMessagesCap: json.preview.smsMessagesCap,
+            leaderSeatsIncluded: json.preview.leaderSeatsIncluded,
+          },
+          warnings: json.warnings ?? [],
+        })
+      : undefined,
+  };
+}
+
+/**
+ * Authenticated purchase for existing org admins (upgrade page).
+ * Uses session org; no org details or password required.
+ */
+export async function createBuyNowPurchase(
+  input: AdminBuyNowPurchaseRequest,
+): Promise<AdminBuyNowCheckoutResponse> {
+  const useMock = isUsingMockApi();
+  if (useMock) {
+    return {
+      sessionId: "mock-purchase-session",
+      sessionUrl: "https://example.test/checkout/mock",
+      warnings: ["mock_mode", "price_not_included"],
+      preview: await previewPlanSelection({
+        planCode: input.planCode,
+        extraAv30Blocks: input.extraAv30Blocks ?? 0,
+        extraStorageGb: input.extraStorageGb ?? 0,
+        extraSmsMessages: input.extraSmsMessages ?? 0,
+        extraLeaderSeats: input.extraLeaderSeats ?? 0,
+        extraSites: input.extraSites ?? 0,
+      }),
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/billing/buy-now/purchase`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({
+      planCode: input.planCode,
+      successUrl: input.successUrl ?? undefined,
+      cancelUrl: input.cancelUrl ?? undefined,
+      av30AddonBlocks: input.extraAv30Blocks ?? 0,
+      extraSites: input.extraSites ?? 0,
+      extraStorageGb: input.extraStorageGb ?? 0,
+      extraSmsMessages: input.extraSmsMessages ?? 0,
+      extraLeaderSeats: input.extraLeaderSeats ?? 0,
     }),
   });
 

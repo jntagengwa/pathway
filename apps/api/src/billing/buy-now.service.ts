@@ -228,14 +228,29 @@ export class BuyNowService {
     // 1. Verify user is org admin
     await this.ensureOrgAdmin(userId, orgId);
 
-    // 2. Check for existing active subscription
+    const normalizedPlanCode = this.normalizePlanCode(request.planCode);
+
+    // 2. If org has active subscription and selected plan is the same, do not charge again
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        orgId,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+        },
+      },
+      select: { planCode: true },
+    });
+    if (activeSubscription && activeSubscription.planCode === normalizedPlanCode) {
+      throw new BadRequestException(
+        "You're already on this plan. No need to checkout again.",
+      );
+    }
+
+    // 3. Check for existing active subscription (different plan → must cancel first)
     await this.preventDuplicateSubscription(orgId);
 
-    // 3. Validate upgrade path (no downgrades)
+    // 4. Validate upgrade path (no downgrades)
     await this.validateUpgradePath(orgId, request.planCode);
-
-    // 4. Normalize plan code for Stripe compatibility
-    const normalizedPlanCode = this.normalizePlanCode(request.planCode);
 
     const planDefinition = getPlanDefinition(normalizedPlanCode);
     if (!planDefinition) {
@@ -248,10 +263,17 @@ export class BuyNowService {
       );
     }
 
-    // 5. Build preview
+    // 5. Build preview with addons
+    const previewAddons: PlanPreviewAddons = {
+      extraAv30Blocks: this.toNonNegativeInt(request.av30AddonBlocks),
+      extraSites: this.toNonNegativeInt(request.extraSites),
+      extraStorageGb: this.toNonNegativeInt(request.extraStorageGb),
+      extraSmsMessages: this.toNonNegativeInt(request.extraSmsMessages),
+      extraLeaderSeats: this.toNonNegativeInt(request.extraLeaderSeats),
+    };
     const previewResult = this.planPreviewService.preview({
       planCode: normalizedPlanCode,
-      addons: {},
+      addons: previewAddons,
     });
 
     const billingPeriodNormalized =
@@ -307,9 +329,16 @@ export class BuyNowService {
       },
     });
 
-    // 8. Build provider params with org details
+    // 8. Build provider params with org details and addons
     const providerParams: BuyNowCheckoutParams = {
-      plan: { planCode: normalizedPlanCode },
+      plan: {
+        planCode: normalizedPlanCode,
+        av30AddonBlocks: previewAddons.extraAv30Blocks,
+        extraSites: previewAddons.extraSites,
+        extraStorageGb: previewAddons.extraStorageGb,
+        extraSmsMessages: previewAddons.extraSmsMessages,
+        extraLeaderSeats: previewAddons.extraLeaderSeats,
+      },
       org: {
         orgName: org.name,
         contactName: user?.name ?? "Unknown",

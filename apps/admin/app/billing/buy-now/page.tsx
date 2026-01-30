@@ -14,9 +14,10 @@ import {
 } from "@pathway/ui";
 import {
   AdminPlanPreview,
-  createBuyNowCheckout,
+  createBuyNowPurchase,
   previewPlanSelection,
   fetchBillingPrices,
+  fetchBillingOverview,
   fetchOrgOverview,
   fetchPeopleForOrg,
   fetchActiveSiteState,
@@ -103,6 +104,7 @@ export default function BuyNowPage() {
 
   const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
+  const [currentPlanCode, setCurrentPlanCode] = React.useState<string | null>(null);
 
   const planCode: PlanCode | null = React.useMemo(() => {
     if (planTier === "ENTERPRISE_CONTACT") return "ENTERPRISE_CONTACT";
@@ -198,6 +200,22 @@ export default function BuyNowPage() {
     void loadOrgInfo();
   }, [sessionStatus, session]);
 
+  // Fetch current plan for "Your current plan" badge and same-plan check
+  React.useEffect(() => {
+    if (sessionStatus !== "authenticated" || !session) return;
+    let cancelled = false;
+    fetchBillingOverview()
+      .then((overview) => {
+        if (!cancelled && overview.planCode) setCurrentPlanCode(overview.planCode);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentPlanCode(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus, session]);
+
   const loadPreview = React.useCallback(async () => {
     setIsPreviewLoading(true);
     setPreviewError(null);
@@ -268,14 +286,16 @@ export default function BuyNowPage() {
     billingPeriod,
   ]);
 
+  const isCurrentPlan = Boolean(planCode && currentPlanCode && planCode === currentPlanCode);
+
   const handleCheckout = async () => {
     setCheckoutError(null);
     if (!planCode || planTier === "ENTERPRISE_CONTACT") {
       setCheckoutError("Enterprise is contact-only. Please reach out to sales.");
       return;
     }
-    if (!orgName || !contactName || !contactEmail) {
-      setCheckoutError("Please complete required fields before continuing.");
+    if (isCurrentPlan) {
+      setCheckoutError("You're already on this plan. No need to checkout again.");
       return;
     }
     setIsCheckoutLoading(true);
@@ -308,7 +328,8 @@ export default function BuyNowPage() {
               ? 1000
               : 0;
       const extraSmsMessages = Math.max(0, smsBundlesCount) * 1000;
-      const response = await createBuyNowCheckout({
+      // Authenticated upgrade: use purchase endpoint (no org/password required)
+      const response = await createBuyNowPurchase({
         planCode,
         extraAv30Blocks,
         extraSites: 0,
@@ -317,12 +338,6 @@ export default function BuyNowPage() {
         extraLeaderSeats: 0,
         successUrl,
         cancelUrl,
-        org: {
-          orgName,
-          contactName,
-          contactEmail,
-          notes: notes || null,
-        },
       });
       const warnings = response.warnings ?? [];
       setPreviewWarnings((prev) => Array.from(new Set([...prev, ...warnings])));
@@ -490,13 +505,18 @@ export default function BuyNowPage() {
                     }`}
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold text-text-primary">
                           {plan.label}
                         </span>
                         <Badge variant="secondary">
                           {plan.tier}
                         </Badge>
+                        {cardPlanCode === currentPlanCode && (
+                          <Badge variant="default" className="bg-accent-primary text-white">
+                            Your current plan
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-text-muted">{plan.description}</p>
                       <p className="text-xs text-text-muted">
@@ -720,10 +740,15 @@ export default function BuyNowPage() {
                   {checkoutError}
                 </div>
               )}
+              {isCurrentPlan && (
+                <p className="text-xs text-text-muted">
+                  You're already on this plan. Choose a different plan to upgrade or change add-ons.
+                </p>
+              )}
               <Button
                 className="w-full"
                 onClick={handleCheckout}
-                disabled={isCheckoutLoading}
+                disabled={isCheckoutLoading || isCurrentPlan}
               >
                 {isCheckoutLoading ? "Starting checkout..." : "Continue to checkout"}
               </Button>

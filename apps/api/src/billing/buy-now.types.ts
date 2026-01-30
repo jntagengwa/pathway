@@ -28,6 +28,11 @@ export type OrgPurchaseRequest = {
   planCode: string;
   successUrl?: string;
   cancelUrl?: string;
+  av30AddonBlocks?: number;
+  extraSites?: number;
+  extraStorageGb?: number;
+  extraSmsMessages?: number;
+  extraLeaderSeats?: number;
 };
 
 export type BuyNowCheckoutPreview = {

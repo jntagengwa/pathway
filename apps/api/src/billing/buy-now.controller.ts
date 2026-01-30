@@ -112,6 +112,31 @@ class OrgPurchaseRequestDto implements OrgPurchaseRequest {
   @Transform(({ value }) => (value === "" ? undefined : value))
   @IsUrl()
   cancelUrl?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  av30AddonBlocks?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  extraSites?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  extraStorageGb?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  extraSmsMessages?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  extraLeaderSeats?: number;
 }
 
 /**
