@@ -64,9 +64,20 @@ const ALLOWED_PRICE_CODES: Set<PriceCode> = new Set([
 ]);
 
 const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
-  if (!raw) return undefined;
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
   try {
-    const parsed = JSON.parse(raw) as Record<string, string>;
+    // Strip optional leading BOM and any surrounding whitespace inside the string
+    const toParse = trimmed.replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(toParse) as Record<string, string>;
+    if (typeof parsed !== "object" || parsed === null) {
+      if (process.env.NODE_ENV === "production") {
+        console.warn(
+          "[billing] STRIPE_PRICE_MAP must be a JSON object (e.g. {\"STARTER_MONTHLY\":\"price_xxx\"}); got non-object.",
+        );
+      }
+      return undefined;
+    }
     const filtered: StripePriceMap = {};
     Object.keys(parsed).forEach((code) => {
       // Normalise keys to uppercase and map legacy names to current codes
@@ -98,6 +109,11 @@ const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
     });
     return filtered;
   } catch {
+    if (process.env.NODE_ENV === "production" && trimmed) {
+      console.warn(
+        "[billing] STRIPE_PRICE_MAP is set but invalid JSON or not an object; pricing will be unavailable.",
+      );
+    }
     return undefined;
   }
 };

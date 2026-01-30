@@ -60,6 +60,12 @@ export class BillingPricingService {
       this.config.activeProvider === "STRIPE_TEST";
 
     if (!this.stripe || !this.config.stripe.priceMap) {
+      const reason = !this.stripe
+        ? "no_stripe_client"
+        : "no_price_map";
+      this.logger.warn(
+        `pricing_unavailable: ${reason} (stripe=${Boolean(this.stripe)}, priceMap=${Boolean(this.config.stripe.priceMap)})`,
+      );
       const data: BillingPricesResponse = {
         provider: isStripeMode ? "stripe" : "fake",
         prices: [],
