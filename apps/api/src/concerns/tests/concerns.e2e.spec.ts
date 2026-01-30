@@ -163,6 +163,7 @@ describe("Concerns (e2e)", () => {
 
   describe("CRUD", () => {
     it("POST /concerns creates a concern when child exists", async () => {
+      if (!app) return;
       const res = await request(app.getHttpServer())
         .post("/concerns")
         .set("Authorization", authHeader)

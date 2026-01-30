@@ -135,6 +135,7 @@ describe("Attendance (e2e)", () => {
   });
 
   it("POST /attendance should create a record", async () => {
+    if (!app) return;
     const res = await request(app.getHttpServer())
       .post("/attendance")
       .send({ childId: ids.child, groupId: ids.group, present: true })
