@@ -43,8 +43,6 @@ export type BillingProviderConfig = {
 
 export const BILLING_PROVIDER_CONFIG = Symbol("BILLING_PROVIDER_CONFIG");
 
-const isProd = process.env.NODE_ENV === "production";
-
 const ALLOWED_PRICE_CODES: Set<PriceCode> = new Set([
   "STARTER_MONTHLY",
   "STARTER_YEARLY",
@@ -105,8 +103,9 @@ const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
 };
 
 export function loadBillingProviderConfig(): BillingProviderConfig {
-  const active = (process.env.BILLING_PROVIDER?.toUpperCase() ??
-    "FAKE") as ActiveBillingProvider;
+  // Treat empty/whitespace as unset so we can apply production fallback
+  const raw = process.env.BILLING_PROVIDER?.trim();
+  const active = (raw?.toUpperCase() ?? "FAKE") as ActiveBillingProvider;
   const fallbackSuccess = process.env.BILLING_SUCCESS_URL_DEFAULT ??
     "http://localhost:3000/billing/checkout/success";
   const fallbackCancel = process.env.BILLING_CANCEL_URL_DEFAULT ??
@@ -149,6 +148,7 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
     cancelUrlDefault: process.env.GOCARDLESS_CANCEL_URL ?? fallbackCancel,
   };
 
+  const isProd = process.env.NODE_ENV === "production";
   if ((active === "STRIPE" || active === "STRIPE_TEST") && isProd) {
     if (!stripeConfig.secretKey || !stripeConfig.webhookSecretSnapshot) {
       const secretName = active === "STRIPE_TEST" 
@@ -173,9 +173,20 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
       ? active 
       : "FAKE";
 
+  // In production, if provider would be FAKE but Stripe keys are present, use STRIPE
+  // so that setting Stripe secrets (without BILLING_PROVIDER) still enables Stripe.
+  const prodStripeFallback =
+    isProd &&
+    safeActive === "FAKE" &&
+    stripeConfig.secretKey &&
+    stripeConfig.webhookSecretSnapshot;
+
   // Temporarily disable GoCardless until implementation is ready.
-  const effectiveActive: ActiveBillingProvider =
-    safeActive === "GOCARDLESS" ? "FAKE" : safeActive;
+  const effectiveActive: ActiveBillingProvider = prodStripeFallback
+    ? "STRIPE"
+    : safeActive === "GOCARDLESS"
+      ? "FAKE"
+      : safeActive;
 
   return {
     activeProvider: effectiveActive,
