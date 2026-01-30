@@ -333,6 +333,28 @@ If any of these are `false`, that var is **missing or empty** in the running con
 
 Names in GitHub must match what the workflow uses, e.g. `STRIPE_SECRET_KEY`, `STRIPE_PRICE_MAP`, `BILLING_PROVIDER` (no typos, no extra spaces).
 
+**3. If `/health/env` shows Stripe vars as `true` but pricing endpoint returns `pricing_unavailable`**
+
+The API is seeing the vars but **STRIPE_PRICE_MAP** may be invalid or not a JSON object. Check **ECS/CloudWatch logs** for the API container. You should see one of:
+
+- `pricing_unavailable: no_stripe_client` — Stripe client not created (e.g. `STRIPE_SECRET_KEY` empty at runtime).
+- `pricing_unavailable: no_price_map` — `STRIPE_PRICE_MAP` failed to parse or is not a JSON object.
+- `[billing] STRIPE_PRICE_MAP must be a JSON object...` — Value is set but not a JSON object (e.g. literal `true` or a string).
+- `[billing] STRIPE_PRICE_MAP is set but invalid JSON...` — Value is not valid JSON (parse error).
+
+**STRIPE_PRICE_MAP format:** Must be a **single-line JSON object** string. Keys must match the allowed price codes (or legacy names). Example:
+
+```json
+{"STARTER_MONTHLY":"price_xxx","STARTER_YEARLY":"price_yyy","GROWTH_MONTHLY":"price_zzz","GROWTH_YEARLY":"price_aaa","ENTERPRISE_CONTACT":"price_bbb","AV30_BLOCK_25_MONTHLY":"price_...","AV30_BLOCK_25_YEARLY":"price_...","AV30_BLOCK_50_MONTHLY":"price_...","AV30_BLOCK_50_YEARLY":"price_...","STORAGE_100GB_MONTHLY":"price_...","STORAGE_100GB_YEARLY":"price_...","STORAGE_200GB_MONTHLY":"price_...","STORAGE_200GB_YEARLY":"price_...","STORAGE_1TB_MONTHLY":"price_...","STORAGE_1TB_YEARLY":"price_...","SMS_1000_MONTHLY":"price_...","SMS_1000_YEARLY":"price_..."}
+```
+
+- Use **single-line** JSON in GitHub Secrets (no pretty-print; newlines can break injection).
+- Allowed plan keys: `STARTER_MONTHLY`, `STARTER_YEARLY`, `GROWTH_MONTHLY`, `GROWTH_YEARLY`, `ENTERPRISE_CONTACT`.
+- Allowed add-on keys: `AV30_BLOCK_25_MONTHLY`, `AV30_BLOCK_25_YEARLY`, `AV30_BLOCK_50_MONTHLY`, `AV30_BLOCK_50_YEARLY`, `STORAGE_100GB_*`, `STORAGE_200GB_*`, `STORAGE_1TB_*`, `SMS_1000_MONTHLY`, `SMS_1000_YEARLY`.
+- Legacy keys (e.g. `STARTER_MONTH`, `ADDON_AV30_25_MONTH`) are mapped automatically; other keys are ignored.
+
+Fix: Set **STRIPE_PRICE_MAP** in GitHub Secrets to a valid single-line JSON object with at least the plan keys you use, then redeploy.
+
 ---
 
 ### Issue: Secrets not showing up in running containers
