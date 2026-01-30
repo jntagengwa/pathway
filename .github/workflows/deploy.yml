@@ -363,6 +363,8 @@ jobs:
           BILLING_PROVIDER: ${{ secrets.BILLING_PROVIDER }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:sha-$IMAGE_TAG"
+          # Default NODE_ENV so billing provider and other env checks work when secret is unset
+          export NODE_ENV="${NODE_ENV:-production}"
           jq --arg image "$IMAGE_URI" \
              --arg execRole "$EXECUTION_ROLE_ARN" \
              --arg taskRole "$TASK_ROLE_ARN" \
