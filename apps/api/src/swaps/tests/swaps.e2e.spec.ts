@@ -62,6 +62,7 @@ describe("Swaps (e2e)", () => {
   });
 
   beforeEach(async () => {
+    if (!isDatabaseAvailable()) return;
     // Fresh IDs per test run to avoid uniqueness and FK cleanup
     ids = {
       userFrom: randomUUID(),

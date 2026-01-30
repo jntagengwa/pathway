@@ -5,6 +5,11 @@ import { execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { PrismaClientType } from "@pathway/db";
 
+// E2E tests can be slow (DB, HTTP); set default timeout
+if (typeof jest !== "undefined") {
+  jest.setTimeout(30000);
+}
+
 // 1) Load test env first, then fallback to root .env
 config({ path: path.resolve(__dirname, "../../.env.test"), override: true });
 config({ path: path.resolve(__dirname, "../../.env"), override: false });

@@ -55,7 +55,6 @@ const e2e = {
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   setupFilesAfterEnv: ["<rootDir>/test.setup.e2e.ts"],
   maxWorkers: 1,
-  testTimeout: 30000,
 };
 
 export default { projects: [unit, e2e] };
