@@ -93,18 +93,16 @@ Injects:
 
 #### 3. **API** (`nexsteps-api`)
 Injects:
+- `NODE_ENV`, `PORT`, `HOSTNAME`
 - `DATABASE_URL`
-- `AUTH0_CLIENT_ID`
-- `AUTH0_CLIENT_SECRET`
-- `AUTH0_ISSUER`
-- `AUTH0_AUDIENCE`
+- `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_ISSUER`, `AUTH0_AUDIENCE`
 - `INTERNAL_AUTH_SECRET`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET_SNAPSHOT`
-- `STRIPE_WEBHOOK_SECRET_THIN`
-- `RESEND_API_KEY`
-- `RESEND_FROM`
+- `STRIPE_SECRET_KEY`, `STRIPE_BASE_URL`, `STRIPE_CANCEL_URL`, `STRIPE_PRICE_MAP`
+- `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SNAPSHOT_URL`, `STRIPE_SUCCESS_URL`, `STRIPE_THIN_URL`
+- `STRIPE_WEBHOOK_SECRET_SNAPSHOT`, `STRIPE_WEBHOOK_SECRET_THIN`
+- `RESEND_API_KEY`, `RESEND_FROM`
 - `RETENTION_ENABLED`
+- `BILLING_PROVIDER` (e.g. `STRIPE`)
 
 ---
 
@@ -145,15 +143,26 @@ AUTH0_ISSUER=https://yourapp.eu.auth0.com
 
 #### API
 ```
+NODE_ENV=production
+PORT=3000
+HOSTNAME=0.0.0.0
 DATABASE_URL=postgresql://user:password@rds-endpoint:5432/pathway_prod?schema=app
 AUTH0_CLIENT_ID=<your-auth0-client-id>
 AUTH0_CLIENT_SECRET=<your-auth0-client-secret>
 AUTH0_ISSUER=https://yourapp.eu.auth0.com
 AUTH0_AUDIENCE=https://api.yourapp.com
 INTERNAL_AUTH_SECRET=<generate-a-secret-32-chars>
+BILLING_PROVIDER=STRIPE
 STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET_SNAPSHOT=whsec_snapshot_...
-STRIPE_WEBHOOK_SECRET_THIN=whsec_thin_...
+STRIPE_BASE_URL=https://buy.stripe.com
+STRIPE_CANCEL_URL=https://yourapp.com/billing/cancel
+STRIPE_PRICE_MAP={"STARTER_MONTHLY":"price_...","GROWTH_MONTHLY":"price_..."}
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_SNAPSHOT_URL=...
+STRIPE_SUCCESS_URL=https://yourapp.com/billing/success
+STRIPE_THIN_URL=...
+STRIPE_WEBHOOK_SECRET_SNAPSHOT=whsec_...
+STRIPE_WEBHOOK_SECRET_THIN=whsec_...
 RESEND_API_KEY=re_...
 RESEND_FROM=PathWay <noreply@yourapp.com>
 RETENTION_ENABLED=true
@@ -292,6 +301,39 @@ The current GitHub Secrets approach is simpler and sufficient for most use cases
 ---
 
 ## Troubleshooting
+
+### Issue: API doesn’t read Stripe (or other) env vars in prod
+
+**All API env vars come from GitHub Secrets at deploy time.** The deploy workflow injects them into the ECS task definition. If a secret is **not set** in GitHub (or is under a different name), the task definition gets an **empty value** for that var, and the container will not see it.
+
+**1. Check what the process actually sees**
+
+Call the API’s env-check endpoint (no auth, no secrets returned):
+
+```bash
+curl -s https://your-api-domain/health/env
+```
+
+Example response:
+
+```json
+{
+  "NODE_ENV": true,
+  "BILLING_PROVIDER": true,
+  "STRIPE_SECRET_KEY": true,
+  "STRIPE_WEBHOOK_SECRET_SNAPSHOT": true,
+  "STRIPE_PRICE_MAP": true,
+  ...
+}
+```
+
+If any of these are `false`, that var is **missing or empty** in the running container. Fix by adding or correcting the secret in **GitHub → Settings → Secrets and variables → Actions** (or in the **production** environment’s secrets if you use `environment: production`), then **redeploy**. Do not set these only in the AWS Console; the next deploy would overwrite the task definition with values from GitHub.
+
+**2. Confirm secret names match exactly**
+
+Names in GitHub must match what the workflow uses, e.g. `STRIPE_SECRET_KEY`, `STRIPE_PRICE_MAP`, `BILLING_PROVIDER` (no typos, no extra spaces).
+
+---
 
 ### Issue: Secrets not showing up in running containers
 
