@@ -148,10 +148,12 @@ model Tenant {
   auditEvents     AuditEvent[]
   staffActivities StaffActivity[]
   pendingOrders   PendingOrder[]
-  siteMemberships SiteMembership[]
-  lastActiveUsers User[]                @relation("UserLastActiveTenant")
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  siteMemberships        SiteMembership[]
+  lastActiveUsers        User[]                  @relation("UserLastActiveTenant")
+  staffUnavailableDates  StaffUnavailableDate[]
+  staffPreferredGroups   StaffPreferredGroup[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 
   @@index([orgId])
 }
@@ -187,6 +189,9 @@ model User {
   email       String? @unique
   name        String?
   displayName String?
+  firstName   String?
+  lastName    String?
+  isActive    Boolean @default(true)
 
   // NOTE: kept for backward compatibility (single-tenant user). For suites, prefer UserTenantRole.
   tenantId String?
@@ -213,9 +218,11 @@ model User {
   swapRequestsFrom SwapRequest[]         @relation("SwapFromUser")
   swapRequestsTo   SwapRequest[]         @relation("SwapToUser")
   orgRoles         UserOrgRole[]
-  staffActivities  StaffActivity[]
-  identities       UserIdentity[]
-  invitesCreated   Invite[]              @relation("InviteCreatedBy")
+  staffActivities      StaffActivity[]
+  identities           UserIdentity[]
+  invitesCreated       Invite[]              @relation("InviteCreatedBy")
+  staffUnavailableDates StaffUnavailableDate[]
+  staffPreferredGroups  StaffPreferredGroup[]
 }
 
 // Auth identity linking external providers (e.g., Auth0) to internal users.
@@ -331,10 +338,11 @@ model Group {
   maxAge      Int
   tenantId    String
   tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  children    Child[]
-  attendances Attendance[]
-  sessions    Session[]
-  lessons     Lesson[]
+  children              Child[]
+  attendances           Attendance[]
+  sessions              Session[]
+  lessons               Lesson[]
+  staffPreferredGroups  StaffPreferredGroup[]
 
   @@index([tenantId])
 }
@@ -417,6 +425,38 @@ model VolunteerPreference {
 
   @@unique([userId, tenantId, weekday, startMinute, endMinute])
   @@index([tenantId])
+}
+
+model StaffUnavailableDate {
+  id        String   @id @default(uuid())
+  userId    String
+  tenantId  String
+  date      DateTime @db.Date
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId, date])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model StaffPreferredGroup {
+  id        String   @id @default(uuid())
+  userId    String
+  tenantId  String
+  groupId   String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId, groupId])
+  @@index([tenantId])
+  @@index([userId])
 }
 
 model SwapRequest {

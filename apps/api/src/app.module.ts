@@ -28,6 +28,7 @@ import { AuthModule } from "./auth/auth.module";
 import { InvitesModule } from "./invites/invites.module";
 import { MailerModule } from "./mailer/mailer.module";
 import { LeadsModule } from "./leads/leads.module";
+import { StaffModule } from "./staff/staff.module";
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { LeadsModule } from "./leads/leads.module";
     OrgsModule,
     BillingModule,
     LeadsModule,
+    StaffModule,
   ],
 })
 export class AppModule {}

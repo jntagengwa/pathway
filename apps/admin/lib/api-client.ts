@@ -803,6 +803,7 @@ export async function fetchSessionById(
     cache: "no-store",
   });
 
+  if (res.status === 404) return null;
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(
@@ -2983,6 +2984,133 @@ export async function fetchStaff(): Promise<AdminStaffRow[]> {
 
   const json = (await res.json()) as ApiUser[];
   return json.map(mapUserToStaffRow);
+}
+
+export type StaffEditDetail = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string;
+  email: string | null;
+  role: string;
+  isActive: boolean;
+  weeklyAvailability: {
+    day: string;
+    startTime: string;
+    endTime: string;
+  }[];
+  unavailableDates: { date: string; reason: string | null }[];
+  preferredGroups: { id: string; name: string }[];
+  canEditAvailability: boolean;
+};
+
+export type StaffEditUpdatePayload = {
+  firstName?: string;
+  lastName?: string;
+  role?: "SITE_ADMIN" | "STAFF" | "VIEWER";
+  isActive?: boolean;
+  weeklyAvailability?: {
+    day: string;
+    startTime: string;
+    endTime: string;
+  }[];
+  unavailableDates?: { date: string; reason?: string }[];
+  preferredGroupIds?: string[];
+};
+
+export async function fetchStaffDetailForEdit(
+  userId: string,
+): Promise<StaffEditDetail | null> {
+  if (isUsingMockApi()) {
+    return {
+      id: userId,
+      firstName: "Alex",
+      lastName: "Morgan",
+      fullName: "Alex Morgan",
+      email: "alex.morgan@example.edu",
+      role: "STAFF",
+      isActive: true,
+      weeklyAvailability: [
+        { day: "MON", startTime: "09:00", endTime: "12:00" },
+        { day: "MON", startTime: "14:00", endTime: "17:00" },
+      ],
+      unavailableDates: [],
+      preferredGroups: [],
+      canEditAvailability: true,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/staff/${userId}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch staff: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as StaffEditDetail;
+}
+
+export async function updateStaff(
+  userId: string,
+  payload: StaffEditUpdatePayload,
+): Promise<StaffEditDetail> {
+  if (isUsingMockApi()) {
+    const current = await fetchStaffDetailForEdit(userId);
+    if (!current) throw new Error("Staff not found");
+    return {
+      ...current,
+      firstName: payload.firstName ?? current.firstName,
+      lastName: payload.lastName ?? current.lastName,
+      isActive: payload.isActive ?? current.isActive,
+      role: payload.role ?? current.role,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/staff/${userId}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update staff: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as StaffEditDetail;
+}
+
+export type GroupOption = {
+  id: string;
+  name: string;
+};
+
+export async function fetchGroups(): Promise<GroupOption[]> {
+  if (isUsingMockApi()) {
+    return [
+      { id: "g1", name: "Year 3" },
+      { id: "g2", name: "Year 4" },
+      { id: "g3", name: "Year 5" },
+    ];
+  }
+
+  const res = await fetch(`${API_BASE_URL}/groups`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch groups: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as GroupOption[];
+  return json;
 }
 
 export async function fetchStaffById(
