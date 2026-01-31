@@ -27,6 +27,20 @@ describe("billing provider config", () => {
     expect(config.stripe.webhookSecretSnapshot).toBe("whsec_snapshot");
   });
 
+  it("parses STRIPE_PRICE_MAP when stored as single-quoted escaped JSON (e.g. GitHub Secrets)", () => {
+    process.env.BILLING_PROVIDER = "STRIPE";
+    process.env.STRIPE_SECRET_KEY = "sk_test";
+    process.env.STRIPE_WEBHOOK_SECRET_SNAPSHOT = "whsec_snapshot";
+    // Simulates value that was double-encoded: outer single quotes, inner \" and \n
+    process.env.STRIPE_PRICE_MAP =
+      "'{\\n \"STARTER_MONTHLY\":\"price_starter_m\",\\n \"GROWTH_MONTHLY\":\"price_growth_m\"\\n}'";
+    const config = loadBillingProviderConfig();
+    expect(config.activeProvider).toBe("STRIPE");
+    expect(config.stripe.priceMap?.STARTER_MONTHLY).toBe("price_starter_m");
+    expect(config.stripe.priceMap?.GROWTH_MONTHLY).toBe("price_growth_m");
+    expect(config.stripe.priceMapDiagnostics?.parseSuccess).toBe(true);
+  });
+
   it("uses STRIPE when BILLING_PROVIDER unset but Stripe keys present (fallback)", () => {
     delete process.env.BILLING_PROVIDER;
     process.env.STRIPE_SECRET_KEY = "sk_live_xxx";

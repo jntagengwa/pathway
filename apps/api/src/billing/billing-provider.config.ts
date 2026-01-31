@@ -53,6 +53,8 @@ export type BillingProviderConfig = {
 export const BILLING_PROVIDER_CONFIG = Symbol("BILLING_PROVIDER_CONFIG");
 
 const ALLOWED_PRICE_CODES: Set<PriceCode> = new Set([
+  "MINIMUM_MONTHLY",
+  "MINIMUM_YEARLY",
   "STARTER_MONTHLY",
   "STARTER_YEARLY",
   "GROWTH_MONTHLY",
@@ -77,6 +79,43 @@ type ParsePriceMapResult = {
   diagnostics: PriceMapDiagnostics;
 };
 
+/**
+ * Try to parse a JSON object from STRIPE_PRICE_MAP.
+ * Handles values that were stored with an extra layer of quoting/escaping
+ * (e.g. single-quoted string with escaped \" and \\n from GitHub Secrets / ECS).
+ */
+function tryParsePriceMapJson(s: string): Record<string, string> | null {
+  const noBom = s.replace(/^\uFEFF/, "").trim();
+  if (!noBom) return null;
+
+  // 1) Direct parse (plain JSON)
+  try {
+    const out = JSON.parse(noBom) as unknown;
+    if (typeof out === "object" && out !== null && !Array.isArray(out)) {
+      return out as Record<string, string>;
+    }
+    return null;
+  } catch {
+    // continue to fallbacks
+  }
+
+  // 2) Wrapped in single quotes with escaped \" and \\n (common when secret is double-encoded)
+  let inner = noBom;
+  if (inner.startsWith("'") && inner.endsWith("'")) {
+    inner = inner.slice(1, -1);
+  }
+  inner = inner.replace(/\\n/g, "\n").replace(/\\"/g, '"');
+  try {
+    const out = JSON.parse(inner) as unknown;
+    if (typeof out === "object" && out !== null && !Array.isArray(out)) {
+      return out as Record<string, string>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const parsePriceMap = (raw?: string): ParsePriceMapResult => {
   const trimmed = raw?.trim();
   const rawSet = Boolean(trimmed);
@@ -97,71 +136,14 @@ const parsePriceMap = (raw?: string): ParsePriceMapResult => {
     return { diagnostics: emptyDiagnostics };
   }
 
-  try {
-    const toParse = trimmed.replace(/^\uFEFF/, "");
-    const parsed = JSON.parse(toParse) as Record<string, string>;
-    if (typeof parsed !== "object" || parsed === null) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn(
-          "[billing] STRIPE_PRICE_MAP must be a JSON object (e.g. {\"STARTER_MONTHLY\":\"price_xxx\"}); got non-object.",
-        );
-      }
-      return {
-        diagnostics: {
-          rawLength,
-          rawSet: true,
-          parseSuccess: false,
-          parseError: "not_object",
-          keysExtracted: [],
-        },
-      };
-    }
-    const filtered: StripePriceMap = {};
-    Object.keys(parsed).forEach((code) => {
-      const upper = code.toUpperCase();
-      const legacyMap: Record<string, PriceCode> = {
-        STARTER_MONTH: "STARTER_MONTHLY",
-        STARTER_YEAR: "STARTER_YEARLY",
-        GROWTH_MONTH: "GROWTH_MONTHLY",
-        GROWTH_YEAR: "GROWTH_YEARLY",
-        ADDON_AV30_25_MONTH: "AV30_BLOCK_25_MONTHLY",
-        ADDON_AV30_25_YEAR: "AV30_BLOCK_25_YEARLY",
-        ADDON_AV30_50_MONTH: "AV30_BLOCK_50_MONTHLY",
-        ADDON_AV30_50_YEAR: "AV30_BLOCK_50_YEARLY",
-        ADDON_STORAGE_100GB_MONTH: "STORAGE_100GB_MONTHLY",
-        ADDON_STORAGE_100GB_YEAR: "STORAGE_100GB_YEARLY",
-        ADDON_STORAGE_200GB_MONTH: "STORAGE_200GB_MONTHLY",
-        ADDON_STORAGE_200GB_YEAR: "STORAGE_200GB_YEARLY",
-        ADDON_STORAGE_1TB_MONTH: "STORAGE_1TB_MONTHLY",
-        ADDON_STORAGE_1TB_YEAR: "STORAGE_1TB_YEARLY",
-        ADDON_SMS_1000_MONTH: "SMS_1000_MONTHLY",
-        ADDON_SMS_1000_YEAR: "SMS_1000_YEARLY",
-      };
-      const mapped = (legacyMap[upper] ?? upper) as PriceCode;
-      if (ALLOWED_PRICE_CODES.has(mapped)) {
-        filtered[mapped] = parsed[code];
-      }
-    });
-    const keys = Object.keys(filtered);
-    if (process.env.NODE_ENV === "production") {
-      console.log(
-        `[billing] STRIPE_PRICE_MAP parsed: rawLength=${rawLength}, keysExtracted=${keys.length} [${keys.join(", ")}]`,
-      );
-    }
-    return {
-      map: keys.length ? filtered : undefined,
-      diagnostics: {
-        rawLength,
-        rawSet: true,
-        parseSuccess: true,
-        keysExtracted: keys,
-      },
-    };
-  } catch (err) {
-    const parseError = err instanceof Error ? err.message : "invalid_json";
+  const toParse = trimmed.replace(/^\uFEFF/, "");
+  const parsed = tryParsePriceMapJson(toParse);
+
+  if (parsed === null) {
     if (process.env.NODE_ENV === "production") {
       console.warn(
-        `[billing] STRIPE_PRICE_MAP parse failed: ${parseError}; rawLength=${rawLength}.`,
+        "[billing] STRIPE_PRICE_MAP invalid JSON (try single-line, no outer quotes in GitHub Secret); rawLength=" +
+          rawLength,
       );
     }
     return {
@@ -174,6 +156,48 @@ const parsePriceMap = (raw?: string): ParsePriceMapResult => {
       },
     };
   }
+
+  const filtered: StripePriceMap = {};
+  Object.keys(parsed).forEach((code) => {
+    const upper = code.toUpperCase();
+    const legacyMap: Record<string, PriceCode> = {
+      STARTER_MONTH: "STARTER_MONTHLY",
+      STARTER_YEAR: "STARTER_YEARLY",
+      GROWTH_MONTH: "GROWTH_MONTHLY",
+      GROWTH_YEAR: "GROWTH_YEARLY",
+      ADDON_AV30_25_MONTH: "AV30_BLOCK_25_MONTHLY",
+      ADDON_AV30_25_YEAR: "AV30_BLOCK_25_YEARLY",
+      ADDON_AV30_50_MONTH: "AV30_BLOCK_50_MONTHLY",
+      ADDON_AV30_50_YEAR: "AV30_BLOCK_50_YEARLY",
+      ADDON_STORAGE_100GB_MONTH: "STORAGE_100GB_MONTHLY",
+      ADDON_STORAGE_100GB_YEAR: "STORAGE_100GB_YEARLY",
+      ADDON_STORAGE_200GB_MONTH: "STORAGE_200GB_MONTHLY",
+      ADDON_STORAGE_200GB_YEAR: "STORAGE_200GB_YEARLY",
+      ADDON_STORAGE_1TB_MONTH: "STORAGE_1TB_MONTHLY",
+      ADDON_STORAGE_1TB_YEAR: "STORAGE_1TB_YEARLY",
+      ADDON_SMS_1000_MONTH: "SMS_1000_MONTHLY",
+      ADDON_SMS_1000_YEAR: "SMS_1000_YEARLY",
+    };
+    const mapped = (legacyMap[upper] ?? upper) as PriceCode;
+    if (ALLOWED_PRICE_CODES.has(mapped)) {
+      filtered[mapped] = parsed[code];
+    }
+  });
+  const keys = Object.keys(filtered);
+  if (process.env.NODE_ENV === "production") {
+    console.log(
+      `[billing] STRIPE_PRICE_MAP parsed: rawLength=${rawLength}, keysExtracted=${keys.length} [${keys.join(", ")}]`,
+    );
+  }
+  return {
+    map: keys.length ? filtered : undefined,
+    diagnostics: {
+      rawLength,
+      rawSet: true,
+      parseSuccess: true,
+      keysExtracted: keys,
+    },
+  };
 };
 
 export function loadBillingProviderConfig(): BillingProviderConfig {
