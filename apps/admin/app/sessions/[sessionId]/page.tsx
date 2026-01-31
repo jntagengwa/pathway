@@ -131,13 +131,9 @@ export default function SessionDetailPage() {
         await refreshAssignments(result);
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load session";
-      if (message.includes("404")) {
-        setNotFound(true);
-      } else {
-        setError(message);
-      }
+      setError(
+        err instanceof Error ? err.message : "Failed to load session",
+      );
       setSession(null);
       setAssignments([]);
     } finally {

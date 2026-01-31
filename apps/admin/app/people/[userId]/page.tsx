@@ -64,6 +64,9 @@ export default function StaffDetailPage() {
         <Button variant="secondary" size="sm" onClick={load}>
           Refresh
         </Button>
+        <Button asChild size="sm">
+          <Link href={`/people/${userId}/edit`}>Edit staff</Link>
+        </Button>
       </div>
 
       {isLoading ? (

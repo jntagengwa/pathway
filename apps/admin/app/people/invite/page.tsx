@@ -77,12 +77,17 @@ export default function InvitePersonPage() {
   const [siteRole, setSiteRole] = React.useState<
     "SITE_ADMIN" | "STAFF" | "VIEWER" | ""
   >("");
+  const [selectedSiteIds, setSelectedSiteIds] = React.useState<string[]>([]);
+  const [sites, setSites] = React.useState<
+    Array<{ id: string; name: string; orgId: string }>
+  >([]);
   const [error, setError] = React.useState<string | null>(null);
   const [orgId, setOrgId] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = React.useState<{
     email?: string;
     orgRole?: string;
     siteRole?: string;
+    selectedSites?: string;
   }>({});
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -92,6 +97,7 @@ export default function InvitePersonPage() {
         const state = await fetchActiveSiteState();
         const resolvedOrgId = resolveOrgId(state.activeSiteId, state.sites);
         setOrgId(resolvedOrgId);
+        setSites(state.sites);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load active site");
       }
@@ -114,6 +120,10 @@ export default function InvitePersonPage() {
 
     if (siteAccessMode !== "NONE" && !siteRole) {
       nextErrors.siteRole = "Site role is required when granting site access.";
+    }
+
+    if (siteAccessMode === "SELECT_SITES" && selectedSiteIds.length === 0) {
+      nextErrors.selectedSites = "Select at least one site.";
     }
 
     if (!orgId) {
@@ -148,7 +158,8 @@ export default function InvitePersonPage() {
         payload.siteAccess = {
           mode: siteAccessMode as "ALL_SITES" | "SELECT_SITES",
           role: siteRole,
-          siteIds: siteAccessMode === "SELECT_SITES" ? [] : undefined,
+          siteIds:
+            siteAccessMode === "SELECT_SITES" ? selectedSiteIds : undefined,
         };
       }
 
@@ -261,7 +272,10 @@ export default function InvitePersonPage() {
                   name="siteAccess"
                   label="Selected sites only"
                   checked={siteAccessMode === "SELECT_SITES"}
-                  onChange={() => setSiteAccessMode("SELECT_SITES")}
+                  onChange={() => {
+                    setSiteAccessMode("SELECT_SITES");
+                    setFieldErrors((prev) => ({ ...prev, selectedSites: undefined }));
+                  }}
                 />
               </div>
             </div>
@@ -289,9 +303,54 @@ export default function InvitePersonPage() {
                 </p>
               ) : null}
               {siteAccessMode === "SELECT_SITES" && (
-                <p className="text-xs text-text-muted">
-                  Note: Site selection is not yet implemented. For now, all sites will be granted access.
-                </p>
+                <div className="mt-2 flex flex-col gap-2">
+                  <Label>Select sites</Label>
+                  <div className="flex flex-col gap-2 rounded-md border border-border-subtle bg-surface p-3">
+                    {(() => {
+                      const orgSites = orgId
+                        ? sites.filter((s) => s.orgId === orgId)
+                        : sites;
+                      return orgSites.length === 0 ? (
+                        <p className="text-sm text-text-muted">
+                          No sites available for this organisation.
+                        </p>
+                      ) : (
+                        orgSites.map((site) => (
+                          <label
+                            key={site.id}
+                            className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-primary"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedSiteIds.includes(site.id)}
+                              onChange={(e) => {
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  selectedSites: undefined,
+                                }));
+                                if (e.target.checked) {
+                                  setSelectedSiteIds((prev) =>
+                                    prev.includes(site.id) ? prev : [...prev, site.id],
+                                  );
+                                } else {
+                                  setSelectedSiteIds((prev) =>
+                                    prev.filter((id) => id !== site.id),
+                                  );
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-border-subtle"
+                            />
+                            {site.name}
+                          </label>
+                        )));
+                    })()}
+                  </div>
+                  {fieldErrors.selectedSites ? (
+                    <p className="text-xs text-status-danger">
+                      {fieldErrors.selectedSites}
+                    </p>
+                  ) : null}
+                </div>
               )}
             </div>
           )}

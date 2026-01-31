@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -156,6 +157,16 @@ export default function PeoplePage() {
           </span>
         ),
         width: "140px",
+      },
+      {
+        id: "actions",
+        header: "",
+        cell: (row) => (
+          <Button asChild variant="secondary" size="sm">
+            <Link href={`/people/${row.id}/edit`}>Edit</Link>
+          </Button>
+        ),
+        width: "100px",
       },
     ],
     [],
