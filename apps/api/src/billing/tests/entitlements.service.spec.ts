@@ -2,6 +2,7 @@ import { EntitlementsService } from "../entitlements.service";
 import { BillingProvider, SubscriptionStatus } from "@pathway/db";
 
 const prismaMock = {
+  org: { findUnique: jest.fn() },
   subscription: { findFirst: jest.fn() },
   orgEntitlementSnapshot: { findFirst: jest.fn() },
   usageCounters: { findFirst: jest.fn() },
@@ -23,7 +24,22 @@ describe("EntitlementsService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prismaMock.org.findUnique.mockResolvedValue({ isMasterOrg: false });
     service = new EntitlementsService();
+  });
+
+  it("returns unlimited entitlements for master org without querying subscription", async () => {
+    prismaMock.org.findUnique.mockResolvedValue({ isMasterOrg: true });
+
+    const result = await service.resolve(orgId);
+
+    expect(result.isMasterOrg).toBe(true);
+    expect(result.subscriptionStatus).toBe("NONE");
+    expect(result.subscription).toBeUndefined();
+    expect(result.av30Cap).toBeNull();
+    expect(result.maxSites).toBeNull();
+    expect(result.source).toBe("master_org");
+    expect(prismaMock.subscription.findFirst).not.toHaveBeenCalled();
   });
 
   it("uses snapshot caps when both snapshot and plan exist", async () => {
@@ -66,6 +82,7 @@ describe("EntitlementsService", () => {
 
     const result = await service.resolve(orgId);
 
+    expect(result.isMasterOrg).toBe(false);
     expect(result.subscriptionStatus).toBe(SubscriptionStatus.ACTIVE);
     expect(result.subscription).toEqual(
       expect.objectContaining({
@@ -105,6 +122,7 @@ describe("EntitlementsService", () => {
 
     const result = await service.resolve(orgId);
 
+    expect(result.isMasterOrg).toBe(false);
     expect(result.subscriptionStatus).toBe(SubscriptionStatus.CANCELED);
     expect(result.av30Cap).toBe(200);
     expect(result.maxSites).toBe(3);
@@ -138,6 +156,7 @@ describe("EntitlementsService", () => {
 
     const result = await service.resolve(orgId);
 
+    expect(result.isMasterOrg).toBe(false);
     expect(result.subscriptionStatus).toBe(SubscriptionStatus.ACTIVE);
     expect(result.subscription?.planCode).toBe("LEGACY_PLAN_CODE");
     expect(result.av30Cap).toBeNull();
@@ -152,6 +171,7 @@ describe("EntitlementsService", () => {
 
     const result = await service.resolve(orgId);
 
+    expect(result.isMasterOrg).toBe(false);
     expect(result.subscriptionStatus).toBe("NONE");
     expect(result.subscription).toBeUndefined();
     expect(result.av30Cap).toBeNull();

@@ -64,6 +64,7 @@ export class BillingController {
     
     return {
       orgId: resolved.orgId,
+      isMasterOrg: resolved.isMasterOrg,
       subscriptionStatus: resolved.subscriptionStatus,
       subscription: resolved.subscription ? {
         planCode: resolved.subscription.planCode,

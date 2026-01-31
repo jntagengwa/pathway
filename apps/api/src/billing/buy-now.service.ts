@@ -230,6 +230,16 @@ export class BuyNowService {
     // 1. Verify user is org admin
     await this.ensureOrgAdmin(userId, orgId);
 
+    const orgForMaster = await prisma.org.findUnique({
+      where: { id: orgId },
+      select: { isMasterOrg: true },
+    });
+    if (orgForMaster?.isMasterOrg) {
+      throw new BadRequestException(
+        "Master organisations cannot purchase plans or add-ons.",
+      );
+    }
+
     const normalizedPlanCode = this.normalizePlanCode(request.planCode);
 
     // 2. If org has active subscription and selected plan is the same: allow checkout only for add-ons

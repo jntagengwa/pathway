@@ -151,6 +151,8 @@ export default function BillingPage() {
   const planDisplayName = getPlanDisplayName(data?.planCode);
   const priceDisplay = getPlanPriceDisplay(data?.planCode);
 
+  const isMasterOrg = data?.isMasterOrg === true;
+
   const planCard = (
     <Card title="Current Plan">
       {isLoading ? (
@@ -164,6 +166,17 @@ export default function BillingPage() {
             </Button>
           </div>
           <p className="text-xs text-text-muted">{error}</p>
+        </div>
+      ) : isMasterOrg ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-sm">
+              Internal / Master Organisation
+            </Badge>
+          </div>
+          <p className="text-sm text-text-muted">
+            This organisation has unlimited access. No subscription or billing applies.
+          </p>
         </div>
       ) : data ? (
         <div className="space-y-4">
@@ -225,7 +238,7 @@ export default function BillingPage() {
             </p>
           )}
         </div>
-      ) : (
+      ) : !isMasterOrg ? (
         <div className="space-y-3">
           <p className="text-sm text-text-muted">
             No active subscription found for this organisation.
@@ -234,7 +247,7 @@ export default function BillingPage() {
             Get started with a plan
           </Button>
         </div>
-      )}
+      ) : null}
     </Card>
   );
 
@@ -244,6 +257,8 @@ export default function BillingPage() {
         loadingBlock
       ) : error ? (
         <p className="text-sm text-status-danger">Unable to load AV30 usage.</p>
+      ) : isMasterOrg ? (
+        <p className="text-sm text-text-muted">Unlimited — no limits apply to this organisation.</p>
       ) : data ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
@@ -327,6 +342,8 @@ export default function BillingPage() {
         <p className="text-sm text-status-danger">
           Unable to load usage limits.
         </p>
+      ) : isMasterOrg ? (
+        <p className="text-sm text-text-muted">Unlimited — no limits apply to this organisation.</p>
       ) : data ? (
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-md border border-border-subtle bg-surface px-3 py-2">
@@ -384,30 +401,32 @@ export default function BillingPage() {
         {av30Card}
       </div>
       {limitsCard}
-      <Card title="Change your plan">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-text-muted">
-            {data?.planCode
-              ? "Upgrade to a higher tier or adjust your plan settings."
-              : "Choose a plan that fits your school or organisation."}
-          </p>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={() => router.push("/billing/buy-now")}>
-                {data?.planCode ? "Upgrade plan" : "Choose a plan"}
-              </Button>
-              <p className="text-xs text-text-muted">
-                Plan changes are handled securely via Stripe. You'll review pricing before confirming.
-              </p>
+      {!isMasterOrg && (
+        <Card title="Change your plan">
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-text-muted">
+              {data?.planCode
+                ? "Upgrade to a higher tier or adjust your plan settings."
+                : "Choose a plan that fits your school or organisation."}
+            </p>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={() => router.push("/billing/buy-now")}>
+                  {data?.planCode ? "Upgrade plan" : "Choose a plan"}
+                </Button>
+                <p className="text-xs text-text-muted">
+                  Plan changes are handled securely via Stripe. You'll review pricing before confirming.
+                </p>
+              </div>
+              {data?.planCode && (
+                <p className="text-xs text-text-muted">
+                  Current plan: {planDisplayName} • {priceDisplay}
+                </p>
+              )}
             </div>
-            {data?.planCode && (
-              <p className="text-xs text-text-muted">
-                Current plan: {planDisplayName} • {priceDisplay}
-              </p>
-            )}
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
       <div className="text-sm text-text-muted">
         <Link
           href="/reports"

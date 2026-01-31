@@ -89,7 +89,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
   const showMissingTokenBanner = isDevelopment && !isMockApi && !hasDevToken && !session;
 
   // Get role information for access control
-  const { role } = useAdminAccess();
+  const { role, currentOrgIsMasterOrg } = useAdminAccess();
 
   // Collapsible sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
@@ -115,13 +115,15 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [session, isAuthRoute]);
 
-  // Filter nav items based on user's role
+  // Filter nav items based on user's role (hide billing for master orgs)
   const visibleNavItems = React.useMemo(
     () =>
       navItemsWithAccess.filter((item) =>
-        meetsAccessRequirement(role, item.access),
+        meetsAccessRequirement(role, item.access, {
+          currentOrgIsMasterOrg,
+        }),
       ),
-    [role],
+    [role, currentOrgIsMasterOrg],
   );
 
   if (isAuthRoute) {
