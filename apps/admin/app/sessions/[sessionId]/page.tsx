@@ -87,21 +87,20 @@ export default function SessionDetailPage() {
   const [rowActionId, setRowActionId] = React.useState<string | null>(null);
 
   const refreshAssignments = React.useCallback(
-    async (sessionMeta?: AdminSessionDetail | null) => {
-      const targetSession = sessionMeta ?? session;
-      if (!targetSession) return;
+    async (sessionMeta: AdminSessionDetail | null) => {
+      if (!sessionMeta) return;
       setAssignmentsLoading(true);
       setAssignmentError(null);
       try {
         const lookup = {
-          [targetSession.id]: {
-            title: targetSession.title,
-            startsAt: targetSession.startsAt,
-            endsAt: targetSession.endsAt,
+          [sessionMeta.id]: {
+            title: sessionMeta.title,
+            startsAt: sessionMeta.startsAt,
+            endsAt: sessionMeta.endsAt,
           },
         };
         const rows = await fetchAssignmentsForOrg({
-          sessionId: targetSession.id,
+          sessionId: sessionMeta.id,
           sessionLookup: lookup,
         });
         setAssignments(rows);
@@ -113,7 +112,7 @@ export default function SessionDetailPage() {
         setAssignmentsLoading(false);
       }
     },
-    [session],
+    [],
   );
 
   const load = React.useCallback(async () => {
@@ -144,7 +143,7 @@ export default function SessionDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [refreshAssignments, sessionId]);
+  }, [sessionId, refreshAssignments]);
 
   React.useEffect(() => {
     void load();
@@ -176,7 +175,7 @@ export default function SessionDetailPage() {
             },
           },
         );
-        await refreshAssignments();
+        await refreshAssignments(session);
       } catch (err) {
         setAssignmentError(
           err instanceof Error ? err.message : "Failed to update assignment",
@@ -373,7 +372,7 @@ export default function SessionDetailPage() {
                             setAssignmentError(null);
                             try {
                               await deleteAssignment(assignment.id);
-                              await refreshAssignments();
+                              await refreshAssignments(session);
                             } catch (err) {
                               setAssignmentError(
                                 err instanceof Error
@@ -437,7 +436,7 @@ export default function SessionDetailPage() {
                         },
                       },
                     );
-                    await refreshAssignments();
+                    await refreshAssignments(session);
                     setFormStaffId("");
                     setFormRole("Lead");
                     setFormStatus("confirmed");
