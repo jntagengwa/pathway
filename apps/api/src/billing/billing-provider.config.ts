@@ -21,6 +21,14 @@ export type PriceCode = PlanCode | AddonPriceCode;
 
 export type StripePriceMap = Partial<Record<PriceCode, string>>;
 
+export type PriceMapDiagnostics = {
+  rawLength: number;
+  rawSet: boolean;
+  parseSuccess: boolean;
+  parseError?: string;
+  keysExtracted: string[];
+};
+
 export type BillingProviderConfig = {
   activeProvider: ActiveBillingProvider;
   stripe: {
@@ -28,6 +36,7 @@ export type BillingProviderConfig = {
     webhookSecretSnapshot?: string;
     webhookSecretThin?: string;
     priceMap?: StripePriceMap;
+    priceMapDiagnostics?: PriceMapDiagnostics;
     successUrlDefault?: string;
     cancelUrlDefault?: string;
   };
@@ -63,11 +72,32 @@ const ALLOWED_PRICE_CODES: Set<PriceCode> = new Set([
   "SMS_1000_YEARLY",
 ]);
 
-const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
+type ParsePriceMapResult = {
+  map?: StripePriceMap;
+  diagnostics: PriceMapDiagnostics;
+};
+
+const parsePriceMap = (raw?: string): ParsePriceMapResult => {
   const trimmed = raw?.trim();
-  if (!trimmed) return undefined;
+  const rawSet = Boolean(trimmed);
+  const rawLength = trimmed?.length ?? 0;
+
+  const emptyDiagnostics: PriceMapDiagnostics = {
+    rawLength,
+    rawSet,
+    parseSuccess: false,
+    parseError: rawSet ? "empty_after_trim" : "unset",
+    keysExtracted: [],
+  };
+
+  if (!trimmed) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[billing] STRIPE_PRICE_MAP unset or empty; pricing unavailable.");
+    }
+    return { diagnostics: emptyDiagnostics };
+  }
+
   try {
-    // Strip optional leading BOM and any surrounding whitespace inside the string
     const toParse = trimmed.replace(/^\uFEFF/, "");
     const parsed = JSON.parse(toParse) as Record<string, string>;
     if (typeof parsed !== "object" || parsed === null) {
@@ -76,11 +106,18 @@ const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
           "[billing] STRIPE_PRICE_MAP must be a JSON object (e.g. {\"STARTER_MONTHLY\":\"price_xxx\"}); got non-object.",
         );
       }
-      return undefined;
+      return {
+        diagnostics: {
+          rawLength,
+          rawSet: true,
+          parseSuccess: false,
+          parseError: "not_object",
+          keysExtracted: [],
+        },
+      };
     }
     const filtered: StripePriceMap = {};
     Object.keys(parsed).forEach((code) => {
-      // Normalise keys to uppercase and map legacy names to current codes
       const upper = code.toUpperCase();
       const legacyMap: Record<string, PriceCode> = {
         STARTER_MONTH: "STARTER_MONTHLY",
@@ -100,21 +137,42 @@ const parsePriceMap = (raw?: string): StripePriceMap | undefined => {
         ADDON_SMS_1000_MONTH: "SMS_1000_MONTHLY",
         ADDON_SMS_1000_YEAR: "SMS_1000_YEARLY",
       };
-
       const mapped = (legacyMap[upper] ?? upper) as PriceCode;
-
       if (ALLOWED_PRICE_CODES.has(mapped)) {
         filtered[mapped] = parsed[code];
       }
     });
-    return filtered;
-  } catch {
-    if (process.env.NODE_ENV === "production" && trimmed) {
-      console.warn(
-        "[billing] STRIPE_PRICE_MAP is set but invalid JSON or not an object; pricing will be unavailable.",
+    const keys = Object.keys(filtered);
+    if (process.env.NODE_ENV === "production") {
+      console.log(
+        `[billing] STRIPE_PRICE_MAP parsed: rawLength=${rawLength}, keysExtracted=${keys.length} [${keys.join(", ")}]`,
       );
     }
-    return undefined;
+    return {
+      map: keys.length ? filtered : undefined,
+      diagnostics: {
+        rawLength,
+        rawSet: true,
+        parseSuccess: true,
+        keysExtracted: keys,
+      },
+    };
+  } catch (err) {
+    const parseError = err instanceof Error ? err.message : "invalid_json";
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        `[billing] STRIPE_PRICE_MAP parse failed: ${parseError}; rawLength=${rawLength}.`,
+      );
+    }
+    return {
+      diagnostics: {
+        rawLength,
+        rawSet: true,
+        parseSuccess: false,
+        parseError: "invalid_json",
+        keysExtracted: [],
+      },
+    };
   }
 };
 
@@ -139,11 +197,13 @@ export function loadBillingProviderConfig(): BillingProviderConfig {
     ? (process.env.STRIPE_PRICE_MAP_TEST ?? process.env.STRIPE_PRICE_MAP)
     : process.env.STRIPE_PRICE_MAP;
 
+  const priceMapResult = parsePriceMap(priceMapRaw);
   const stripeConfig = {
     secretKey,
     webhookSecretSnapshot,
     webhookSecretThin: process.env.STRIPE_WEBHOOK_SECRET_THIN,
-    priceMap: parsePriceMap(priceMapRaw),
+    priceMap: priceMapResult.map,
+    priceMapDiagnostics: priceMapResult.diagnostics,
     successUrlDefault: process.env.STRIPE_SUCCESS_URL ?? fallbackSuccess,
     cancelUrlDefault: process.env.STRIPE_CANCEL_URL ?? fallbackCancel,
   };

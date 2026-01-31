@@ -335,7 +335,20 @@ Names in GitHub must match what the workflow uses, e.g. `STRIPE_SECRET_KEY`, `ST
 
 **3. If `/health/env` shows Stripe vars as `true` but pricing endpoint returns `pricing_unavailable`**
 
-The API is seeing the vars but **STRIPE_PRICE_MAP** may be invalid or not a JSON object. Check **ECS/CloudWatch logs** for the API container. You should see one of:
+Use the **billing pricing diagnostics** endpoint (no auth, no secrets) to see where it fails and what the price map looks like (redacted):
+
+```bash
+curl -s https://your-api-domain/billing/prices/diagnostics
+```
+
+Response fields:
+- **failurePoint**: `ok` | `no_stripe_client` | `no_price_map` — where pricing fails.
+- **priceMapSet**, **priceMapRawLength**: whether `STRIPE_PRICE_MAP` is set and its length.
+- **priceMapRawPreview**: first ~220 chars of the env value with Stripe price IDs redacted to `price_***` (safe for prod).
+- **priceMapParseSuccess**, **priceMapParseError**: whether JSON parsed and the error if not (`unset`, `empty_after_trim`, `not_object`, `invalid_json`).
+- **priceMapKeysExtracted**: keys we use from the map (e.g. `["STARTER_MONTHLY","GROWTH_MONTHLY"]`); empty if parse failed or no keys matched.
+
+Also check **ECS/CloudWatch logs** for the API container. You should see one of:
 
 - `pricing_unavailable: no_stripe_client` — Stripe client not created (e.g. `STRIPE_SECRET_KEY` empty at runtime).
 - `pricing_unavailable: no_price_map` — `STRIPE_PRICE_MAP` failed to parse or is not a JSON object.
