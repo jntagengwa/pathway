@@ -107,6 +107,7 @@ model Org {
   slug             String                   @unique
   planCode         String // e.g., trial|starter|standard|pro|suite_*
   isSuite          Boolean                  @default(false)
+  isMasterOrg      Boolean                  @default(false) // Internal/platform org: no Stripe, unlimited, non-billable
   stripeCustomerId String?                  @unique
   tenants          Tenant[]
   subscriptions    Subscription[]

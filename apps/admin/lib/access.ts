@@ -121,12 +121,18 @@ export type AccessRequirement =
   | "safeguarding-admin" // Safeguarding admin overview
   | "staff-or-admin"; // Any authenticated user
 
+export type AccessContext = {
+  /** When true, billing nav and purchase flows are hidden (master/internal org). */
+  currentOrgIsMasterOrg?: boolean;
+};
+
 /**
  * Check if user meets an access requirement
  */
 export function meetsAccessRequirement(
   role: AdminRoleInfo,
   requirement: AccessRequirement | undefined,
+  context?: AccessContext,
 ): boolean {
   if (!requirement || requirement === "none" || requirement === "staff-or-admin") {
     return true;
@@ -136,7 +142,7 @@ export function meetsAccessRequirement(
     case "admin-only":
       return canAccessAdminSection(role);
     case "billing":
-      return canAccessBilling(role);
+      return canAccessBilling(role) && !(context?.currentOrgIsMasterOrg ?? false);
     case "safeguarding-admin":
       return canAccessSafeguardingAdmin(role);
     default:

@@ -172,7 +172,7 @@ export class ActiveSiteController {
     // Get user's org memberships to determine org roles
     const orgMemberships = await prisma.orgMembership.findMany({
       where: { userId },
-      include: { org: { select: { id: true, name: true } } },
+      include: { org: { select: { id: true, name: true, isMasterOrg: true } } },
     });
 
     // Get user's site memberships to determine site roles
@@ -184,7 +184,7 @@ export class ActiveSiteController {
     // Also check legacy UserOrgRole and UserTenantRole tables for backward compatibility
     const userOrgRoles = await prisma.userOrgRole.findMany({
       where: { userId },
-      include: { org: { select: { id: true, name: true } } },
+      include: { org: { select: { id: true, name: true, isMasterOrg: true } } },
     });
 
     const userTenantRoles = await prisma.userTenantRole.findMany({
@@ -217,8 +217,19 @@ export class ActiveSiteController {
       }
     });
 
+    const cookieOrgId = req.cookies?.pw_active_org_id;
+    const firstOrgFromMemberships = orgMemberships[0]?.org ?? userOrgRoles[0]?.org;
+    const currentOrgId = cookieOrgId ?? firstOrgFromMemberships?.id ?? null;
+    const currentOrg = currentOrgId
+      ? orgMemberships.find((m) => m.orgId === currentOrgId)?.org ??
+        userOrgRoles.find((r) => r.orgId === currentOrgId)?.org ??
+        null
+      : firstOrgFromMemberships ?? null;
+    const currentOrgIsMasterOrg = currentOrg?.isMasterOrg ?? false;
+
     return {
       userId,
+      currentOrgIsMasterOrg,
       orgRoles: Array.from(orgRoles.entries()).map(([orgId, role]) => ({
         orgId,
         role,

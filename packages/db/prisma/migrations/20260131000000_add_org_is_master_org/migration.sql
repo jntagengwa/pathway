@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Org" ADD COLUMN "isMasterOrg" BOOLEAN NOT NULL DEFAULT false;

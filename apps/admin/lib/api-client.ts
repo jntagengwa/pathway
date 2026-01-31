@@ -218,6 +218,7 @@ export type AdminStaffDetail = {
 
 export type AdminBillingOverview = {
   orgId: string;
+  isMasterOrg?: boolean;
   subscriptionStatus:
     | "ACTIVE"
     | "TRIALING"
@@ -436,6 +437,7 @@ export async function fetchActiveSiteState(): Promise<ActiveSiteState> {
 
 export type UserRolesResponse = {
   userId: string;
+  currentOrgIsMasterOrg?: boolean;
   orgRoles: Array<{ orgId: string; role: string }>;
   siteRoles: Array<{ tenantId: string; role: string }>;
   orgMemberships: Array<{ orgId: string; orgName: string; role: string }>;
@@ -456,6 +458,7 @@ export async function fetchUserRoles(): Promise<UserRolesResponse> {
     // In mock mode, return empty roles (will fall back to dev mode admin access)
     return {
       userId: "mock-user",
+      currentOrgIsMasterOrg: false,
       orgRoles: [],
       siteRoles: [],
       orgMemberships: [],
@@ -2367,6 +2370,7 @@ export async function fetchNotesSummary(): Promise<AdminNotesSummary> {
 
 type ApiEntitlements = {
   orgId: string;
+  isMasterOrg?: boolean;
   subscriptionStatus?: string;
   subscription?: {
     planCode?: string | null;
@@ -2395,6 +2399,7 @@ const mapApiEntitlementsToAdmin = (
   api: ApiEntitlements,
 ): AdminBillingOverview => ({
   orgId: api.orgId,
+  isMasterOrg: api.isMasterOrg ?? false,
   subscriptionStatus: api.subscriptionStatus ?? "NONE",
   planCode: api.subscription?.planCode ?? null,
   periodStart: api.subscription?.periodStart ?? null,
@@ -2417,6 +2422,7 @@ export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
   if (useMock) {
     return {
       orgId: "demo-org",
+      isMasterOrg: false,
       subscriptionStatus: "ACTIVE",
       planCode: "demo_plan",
       periodStart: new Date().toISOString(),
@@ -2442,6 +2448,7 @@ export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
       // TODO: replace fallback when a public entitlements endpoint is available.
       return {
         orgId: "unknown",
+        isMasterOrg: false,
         subscriptionStatus: "NONE",
       };
     }
