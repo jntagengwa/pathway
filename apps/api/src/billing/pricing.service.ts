@@ -63,8 +63,13 @@ export class BillingPricingService {
       const reason = !this.stripe
         ? "no_stripe_client"
         : "no_price_map";
+      const diag = this.config.stripe.priceMapDiagnostics;
       this.logger.warn(
-        `pricing_unavailable: ${reason} (stripe=${Boolean(this.stripe)}, priceMap=${Boolean(this.config.stripe.priceMap)})`,
+        `pricing_unavailable: ${reason} (stripe=${Boolean(this.stripe)}, priceMap=${Boolean(this.config.stripe.priceMap)}` +
+          (diag
+            ? `, rawSet=${diag.rawSet}, rawLength=${diag.rawLength}, parseSuccess=${diag.parseSuccess}, parseError=${diag.parseError ?? "none"}, keysExtracted=${diag.keysExtracted?.length ?? 0}`
+            : "") +
+          ")",
       );
       const data: BillingPricesResponse = {
         provider: isStripeMode ? "stripe" : "fake",
