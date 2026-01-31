@@ -53,8 +53,8 @@ export class AuthUserGuard implements CanActivate {
                 },
               },
             },
-            orgMemberships: true,
-            orgRoles: true,
+            orgMemberships: { include: { org: true } },
+            orgRoles: { include: { org: true } },
           },
         },
       },
@@ -107,6 +107,26 @@ export class AuthUserGuard implements CanActivate {
           });
         }
       }
+    }
+
+    // Fallback 1: if no active tenant (e.g. cookie missing or first request), use first site so org-scoped endpoints (e.g. billing purchase) work
+    if (!tenantId && user.siteMemberships.length > 0) {
+      const first = user.siteMemberships[0];
+      tenantId = first.tenantId;
+      orgId = first.tenant.orgId;
+      orgSlug = first.tenant.org.slug ?? "";
+    }
+
+    // Fallback 2: if still no org (e.g. user has org role but no site membership), use first org membership
+    if (!orgId && user.orgMemberships.length > 0) {
+      const first = user.orgMemberships[0];
+      orgId = first.orgId;
+      orgSlug = first.org?.slug ?? "";
+    }
+    if (!orgId && user.orgRoles.length > 0) {
+      const first = user.orgRoles[0];
+      orgId = first.orgId;
+      orgSlug = first.org?.slug ?? "";
     }
 
     // Map new role system to old role system for backwards compatibility

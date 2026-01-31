@@ -211,13 +211,15 @@ export class BuyNowService {
   /**
    * Purchase endpoint for authenticated organisation admins.
    * Creates Stripe Checkout session with enhanced metadata and validations.
+   * @param contextOverride - Optional context from request (set by guard); used when injected requestContext is empty
    */
   async purchaseForOrg(
     request: OrgPurchaseRequest,
+    contextOverride?: { orgId: string; tenantId?: string; userId: string },
   ): Promise<BuyNowCheckoutResponse> {
-    const orgId = this.requestContext?.currentOrgId;
-    const tenantId = this.requestContext?.currentTenantId;
-    const userId = this.requestContext?.currentUserId;
+    const orgId = contextOverride?.orgId ?? this.requestContext?.currentOrgId;
+    const tenantId = contextOverride?.tenantId ?? this.requestContext?.currentTenantId;
+    const userId = contextOverride?.userId ?? this.requestContext?.currentUserId;
 
     if (!orgId || !userId) {
       throw new ForbiddenException(
@@ -230,7 +232,7 @@ export class BuyNowService {
 
     const normalizedPlanCode = this.normalizePlanCode(request.planCode);
 
-    // 2. If org has active subscription and selected plan is the same, do not charge again
+    // 2. If org has active subscription and selected plan is the same: allow checkout only for add-ons
     const activeSubscription = await prisma.subscription.findFirst({
       where: {
         orgId,
@@ -240,17 +242,30 @@ export class BuyNowService {
       },
       select: { planCode: true },
     });
-    if (activeSubscription && activeSubscription.planCode === normalizedPlanCode) {
+
+    const addonsOnly =
+      Boolean(activeSubscription) &&
+      activeSubscription!.planCode === normalizedPlanCode;
+
+    const hasAddons =
+      (this.toNonNegativeInt(request.av30AddonBlocks) ?? 0) > 0 ||
+      (this.toNonNegativeInt(request.extraStorageGb) ?? 0) > 0 ||
+      (this.toNonNegativeInt(request.extraSmsMessages) ?? 0) > 0 ||
+      (this.toNonNegativeInt(request.extraSites) ?? 0) > 0 ||
+      (this.toNonNegativeInt(request.extraLeaderSeats) ?? 0) > 0;
+
+    if (addonsOnly && !hasAddons) {
       throw new BadRequestException(
-        "You're already on this plan. No need to checkout again.",
+        "You're already on this plan. Add add-ons above to checkout, or choose a different plan.",
       );
     }
 
-    // 3. Check for existing active subscription (different plan → must cancel first)
-    await this.preventDuplicateSubscription(orgId);
+    // 3. Allow plan change: do not block when org already has a subscription (we'll cancel the old one in the webhook when the new checkout completes). If they abandon checkout, they keep their current plan.
 
-    // 4. Validate upgrade path (no downgrades)
-    await this.validateUpgradePath(orgId, request.planCode);
+    // 4. Validate upgrade path only when changing plan (no downgrades)
+    if (!addonsOnly) {
+      await this.validateUpgradePath(orgId, request.planCode);
+    }
 
     const planDefinition = getPlanDefinition(normalizedPlanCode);
     if (!planDefinition) {
@@ -351,6 +366,7 @@ export class BuyNowService {
       pendingOrderId: pendingOrder.id,
       userId, // Pass initiating user ID
       stripeCustomerId: org.stripeCustomerId ?? undefined,
+      addonsOnly, // When true, Stripe checkout includes only add-on line items (no plan)
     };
 
     const providerCtx: BuyNowProviderContext = {

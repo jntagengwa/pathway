@@ -287,6 +287,10 @@ export default function BuyNowPage() {
   ]);
 
   const isCurrentPlan = Boolean(planCode && currentPlanCode && planCode === currentPlanCode);
+  const hasAddons =
+    (av30BlockCount ?? 0) > 0 ||
+    (storageChoice && storageChoice !== "none") ||
+    (smsBundlesCount ?? 0) > 0;
 
   const handleCheckout = async () => {
     setCheckoutError(null);
@@ -294,8 +298,8 @@ export default function BuyNowPage() {
       setCheckoutError("Enterprise is contact-only. Please reach out to sales.");
       return;
     }
-    if (isCurrentPlan) {
-      setCheckoutError("You're already on this plan. No need to checkout again.");
+    if (isCurrentPlan && !hasAddons) {
+      setCheckoutError("Add add-ons above to checkout, or choose a different plan.");
       return;
     }
     setIsCheckoutLoading(true);
@@ -409,6 +413,7 @@ export default function BuyNowPage() {
         {
           planPrices: mergedPlanPrices,
           addonPrices: mergedAddonPrices,
+          excludePlanLine: isCurrentPlan,
         },
       )
     : { currency: "gbp", subtotalMajor: 0, totalMajor: 0, lines: [] };
@@ -694,6 +699,8 @@ export default function BuyNowPage() {
                   <div className="space-y-2 text-sm">
                     {planCode === "ENTERPRISE_CONTACT" ? (
                       <p className="text-text-muted">Enterprise is bespoke. Contact sales.</p>
+                    ) : isCurrentPlan && !totals.lines.length ? (
+                      <p className="text-text-muted">Add add-ons above to see pricing (you're already on this plan).</p>
                     ) : totals.lines.length ? (
                       <>
                         {totals.lines.map((line) => (
@@ -740,15 +747,20 @@ export default function BuyNowPage() {
                   {checkoutError}
                 </div>
               )}
-              {isCurrentPlan && (
+              {isCurrentPlan && !hasAddons && (
                 <p className="text-xs text-text-muted">
-                  You're already on this plan. Choose a different plan to upgrade or change add-ons.
+                  Add add-ons above to checkout, or choose a different plan.
+                </p>
+              )}
+              {isCurrentPlan && hasAddons && (
+                <p className="text-xs text-text-muted">
+                  Checkout will charge only for add-ons (you're already on this plan).
                 </p>
               )}
               <Button
                 className="w-full"
                 onClick={handleCheckout}
-                disabled={isCheckoutLoading || isCurrentPlan}
+                disabled={isCheckoutLoading || (isCurrentPlan && !hasAddons)}
               >
                 {isCheckoutLoading ? "Starting checkout..." : "Continue to checkout"}
               </Button>

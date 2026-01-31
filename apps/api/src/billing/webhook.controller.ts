@@ -23,8 +23,10 @@ import {
   BillingWebhookProvider,
   ParsedBillingWebhookEvent,
 } from "./billing-webhook.provider";
+import { BILLING_PROVIDER_CONFIG, type BillingProviderConfig } from "./billing-provider.config";
 import { LoggingService, StructuredLogger } from "../common/logging/logging.service";
 import { Auth0ManagementService } from "../auth/auth0-management.service";
+import Stripe from "stripe";
 
 type WebhookResult =
   | { status: "ok"; eventId: string }
@@ -49,6 +51,7 @@ export class BillingWebhookController {
     private readonly provider: BillingWebhookProvider,
     private readonly entitlements: EntitlementsService,
     @Inject(ModuleRef) private readonly moduleRef: ModuleRef,
+    @Inject(BILLING_PROVIDER_CONFIG) private readonly billingConfig: BillingProviderConfig,
     logging?: LoggingService,
   ) {
     this.logger = logging
@@ -333,6 +336,126 @@ export class BillingWebhookController {
           providerCustomerId: event.providerCustomerId ?? undefined,
         },
       });
+    });
+
+    // When a new subscription is activated for an org (plan change), cancel any other active subscription so the org has only one
+    if (status === SubscriptionStatus.ACTIVE && event.subscriptionId) {
+      await this.cancelOtherActiveSubscriptionsForOrg(actualOrgId, event.subscriptionId);
+    }
+  }
+
+  /**
+   * Cancel any other active subscriptions for this org (plan-change flow).
+   * Issues a prorated refund for unused time on the old plan, then cancels in Stripe and marks CANCELED in our DB.
+   */
+  private async cancelOtherActiveSubscriptionsForOrg(
+    orgId: string,
+    currentProviderSubId: string,
+  ): Promise<void> {
+    const others = await prisma.subscription.findMany({
+      where: {
+        orgId,
+        providerSubId: { not: currentProviderSubId },
+        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE] },
+      },
+      select: { id: true, providerSubId: true, planCode: true },
+    });
+    if (others.length === 0) return;
+
+    const secretKey = this.billingConfig.stripe.secretKey;
+    const stripe = secretKey
+      ? new Stripe(secretKey, { apiVersion: "2023-10-16" })
+      : null;
+
+    for (const sub of others) {
+      if (stripe && sub.providerSubId) {
+        try {
+          await this.refundProratedAndCancelSubscription(stripe, orgId, sub.providerSubId, sub.planCode);
+        } catch (err) {
+          this.logger.warn("Failed to refund/cancel Stripe subscription; marking CANCELED in DB", {
+            providerSubId: sub.providerSubId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          await stripe.subscriptions.cancel(sub.providerSubId).catch(() => {});
+        }
+      }
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: { status: SubscriptionStatus.CANCELED },
+      });
+    }
+  }
+
+  /**
+   * Refund the unused portion of the current billing period, then cancel the subscription.
+   * Used when a customer upgrades mid-cycle so they get credit for the remaining Starter (or previous plan) time.
+   */
+  private async refundProratedAndCancelSubscription(
+    stripe: Stripe,
+    orgId: string,
+    providerSubId: string,
+    planCode: string | null,
+  ): Promise<void> {
+    const sub = await stripe.subscriptions.retrieve(providerSubId, {
+      expand: ["latest_invoice"],
+    });
+
+    const periodStart = sub.current_period_start;
+    const periodEnd = sub.current_period_end;
+    const now = Math.floor(Date.now() / 1000);
+    const periodSeconds = Math.max(1, periodEnd - periodStart);
+    const remainingSeconds = Math.max(0, periodEnd - now);
+
+    const latestInvoice = sub.latest_invoice;
+    const invoice =
+      typeof latestInvoice === "object" && latestInvoice !== null
+        ? (latestInvoice as Stripe.Invoice)
+        : null;
+
+    const chargeId =
+      invoice?.charge && typeof invoice.charge === "string"
+        ? invoice.charge
+        : (invoice?.charge as Stripe.Charge)?.id ?? null;
+    const amountPaidCents = invoice?.amount_paid ?? 0;
+
+    if (chargeId && amountPaidCents > 0 && remainingSeconds > 0) {
+      const proratedRefundCents = Math.round(
+        (amountPaidCents * remainingSeconds) / periodSeconds,
+      );
+      if (proratedRefundCents > 0) {
+        try {
+          await stripe.refunds.create({
+            charge: chargeId,
+            amount: proratedRefundCents,
+            reason: "requested_by_customer",
+            metadata: {
+              reason: "upgrade_prorated_refund",
+              orgId,
+              subscriptionId: providerSubId,
+              planCode: planCode ?? "",
+            },
+          });
+          this.logger.info("Issued prorated refund for upgrade (plan change)", {
+            orgId,
+            providerSubId,
+            planCode,
+            refundCents: proratedRefundCents,
+            remainingDays: Math.round(remainingSeconds / 86400),
+          });
+        } catch (refundErr) {
+          this.logger.warn("Prorated refund failed; still canceling subscription", {
+            providerSubId,
+            error: refundErr instanceof Error ? refundErr.message : String(refundErr),
+          });
+        }
+      }
+    }
+
+    await stripe.subscriptions.cancel(providerSubId);
+    this.logger.info("Canceled previous Stripe subscription (plan change)", {
+      orgId,
+      providerSubId,
+      planCode,
     });
   }
 

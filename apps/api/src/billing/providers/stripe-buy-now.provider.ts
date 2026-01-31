@@ -30,9 +30,10 @@ export class StripeBuyNowProvider extends BuyNowProvider {
   ): Promise<BuyNowCheckoutResult> {
     const priceMap: StripePriceMap = this.config.stripe.priceMap ?? {};
     const planCode = params.plan.planCode as PlanCode;
-    const basePriceId = priceMap[planCode];
+    const addonsOnly = Boolean(params.addonsOnly);
+    const basePriceId = addonsOnly ? undefined : priceMap[planCode];
 
-    if (!basePriceId) {
+    if (!addonsOnly && !basePriceId) {
       this.logger.warn(
         `Stripe priceId missing for planCode=${params.plan.planCode}; aborting checkout`,
       );
@@ -51,9 +52,10 @@ export class StripeBuyNowProvider extends BuyNowProvider {
         : "monthly";
     const intervalSuffix = billingInterval === "yearly" ? "YEARLY" : "MONTHLY";
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-      { price: basePriceId, quantity: 1 },
-    ];
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    if (!addonsOnly && basePriceId) {
+      lineItems.push({ price: basePriceId, quantity: 1 });
+    }
 
     // AV30 add-on blocks: Growth uses 50-block price (admin sends blocks*2), Starter uses 25-block
     const av30Blocks = Math.max(0, params.plan.av30AddonBlocks ?? 0);
@@ -96,6 +98,11 @@ export class StripeBuyNowProvider extends BuyNowProvider {
       }
     }
 
+    if (addonsOnly && lineItems.length === 0) {
+      this.logger.warn("addonsOnly checkout but no add-on line items; API should validate hasAddons");
+      throw new Error("No add-ons to charge. Add add-ons above to checkout.");
+    }
+
     const metadata: Record<string, string> = {
       pendingOrderId: params.pendingOrderId,
       tenantId: ctx.tenantId,
@@ -130,7 +137,30 @@ export class StripeBuyNowProvider extends BuyNowProvider {
       sessionParams.customer_email = params.org.contactEmail;
     }
 
-    const session = await this.stripe.checkout.sessions.create(sessionParams);
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await this.stripe.checkout.sessions.create(sessionParams);
+    } catch (err) {
+      // Stored customer ID may be from test mode while we're using live key (or vice versa)
+      const stripeError = err as Stripe.errors.StripeError;
+      const msg = stripeError?.message ?? String(err);
+      const isCustomerModeMismatch =
+        stripeError?.code === "resource_missing" ||
+        /no such customer/i.test(msg) ||
+        /similar object exists in test mode.*live mode/i.test(msg) ||
+        /similar object exists in live mode.*test mode/i.test(msg);
+
+      if (isCustomerModeMismatch && params.stripeCustomerId && params.org.contactEmail) {
+        this.logger.warn(
+          `Stripe customer ${params.stripeCustomerId} not valid for current mode; creating session with customer_email instead`,
+        );
+        delete sessionParams.customer;
+        sessionParams.customer_email = params.org.contactEmail;
+        session = await this.stripe.checkout.sessions.create(sessionParams);
+      } else {
+        throw err;
+      }
+    }
 
     this.logger.log(
       `Created Stripe checkout session ${session.id} for org ${ctx.orgId} plan ${params.plan.planCode} (${lineItems.length} line items)`,

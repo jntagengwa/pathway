@@ -7,6 +7,7 @@ import {
 import { EntitlementsService } from "../entitlements.service";
 import { ModuleRef } from "@nestjs/core";
 import { LoggingService } from "../../common/logging/logging.service";
+import type { BillingProviderConfig } from "../billing-provider.config";
 import {
   BillingProvider,
   SubscriptionStatus,
@@ -15,7 +16,7 @@ import {
 
 const prismaMock: {
   billingEvent: { findFirst: jest.Mock; create: jest.Mock };
-  subscription: { upsert: jest.Mock };
+  subscription: { upsert: jest.Mock; findMany: jest.Mock; update: jest.Mock };
   orgEntitlementSnapshot: { create: jest.Mock };
   pendingOrder: {
     findUnique: jest.Mock;
@@ -25,7 +26,11 @@ const prismaMock: {
   $transaction: jest.Mock;
 } = {
   billingEvent: { findFirst: jest.fn(), create: jest.fn() },
-  subscription: { upsert: jest.fn() },
+  subscription: {
+    upsert: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    update: jest.fn().mockResolvedValue(undefined),
+  },
   orgEntitlementSnapshot: { create: jest.fn() },
   pendingOrder: {
     findUnique: jest.fn(),
@@ -96,10 +101,17 @@ describe("BillingWebhookController", () => {
       get: jest.fn().mockReturnValue(auth0Management),
     } as unknown as ModuleRef;
 
+    const billingConfig: BillingProviderConfig = {
+      activeProvider: "STRIPE",
+      stripe: {},
+      goCardless: {},
+    };
+
     controller = new BillingWebhookController(
       provider as unknown as BillingWebhookProvider,
       entitlements as unknown as EntitlementsService,
       moduleRef,
+      billingConfig,
       logging,
     );
   });

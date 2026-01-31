@@ -124,6 +124,8 @@ export function calculateCartTotals(
     addonPrices?: Partial<
       Record<keyof typeof ADDON_PRICES, { amountMajor: number; label: string }>
     >;
+    /** When true, omit the plan line from totals (e.g. "add add-ons only" on current plan). */
+    excludePlanLine?: boolean;
   },
 ): CartTotals {
   const lines: CartTotals["lines"] = [];
@@ -138,7 +140,7 @@ export function calculateCartTotals(
     selection.planCode !== "ENTERPRISE_CONTACT"
       ? planPrices[selection.planCode]
       : undefined;
-  if (planMeta) {
+  if (planMeta && !opts?.excludePlanLine) {
     lines.push({ label: planMeta.label, amountMajor: planMeta.amountMajor });
   }
 
