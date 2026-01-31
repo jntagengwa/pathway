@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: baseUrl,
   },
+  icons: {
+    icon: "/NSLogo.svg",
+    shortcut: "/NSLogo.svg",
+  },
 };
 
 export default function RootLayout({

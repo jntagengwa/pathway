@@ -14,6 +14,8 @@ export interface BuyNowCheckoutParams {
   pendingOrderId: string;
   userId?: string;
   stripeCustomerId?: string;
+  /** When true, checkout includes only add-on line items (no plan). Used when org is already on the selected plan. */
+  addonsOnly?: boolean;
 }
 
 export interface BuyNowProviderContext {

@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Post,
+  Req,
   Inject,
   UseGuards,
   ForbiddenException,
 } from "@nestjs/common";
+import type { Request } from "express";
 import {
   IsEmail,
   IsInt,
@@ -163,11 +165,23 @@ export class BuyNowController {
   @UseGuards(AuthUserGuard)
   async purchase(
     @Body() body: OrgPurchaseRequestDto,
+    @Req() req: Request & {
+      __pathwayContext?: { org?: { orgId?: string }; tenant?: { tenantId?: string }; user?: { userId?: string } };
+      authUserId?: string;
+    },
   ): Promise<BuyNowCheckoutResponse> {
-    if (!this.buyNowService["requestContext"]?.currentOrgId) {
+    // Use context from request (set by AuthUserGuard) so org/user are always available after guard runs
+    const ctx = req.__pathwayContext;
+    const orgId = ctx?.org?.orgId ?? this.buyNowService["requestContext"]?.currentOrgId;
+    const userId = (req as { authUserId?: string }).authUserId ?? ctx?.user?.userId ?? this.buyNowService["requestContext"]?.currentUserId;
+    if (!orgId || !userId) {
       throw new ForbiddenException("Organisation context required");
     }
-    return this.buyNowService.purchaseForOrg(body);
+    return this.buyNowService.purchaseForOrg(body, {
+      orgId,
+      tenantId: ctx?.tenant?.tenantId,
+      userId,
+    });
   }
 }
 

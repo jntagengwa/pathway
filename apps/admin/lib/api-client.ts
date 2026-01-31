@@ -392,22 +392,13 @@ function buildAuthHeaders(): HeadersInit {
   };
 
   if (accessTokenOverride) {
-    console.log("[buildAuthHeaders] Using accessTokenOverride:", {
-      hasToken: true,
-      tokenLength: accessTokenOverride.length,
-      tokenPrefix: accessTokenOverride.substring(0, 20),
-      jwtParts: accessTokenOverride.split(".").length,
-    });
     headers["Authorization"] = `Bearer ${accessTokenOverride}`;
     return headers;
   }
 
   const devToken = process.env.NEXT_PUBLIC_DEV_BEARER_TOKEN;
   if (devToken) {
-    console.log("[buildAuthHeaders] Using dev token");
     headers["Authorization"] = `Bearer ${devToken}`;
-  } else {
-    console.warn("[buildAuthHeaders] ⚠️ No access token available! Authorization header will be missing.");
   }
 
   return headers;

@@ -312,15 +312,23 @@ export default function BuyNowPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:py-16">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <Image 
-            src="/NSLogo.svg" 
-            alt="Nexsteps" 
-            width={32} 
-            height={32}
-            className="h-8 w-8"
-          />
-          <p className="text-sm font-bold uppercase tracking-wide text-pw-primary">NEXSTEPS</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Image 
+              src="/NSLogo.svg" 
+              alt="Nexsteps" 
+              width={32} 
+              height={32}
+              className="h-8 w-8"
+            />
+            <p className="text-sm font-bold uppercase tracking-wide text-pw-primary">NEXSTEPS</p>
+          </div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-md border border-pw-border px-3 py-2 text-sm font-medium text-pw-text transition hover:border-pw-primary hover:bg-pw-primary-soft hover:text-pw-primary focus-visible:outline focus-visible:outline-2 focus-visible:ring-offset-2 focus-visible:ring-pw-primary"
+          >
+            ← Back to home
+          </Link>
         </div>
         <h1 className="text-3xl font-semibold text-pw-text">Choose your Nexsteps plan</h1>
         <p className="max-w-3xl text-base text-pw-text-muted">
