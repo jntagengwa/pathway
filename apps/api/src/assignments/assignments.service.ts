@@ -77,6 +77,18 @@ export class AssignmentsService {
         session: { tenantId },
       },
       orderBy: { createdAt: "desc" },
+      include: {
+        session: {
+          select: {
+            id: true,
+            title: true,
+            startsAt: true,
+            endsAt: true,
+            group: { select: { id: true, name: true } },
+          },
+        },
+        user: { select: { id: true, name: true } },
+      },
     });
   }
 

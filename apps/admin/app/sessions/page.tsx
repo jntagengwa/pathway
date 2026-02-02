@@ -45,6 +45,32 @@ const assignmentStatusTone: Record<
   declined: "default",
 };
 
+const ISO_DATE_REGEX = /(\d{4}-\d{2}-\d{2})/g;
+
+function formatOrdinalDate(isoDateStr: string): string {
+  const d = new Date(isoDateStr);
+  if (Number.isNaN(d.getTime())) return isoDateStr;
+  const day = d.getDate();
+  const suffix =
+    day >= 11 && day <= 13
+      ? "th"
+      : day % 10 === 1
+        ? "st"
+        : day % 10 === 2
+          ? "nd"
+          : day % 10 === 3
+            ? "rd"
+            : "th";
+  const month = d.toLocaleDateString(undefined, { month: "short" });
+  return `${month} ${day}${suffix}`;
+}
+
+/** Replaces any YYYY-MM-DD in the title with "Feb 8th" style; leaves prefix (e.g. "Sunday ") as is. */
+function normalizeSessionTitle(title: string): string {
+  if (!title) return title;
+  return title.replace(ISO_DATE_REGEX, (match) => formatOrdinalDate(match));
+}
+
 function formatTimeRange(startsAt?: string, endsAt?: string) {
   if (!startsAt || !endsAt) return { date: "Unknown", range: "-" };
   const start = new Date(startsAt);
@@ -108,6 +134,8 @@ export default function SessionsPage() {
   const [statusFilter, setStatusFilter] = React.useState<
     "all" | "not_started" | "in_progress" | "completed"
   >("all");
+  const [sessionPage, setSessionPage] = React.useState(0);
+  const sessionPageSize = 10;
 
   const [weekStart, setWeekStart] = React.useState<Date>(
     () => startOfWeek(new Date()),
@@ -189,10 +217,16 @@ export default function SessionsPage() {
         header: "Session",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-text-primary">{row.title}</span>
-            <span className="text-sm text-text-muted">
-              {row.ageGroup} · {row.room}
+            <span className="font-semibold text-text-primary">
+              {normalizeSessionTitle(row.title)}
             </span>
+            {row.ageGroup !== "-" || row.room !== "-" ? (
+              <span className="text-sm text-text-muted">
+                {row.ageGroup === row.room
+                  ? row.ageGroup
+                  : `${row.ageGroup} · ${row.room}`}
+              </span>
+            ) : null}
           </div>
         ),
       },
@@ -233,6 +267,23 @@ export default function SessionsPage() {
     });
   }, [sessions, sessionSearch, statusFilter]);
 
+  const totalSessionPages = Math.max(
+    1,
+    Math.ceil(filteredSessions.length / sessionPageSize),
+  );
+  const paginatedSessions = React.useMemo(
+    () =>
+      filteredSessions.slice(
+        sessionPage * sessionPageSize,
+        (sessionPage + 1) * sessionPageSize,
+      ),
+    [filteredSessions, sessionPage, sessionPageSize],
+  );
+
+  React.useEffect(() => {
+    if (sessionPage >= totalSessionPages) setSessionPage(0);
+  }, [sessionPage, totalSessionPages]);
+
   const weekDates = React.useMemo(
     () => Array.from({ length: 7 }, (_, idx) => addDays(weekStart, idx)),
     [weekStart],
@@ -243,6 +294,40 @@ export default function SessionsPage() {
     [rotaDays],
   );
 
+  // Staff-by-day grid: unique staff sorted by name, then for each (staffId, date) list of assignments
+  const { rotaStaffOrder, rotaGrid } = React.useMemo(() => {
+    const staffById = new Map<
+      string,
+      { staffId: string; staffName: string }
+    >();
+    const grid = new Map<string, Map<string, AdminAssignmentRow[]>>();
+
+    rotaDays.forEach((day) => {
+      day.assignments.forEach((a) => {
+        if (!staffById.has(a.staffId)) {
+          staffById.set(a.staffId, {
+            staffId: a.staffId,
+            staffName: a.staffName || `Staff ${a.staffId.slice(0, 8)}`,
+          });
+        }
+        let row = grid.get(a.staffId);
+        if (!row) {
+          row = new Map();
+          grid.set(a.staffId, row);
+        }
+        const list = row.get(day.date) ?? [];
+        list.push(a);
+        row.set(day.date, list);
+      });
+    });
+
+    const staffOrder = Array.from(staffById.values()).sort((a, b) =>
+      a.staffName.localeCompare(b.staffName, undefined, { sensitivity: "base" }),
+    );
+
+    return { rotaStaffOrder: staffOrder, rotaGrid: grid };
+  }, [rotaDays]);
+
   const renderSessionsTab = () => (
     <Card
       title="Upcoming Sessions"
@@ -251,6 +336,9 @@ export default function SessionsPage() {
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={loadSessions}>
             Refresh
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <a href="/sessions/bulk-new">Bulk add</a>
           </Button>
           <Button asChild size="sm">
             <a href="/sessions/new">New session</a>
@@ -295,152 +383,271 @@ export default function SessionsPage() {
             </div>
           </div>
           <DataTable
-            data={filteredSessions}
+            data={paginatedSessions}
             columns={columns}
             isLoading={isLoadingSessions}
             emptyMessage="No sessions have been scheduled yet."
+            rowKey={(row) => row.id}
             onRowClick={(row) => {
               router.push(`/sessions/${row.id}`);
             }}
           />
+          {filteredSessions.length > sessionPageSize ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-3">
+              <p className="text-sm text-text-muted">
+                Showing{" "}
+                {sessionPage * sessionPageSize + 1}–
+                {Math.min(
+                  (sessionPage + 1) * sessionPageSize,
+                  filteredSessions.length,
+                )}{" "}
+                of {filteredSessions.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={sessionPage === 0}
+                  onClick={() => setSessionPage((p) => Math.max(0, p - 1))}
+                  aria-label="Previous page"
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-text-muted">
+                  Page {sessionPage + 1} of {totalSessionPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={sessionPage >= totalSessionPages - 1}
+                  onClick={() =>
+                    setSessionPage((p) =>
+                      Math.min(totalSessionPages - 1, p + 1),
+                    )
+                  }
+                  aria-label="Next page"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
     </Card>
   );
 
-  const renderRotaTab = () => (
-    <div className="flex flex-col gap-3">
-      <Card
-        title="Staff Rota"
-        description="Weekly view of who is scheduled on each session."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setWeekStart((prev) => addDays(prev, -7))}
-            >
-              Previous
-            </Button>
-            <div className="rounded-md border border-border-subtle bg-surface px-3 py-1 text-sm text-text-primary">
-              {formatWeekRange(weekStart)}
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setWeekStart((prev) => addDays(prev, 7))}
-            >
-              Next
-            </Button>
-          </div>
-        }
-      >
-        {rotaError ? (
-          <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
-            <span className="font-semibold">Unable to load rota</span>
-            <span>{rotaError}</span>
-            <div>
-              <Button size="sm" variant="secondary" onClick={() => loadRota(weekStart)}>
-                Retry
+  const renderRotaTab = () => {
+    const dayColMinWidth = "min-w-[180px]";
+    return (
+      <div className="flex flex-col gap-3">
+        <Card
+          title="Staff Rota"
+          description="Weekly view of who is scheduled on each session."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setWeekStart((prev) => addDays(prev, -7))}
+                aria-label="Previous week"
+              >
+                Previous
+              </Button>
+              <div className="rounded-md border border-border-subtle bg-surface px-3 py-1 text-sm text-text-primary">
+                {formatWeekRange(weekStart)}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeekStart(startOfWeek(new Date()))}
+              >
+                Today
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setWeekStart((prev) => addDays(prev, 7))}
+                aria-label="Next week"
+              >
+                Next
               </Button>
             </div>
-          </div>
-        ) : rotaLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-            {weekDates.map((date) => (
-              <div
-                key={date.toISOString()}
-                className="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-alt p-4"
-              >
-                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                <div className="space-y-2">
-                  <div className="h-3 w-full animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
-                </div>
+          }
+        >
+          {rotaError ? (
+            <div className="flex flex-col gap-2 rounded-md bg-status-danger/5 p-4 text-sm text-status-danger">
+              <span className="font-semibold">Unable to load rota</span>
+              <span>{rotaError}</span>
+              <div>
+                <Button size="sm" variant="secondary" onClick={() => loadRota(weekStart)}>
+                  Retry
+                </Button>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-            {weekDates.map((date) => {
-              const dateKey = date.toISOString().slice(0, 10);
-              const assignments = rotaMap.get(dateKey) ?? [];
-              const dayLabel = date.toLocaleDateString(undefined, {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-              return (
-                <div
-                  key={dateKey}
-                  className="flex min-h-[180px] flex-col gap-3 rounded-lg border border-border-subtle bg-surface-alt p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold text-text-primary">
-                      {dayLabel}
-                    </div>
-                    <span className="text-xs text-text-muted">
-                      {assignments.length
-                        ? `${assignments.length} staff`
-                        : "No staff"}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col gap-2">
-                    {assignments.length === 0 ? (
-                      <p className="text-sm text-text-muted">
-                        No staff are scheduled.
-                      </p>
-                    ) : (
-                      assignments.map((assignment) => {
-                        const { range } = formatTimeRange(
-                          assignment.startsAt,
-                          assignment.endsAt,
-                        );
-                        return (
-                          <button
-                            key={assignment.id}
-                            type="button"
-                            onClick={() =>
-                              router.push(`/sessions/${assignment.sessionId}`)
-                            }
-                            className="group flex w-full flex-col gap-1 rounded-md border border-border-subtle bg-white px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm font-semibold text-text-primary">
-                                {assignment.sessionTitle ?? "Session"}
-                              </span>
-                              <Badge variant={assignmentStatusTone[assignment.status]}>
-                                {assignment.status === "pending"
-                                  ? "Pending"
-                                  : assignment.status === "declined"
-                                    ? "Declined"
-                                    : "Confirmed"}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-text-muted">
-                              <span>{range}</span>
-                              <span className="font-medium text-text-primary">
-                                {assignment.staffName} · {assignment.roleLabel}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {!rotaLoading && !rotaError && rotaDays.length === 0 ? (
-          <p className="mt-2 text-sm text-text-muted">
-            No staff are scheduled in this week yet.
-          </p>
-        ) : null}
-      </Card>
-    </div>
-  );
+            </div>
+          ) : rotaLoading ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border-b border-border-subtle p-3 text-left text-sm font-medium text-text-muted" />
+                    {weekDates.map((date) => (
+                      <th
+                        key={date.toISOString()}
+                        className={`border-b border-border-subtle p-3 text-center text-sm font-medium text-text-muted ${dayColMinWidth}`}
+                      >
+                        <div className="h-4 w-20 animate-pulse rounded bg-muted mx-auto" />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3].map((i) => (
+                    <tr key={i}>
+                      <td className="border-b border-border-subtle p-3">
+                        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                      </td>
+                      {weekDates.map((_, dayIdx) => (
+                        <td
+                          key={dayIdx}
+                          className={`border-b border-border-subtle p-3 ${dayColMinWidth}`}
+                        >
+                          <div className="h-14 animate-pulse rounded bg-muted" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse table-fixed" style={{ minWidth: "max-content" }}>
+                <thead>
+                  <tr>
+                    <th className="w-52 shrink-0 border-b border-border-subtle bg-surface-alt p-3 text-left text-sm font-medium text-text-muted">
+                      Staff
+                    </th>
+                    {weekDates.map((date) => {
+                      const dateKey = date.toISOString().slice(0, 10);
+                      const count = rotaMap.get(dateKey)?.length ?? 0;
+                      const dayLabel = date.toLocaleDateString(undefined, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      });
+                      return (
+                        <th
+                          key={dateKey}
+                          className={`border-b border-border-subtle bg-surface-alt p-3 text-center text-sm font-medium text-text-muted ${dayColMinWidth}`}
+                        >
+                          <div>{dayLabel}</div>
+                          <div className="text-xs font-normal text-text-muted">
+                            {count} {count === 1 ? "session" : "sessions"}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rotaStaffOrder.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="border-b border-border-subtle p-6 text-center text-sm text-text-muted"
+                      >
+                        No staff are scheduled in this week yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    rotaStaffOrder.map((staff) => (
+                      <tr
+                        key={staff.staffId}
+                        className="hover:bg-surface-alt/50 transition-colors"
+                      >
+                        <td className="w-52 shrink-0 border-b border-border-subtle p-3 align-top">
+                          <span className="text-sm font-medium text-accent-primary">
+                            {staff.staffName}
+                          </span>
+                        </td>
+                        {weekDates.map((date) => {
+                          const dateKey = date.toISOString().slice(0, 10);
+                          const cellAssignments =
+                            rotaGrid.get(staff.staffId)?.get(dateKey) ?? [];
+                          return (
+                            <td
+                              key={dateKey}
+                              className={`border-b border-border-subtle p-3 align-top ${dayColMinWidth}`}
+                            >
+                              {cellAssignments.length === 0 ? (
+                                <div
+                                  className="flex min-h-[56px] items-center justify-center rounded-md border border-dashed border-border-subtle bg-surface-alt/30"
+                                  aria-hidden
+                                >
+                                  <span className="text-text-muted text-xl leading-none">+</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1.5">
+                                  {cellAssignments.map((assignment) => {
+                                    const { range } = formatTimeRange(
+                                      assignment.startsAt,
+                                      assignment.endsAt,
+                                    );
+                                    const tone =
+                                      assignmentStatusTone[assignment.status];
+                                    const bg =
+                                      tone === "success"
+                                        ? "bg-status-success/10"
+                                        : tone === "warning"
+                                          ? "bg-status-warning/10"
+                                          : "bg-surface-alt";
+                                    return (
+                                      <button
+                                        key={assignment.id}
+                                        type="button"
+                                        onClick={() =>
+                                          router.push(
+                                            `/sessions/${assignment.sessionId}`,
+                                          )
+                                        }
+                                        className={`flex w-full flex-col gap-0.5 rounded-md border border-accent-secondary px-2 py-1.5 text-left text-sm transition hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${bg}`}
+                                      >
+                                        <span className="truncate font-bold text-text-primary">
+                                          {assignment.sessionGroupName ??
+                                            assignment.sessionTitle ??
+                                            "Session"}
+                                        </span>
+                                        <span className="text-xs text-text-muted">
+                                          {range}
+                                        </span>
+                                        <span className="text-xs text-text-muted">
+                                          {assignment.roleLabel}
+                                          {assignment.status !== "confirmed" && (
+                                            <span className="ml-1">
+                                              · {assignment.status === "pending" ? "Pending" : "Declined"}
+                                            </span>
+                                          )}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">

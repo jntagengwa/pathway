@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import { prisma } from "@pathway/db";
+import { prisma, Weekday } from "@pathway/db";
 import {
   createSessionSchema,
   type CreateSessionDto,
@@ -13,6 +13,20 @@ import {
   updateSessionSchema,
   type UpdateSessionDto,
 } from "./dto/update-session.dto";
+import {
+  bulkCreateSessionsSchema,
+  type BulkCreateSessionsDto,
+} from "./dto/bulk-create-sessions.dto";
+
+const WEEKDAY_ORDER: Weekday[] = [
+  Weekday.SUN,
+  Weekday.MON,
+  Weekday.TUE,
+  Weekday.WED,
+  Weekday.THU,
+  Weekday.FRI,
+  Weekday.SAT,
+];
 
 export interface SessionListFilters {
   tenantId: string;
@@ -82,6 +96,9 @@ export class SessionsService {
     return prisma.session.findMany({
       where,
       orderBy: { startsAt: "asc" },
+      include: {
+        group: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -135,10 +152,116 @@ export class SessionsService {
           title: parsed.title?.trim() ?? null,
         },
       });
-      return created;
-    } catch (e) {
-      this.handlePrismaError(e, "create");
+    return created;
+  } catch (e) {
+    this.handlePrismaError(e, "create");
+  }
+  }
+
+  /**
+   * Bulk-create sessions for a date range and days of week.
+   * Does not create sessions in the past.
+   */
+  async bulkCreate(
+    input: BulkCreateSessionsDto,
+    tenantId: string,
+  ): Promise<{
+    created: Awaited<ReturnType<typeof prisma.session.create>>[];
+  }> {
+    let parsed: BulkCreateSessionsDto;
+    try {
+      parsed = bulkCreateSessionsSchema.parse(input);
+    } catch {
+      throw new BadRequestException("invalid body");
     }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true },
+    });
+    if (!tenant) throw new BadRequestException("tenant not found");
+
+    const groups = await prisma.group.findMany({
+      where: { id: { in: parsed.groupIds }, tenantId },
+      select: { id: true },
+    });
+    const foundIds = new Set(groups.map((g) => g.id));
+    const missing = parsed.groupIds.filter((id) => !foundIds.has(id));
+    if (missing.length) throw new BadRequestException("group not found or wrong tenant");
+
+    const [sh, sm] = parsed.startTime.split(":").map(Number);
+    const [eh, em] = parsed.endTime.split(":").map(Number);
+    const now = new Date();
+    const requestedDays = new Set(parsed.daysOfWeek);
+
+    const dates: { dateStr: string; startsAt: Date; endsAt: Date }[] = [];
+    const start = new Date(parsed.startDate + "T00:00:00");
+    const end = new Date(parsed.endDate + "T23:59:59");
+    for (
+      let d = new Date(start.getTime());
+      d <= end;
+      d.setDate(d.getDate() + 1)
+    ) {
+      const dayOfWeek = WEEKDAY_ORDER[d.getDay()];
+      if (!requestedDays.has(dayOfWeek)) continue;
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const day = d.getDate();
+      const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const startsAt = new Date(y, m, day, sh, sm, 0, 0);
+      const endsAt = new Date(y, m, day, eh, em, 0, 0);
+      if (startsAt < now) continue;
+      dates.push({ dateStr, startsAt, endsAt });
+    }
+
+    const created: Awaited<ReturnType<typeof prisma.session.create>>[] = [];
+    for (const groupId of parsed.groupIds) {
+      for (const { dateStr, startsAt, endsAt } of dates) {
+        const title = parsed.titlePrefix
+          ? `${parsed.titlePrefix.trim()} ${dateStr}`
+          : null;
+        const session = await prisma.session.create({
+          data: {
+            tenantId,
+            groupId,
+            startsAt,
+            endsAt,
+            title,
+          },
+        });
+        created.push(session);
+
+        if (parsed.assignmentUserIds?.length) {
+          for (const userId of parsed.assignmentUserIds) {
+            const user = await prisma.user.findFirst({
+              where: {
+                id: userId,
+                OR: [
+                  { tenantId },
+                  { siteMemberships: { some: { tenantId } } },
+                ],
+              },
+              select: { id: true },
+            });
+            if (!user) continue;
+            try {
+              await prisma.assignment.create({
+                data: {
+                  sessionId: session.id,
+                  userId: user.id,
+                  role: "TEACHER",
+                  status: "CONFIRMED",
+                },
+              });
+            } catch {
+              // ignore duplicate or FK errors for this user
+            }
+          }
+        }
+      }
+    }
+
+    return { created };
   }
 
   async update(id: string, input: UpdateSessionDto, tenantId: string) {

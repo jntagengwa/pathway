@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CalendarClock, MapPin, Trash2 } from "lucide-react";
-import { Badge, Button, Card } from "@pathway/ui";
+import { Badge, Button, Card, Label, Select } from "@pathway/ui";
 import {
   AdminAssignmentRow,
   AdminSessionDetail,
@@ -12,8 +12,19 @@ import {
   deleteAssignment,
   fetchAssignmentsForOrg,
   fetchSessionById,
+  fetchStaffEligibilityForSession,
   updateAssignment,
+  type StaffEligibilityRow,
 } from "../../../lib/api-client";
+
+const eligibilityReasonLabel: Record<
+  NonNullable<StaffEligibilityRow["reason"]>,
+  string
+> = {
+  unavailable_at_time: "Unavailable at this time",
+  does_not_prefer_group: "Does not prefer this age group",
+  blocked_on_date: "Blocked on this date",
+};
 
 const statusCopy: Record<AdminSessionDetail["status"], string> = {
   not_started: "Not started",
@@ -85,6 +96,11 @@ export default function SessionDetailPage() {
     React.useState<"pending" | "confirmed">("confirmed");
   const [formSubmitting, setFormSubmitting] = React.useState(false);
   const [rowActionId, setRowActionId] = React.useState<string | null>(null);
+  const [staffEligibility, setStaffEligibility] = React.useState<
+    StaffEligibilityRow[]
+  >([]);
+  const [staffEligibilityLoading, setStaffEligibilityLoading] =
+    React.useState(false);
 
   const refreshAssignments = React.useCallback(
     async (sessionMeta: AdminSessionDetail | null) => {
@@ -144,6 +160,32 @@ export default function SessionDetailPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  React.useEffect(() => {
+    if (!session?.startsAt || !session?.endsAt) {
+      setStaffEligibility([]);
+      return;
+    }
+    const sessionWithGroup = session as { groupId?: string | null };
+    setStaffEligibilityLoading(true);
+    fetchStaffEligibilityForSession({
+      groupId: sessionWithGroup.groupId ?? null,
+      startsAt: session.startsAt,
+      endsAt: session.endsAt,
+    })
+      .then(setStaffEligibility)
+      .catch(() => setStaffEligibility([]))
+      .finally(() => setStaffEligibilityLoading(false));
+  }, [session?.id, session?.startsAt, session?.endsAt, (session as { groupId?: string | null } | null)?.groupId]);
+
+  const assignedStaffIds = React.useMemo(
+    () => new Set(assignments.map((a) => a.staffId)),
+    [assignments],
+  );
+  const staffOptions = React.useMemo(
+    () => staffEligibility.filter((s) => !assignedStaffIds.has(s.id)),
+    [staffEligibility, assignedStaffIds],
+  );
 
   const time = formatTimeRange(session?.startsAt, session?.endsAt);
 
@@ -401,15 +443,16 @@ export default function SessionDetailPage() {
                 Add staff
               </h3>
               <p className="text-xs text-text-muted">
-                Enter a staff member and role to place them on this session.
-                TODO: replace staff ID input with autocomplete.
+                Choose a staff member and role. Eligible staff (available at this
+                time, prefer this class) are listed first; you may still add
+                others.
               </p>
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!session) return;
                   if (!formStaffId.trim()) {
-                    setAssignmentError("Enter a staff member ID to add.");
+                    setAssignmentError("Select a staff member to add.");
                     return;
                   }
                   setFormSubmitting(true);
@@ -448,39 +491,56 @@ export default function SessionDetailPage() {
                 }}
                 className="mt-3 grid gap-3 md:grid-cols-4"
               >
-                <label className="flex flex-col gap-1 text-sm font-medium text-text-primary md:col-span-2">
-                  Staff member (ID)
-                  <input
+                <div className="flex flex-col gap-1 md:col-span-2">
+                  <Label htmlFor="add-staff">Staff member</Label>
+                  <Select
+                    id="add-staff"
                     value={formStaffId}
                     onChange={(e) => setFormStaffId(e.target.value)}
-                    placeholder="e.g. user UUID"
-                    className="w-full rounded-md border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm font-medium text-text-primary">
-                  Role
-                  <select
+                    disabled={staffEligibilityLoading}
+                  >
+                    <option value="">Select…</option>
+                    {staffOptions.map((s) => (
+                      <option
+                        key={s.id}
+                        value={s.id}
+                        title={
+                          s.reason
+                            ? eligibilityReasonLabel[s.reason]
+                            : undefined
+                        }
+                      >
+                        {s.eligible
+                          ? s.fullName
+                          : `${s.fullName} — ${s.reason ? eligibilityReasonLabel[s.reason] : "Unavailable"}`}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="add-role">Role</Label>
+                  <Select
+                    id="add-role"
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
-                    className="rounded-md border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="Lead">Lead</option>
                     <option value="Support">Support</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-sm font-medium text-text-primary">
-                  Status
-                  <select
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="add-status">Status</Label>
+                  <Select
+                    id="add-status"
                     value={formStatus}
                     onChange={(e) =>
                       setFormStatus(e.target.value as "pending" | "confirmed")
                     }
-                    className="rounded-md border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="confirmed">Confirmed</option>
                     <option value="pending">Pending</option>
-                  </select>
-                </label>
+                  </Select>
+                </div>
                 <div className="md:col-span-4 flex flex-wrap items-center gap-2">
                   <Button type="submit" size="sm" disabled={formSubmitting}>
                     {formSubmitting ? "Adding…" : "Add to session"}
