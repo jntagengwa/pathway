@@ -39,6 +39,7 @@ export type AdminAssignmentRow = {
   roleLabel: "Lead" | "Support" | string;
   status: "pending" | "confirmed" | "declined";
   sessionTitle?: string;
+  sessionGroupName?: string;
   startsAt?: string;
   endsAt?: string;
 };
@@ -203,6 +204,17 @@ export type AdminStaffRow = {
   email: string | null;
   rolesLabel: string;
   status: "active" | "inactive" | "unknown";
+};
+
+/** Staff list with eligibility for session assignment (availability / preferred group). */
+export type StaffEligibilityRow = {
+  id: string;
+  fullName: string;
+  eligible: boolean;
+  reason?:
+    | "unavailable_at_time"
+    | "does_not_prefer_group"
+    | "blocked_on_date";
 };
 
 export type AdminStaffDetail = {
@@ -555,6 +567,7 @@ type ApiAssignment = {
     title?: string | null;
     startsAt?: string | null;
     endsAt?: string | null;
+    group?: { id: string; name: string } | null;
   } | null;
   user?: {
     id: string;
@@ -609,6 +622,7 @@ export const mapApiAssignmentToAdminRow = (
   const startsAt = sessionMeta?.startsAt ?? undefined;
   const endsAt = sessionMeta?.endsAt ?? undefined;
   const staffId = assignment.userId ?? "unknown";
+  const sessionGroupName = assignment.session?.group?.name ?? undefined;
 
   return {
     id: assignment.id,
@@ -620,6 +634,7 @@ export const mapApiAssignmentToAdminRow = (
     roleLabel: normalizeRoleLabel(assignment.role),
     status: normalizeAssignmentStatus(assignment.status),
     sessionTitle: sessionMeta?.title ?? undefined,
+    sessionGroupName: sessionGroupName ?? undefined,
     startsAt,
     endsAt,
   };
@@ -857,6 +872,7 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     startsAt: string;
     endsAt: string;
     groupId: string | null;
+    group?: { id: string; name: string } | null;
     groupLabel?: string | null;
     ageGroup?: string | null;
     ageGroupLabel?: string | null;
@@ -877,8 +893,8 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     title: s.title ?? "Session",
     startsAt: s.startsAt,
     endsAt: s.endsAt,
-    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "-",
-    room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "-",
+    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? s.group?.name ?? "-",
+    room: s.roomName ?? s.room ?? s.groupLabel ?? s.group?.name ?? s.groupId ?? "-",
     status: mapSessionStatus(s.startsAt, s.endsAt),
     attendanceMarked:
       s.attendanceMarked ??
@@ -956,6 +972,67 @@ export async function updateSession(
 
   const json = (await res.json()) as ApiSessionDetail;
   return mapApiSessionDetailToAdmin(json);
+}
+
+export type BulkCreateSessionsInput = {
+  groupIds: string[];
+  startDate: string;
+  endDate: string;
+  daysOfWeek: ("SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT")[];
+  startTime: string;
+  endTime: string;
+  titlePrefix?: string;
+  assignmentUserIds?: string[];
+};
+
+/** Compute how many sessions would be created (excluding past dates). */
+export function countBulkSessions(params: {
+  startDate: string;
+  endDate: string;
+  daysOfWeek: string[];
+  startTime: string;
+}): number {
+  const start = new Date(params.startDate + "T00:00:00");
+  const end = new Date(params.endDate + "T23:59:59");
+  const requestedDays = new Set(params.daysOfWeek);
+  const WEEKDAY = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const [h, m] = params.startTime.split(":").map(Number);
+  const now = new Date();
+  let count = 0;
+  for (
+    let d = new Date(start.getTime());
+    d <= end;
+    d.setDate(d.getDate() + 1)
+  ) {
+    const dayName = WEEKDAY[d.getDay()];
+    if (!requestedDays.has(dayName)) continue;
+    const sessionStart = new Date(d);
+    sessionStart.setHours(h, m, 0, 0);
+    if (sessionStart < now) continue;
+    count++;
+  }
+  return count;
+}
+
+export async function bulkCreateSessions(
+  input: BulkCreateSessionsInput,
+): Promise<{ created: AdminSessionDetail[] }> {
+  const res = await fetch(`${API_BASE_URL}/sessions/bulk`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to bulk create sessions (${res.status}): ${body || res.statusText}`,
+    );
+  }
+  const json = (await res.json()) as { created: ApiSessionDetail[] };
+  return {
+    created: json.created.map((s) => mapApiSessionDetailToAdmin(s)),
+  };
 }
 
 // ROTA: assignments are staff + session metadata only.
@@ -1154,6 +1231,29 @@ export async function fetchAssignmentsForOrg(
   );
 }
 
+/** Fetch staff with eligibility for assigning to a session (group + start/end time). */
+export async function fetchStaffEligibilityForSession(params: {
+  groupId?: string | null;
+  startsAt: string;
+  endsAt: string;
+}): Promise<StaffEligibilityRow[]> {
+  const search = new URLSearchParams();
+  if (params.groupId) search.set("groupId", params.groupId);
+  search.set("startsAt", params.startsAt);
+  search.set("endsAt", params.endsAt);
+  const res = await fetch(
+    `${API_BASE_URL}/staff/for-session-assignment?${search.toString()}`,
+    { headers: buildAuthHeaders(), cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch staff eligibility (${res.status}): ${body || res.statusText}`,
+    );
+  }
+  return res.json() as Promise<StaffEligibilityRow[]>;
+}
+
 export async function createAssignment(
   input: AdminAssignmentInput,
   opts?: {
@@ -1168,10 +1268,16 @@ export async function createAssignment(
     userLookup?: Record<string, { name?: string | null }>;
   },
 ): Promise<AdminAssignmentRow> {
+  const roleForApi =
+    input.role === "Lead"
+      ? "TEACHER"
+      : input.role === "Support"
+        ? "TEACHER"
+        : input.role;
   const payload = {
     sessionId: input.sessionId,
     userId: input.staffId,
-    role: input.role,
+    role: roleForApi,
     status:
       input.status === "confirmed"
         ? "CONFIRMED"

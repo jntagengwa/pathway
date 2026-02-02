@@ -14,6 +14,7 @@ import {
 import { SessionsService, SessionListFilters } from "./sessions.service";
 import { CreateSessionDto } from "./dto/create-session.dto";
 import { UpdateSessionDto } from "./dto/update-session.dto";
+import { bulkCreateSessionsSchema } from "./dto/bulk-create-sessions.dto";
 import { CurrentTenant, CurrentOrg } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
@@ -87,6 +88,22 @@ export class SessionsController {
     this.enforcement.assertWithinHardCap(av30);
     // TODO(Epic4-UI): Surface av30 status in response metadata for warnings
     return this.svc.create({ ...dto, tenantId }, tenantId);
+  }
+
+  @Post("bulk")
+  @UseGuards(AuthUserGuard)
+  async bulkCreate(
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+  ) {
+    const parsed = bulkCreateSessionsSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+    const av30 = await this.enforcement.checkAv30ForOrg(orgId);
+    this.enforcement.assertWithinHardCap(av30);
+    return this.svc.bulkCreate(parsed.data, tenantId);
   }
 
   @Patch(":id")

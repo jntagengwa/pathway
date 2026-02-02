@@ -7,6 +7,16 @@ import { prisma, Weekday } from "@pathway/db";
 import type { UpdateStaffDto } from "./dto/update-staff.dto";
 import { getPlanDefinition } from "../billing/billing-plans";
 
+const WEEKDAY_ORDER: Weekday[] = [
+  Weekday.SUN,
+  Weekday.MON,
+  Weekday.TUE,
+  Weekday.WED,
+  Weekday.THU,
+  Weekday.FRI,
+  Weekday.SAT,
+];
+
 function minuteFromTime(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
@@ -17,6 +27,13 @@ function timeFromMinute(min: number): string {
   const m = min % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
+
+export type StaffForAssignmentRow = {
+  id: string;
+  fullName: string;
+  eligible: boolean;
+  reason?: "unavailable_at_time" | "does_not_prefer_group" | "blocked_on_date";
+};
 
 /** Staff has access to tenant if they have SiteMembership or legacy User.tenantId */
 async function assertStaffInTenant(
@@ -38,6 +55,131 @@ async function assertStaffInTenant(
 
 @Injectable()
 export class StaffService {
+  /**
+   * Returns staff who can be assigned to a session, with eligibility flags.
+   * Eligibility is informational only; admins may override.
+   * - eligible: no conflict (available at time, not blocked on date, prefers group if groupId set).
+   * - reason: first applicable reason when not eligible (blocked_on_date > unavailable_at_time > does_not_prefer_group).
+   */
+  async getStaffForSessionAssignment(
+    tenantId: string,
+    params: {
+      groupId: string | null;
+      startsAt: Date;
+      endsAt: Date;
+    },
+  ): Promise<StaffForAssignmentRow[]> {
+    const sessionDate = new Date(params.startsAt);
+    const dateStr = sessionDate.toISOString().slice(0, 10);
+    const dayOfWeek = sessionDate.getDay();
+    const weekday = WEEKDAY_ORDER[dayOfWeek];
+    const startMin = Math.floor(params.startsAt.getTime() / 60000) % (24 * 60);
+    const endMin = Math.floor(params.endsAt.getTime() / 60000) % (24 * 60);
+
+    const memberIds = await prisma.siteMembership
+      .findMany({
+        where: { tenantId },
+        select: { userId: true },
+      })
+      .then((rows) => rows.map((r) => r.userId));
+
+    const legacyUserIds = await prisma.user
+      .findMany({
+        where: { tenantId },
+        select: { id: true },
+      })
+      .then((rows) => rows.map((r) => r.id));
+
+    const userIds = [...new Set([...memberIds, ...legacyUserIds])];
+    if (userIds.length === 0) return [];
+
+    const [users, unavailableDates, preferences, preferredGroups] =
+      await Promise.all([
+        prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            name: true,
+            displayName: true,
+          },
+        }),
+        prisma.staffUnavailableDate.findMany({
+          where: {
+            userId: { in: userIds },
+            tenantId,
+            date: new Date(dateStr),
+          },
+          select: { userId: true },
+        }),
+        prisma.volunteerPreference.findMany({
+          where: {
+            userId: { in: userIds },
+            tenantId,
+            weekday,
+          },
+          select: { userId: true, startMinute: true, endMinute: true },
+        }),
+        params.groupId
+          ? prisma.staffPreferredGroup.findMany({
+              where: {
+                userId: { in: userIds },
+                tenantId,
+                groupId: params.groupId,
+              },
+              select: { userId: true },
+            })
+          : Promise.resolve([]),
+      ]);
+
+    const blockedSet = new Set(unavailableDates.map((u) => u.userId));
+    const preferredSet = new Set(preferredGroups.map((p) => p.userId));
+    const availableByUser = new Map<string, boolean>();
+    for (const p of preferences) {
+      const overlaps =
+        startMin < p.endMinute && endMin > p.startMinute;
+      if (overlaps) {
+        availableByUser.set(p.userId, true);
+      }
+    }
+    for (const uid of userIds) {
+      if (!availableByUser.has(uid)) availableByUser.set(uid, false);
+    }
+
+    const rows: StaffForAssignmentRow[] = users.map((u) => {
+      const fullName =
+        [u.firstName, u.lastName].filter(Boolean).join(" ") ||
+        u.name ||
+        u.displayName ||
+        "Unknown";
+      let reason: StaffForAssignmentRow["reason"];
+      if (blockedSet.has(u.id)) reason = "blocked_on_date";
+      else if (!availableByUser.get(u.id)) reason = "unavailable_at_time";
+      else if (params.groupId && !preferredSet.has(u.id))
+        reason = "does_not_prefer_group";
+      return {
+        id: u.id,
+        fullName,
+        eligible: !reason,
+        reason,
+      };
+    });
+
+    const order: Record<StaffForAssignmentRow["reason"] & string, number> = {
+      blocked_on_date: 1,
+      unavailable_at_time: 2,
+      does_not_prefer_group: 3,
+    };
+    rows.sort((a, b) => {
+      const aE = a.eligible ? 0 : order[a.reason!] ?? 4;
+      const bE = b.eligible ? 0 : order[b.reason!] ?? 4;
+      if (aE !== bE) return aE - bE;
+      return a.fullName.localeCompare(b.fullName);
+    });
+    return rows;
+  }
+
   async getById(
     userId: string,
     tenantId: string,

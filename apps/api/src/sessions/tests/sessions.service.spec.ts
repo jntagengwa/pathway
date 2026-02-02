@@ -112,6 +112,9 @@ describe("SessionsService", () => {
       expect(sFindMany).toHaveBeenLastCalledWith({
         where: { tenantId: ids.tenant },
         orderBy: { startsAt: "asc" },
+        include: {
+          group: { select: { id: true, name: true } },
+        },
       });
     });
   });

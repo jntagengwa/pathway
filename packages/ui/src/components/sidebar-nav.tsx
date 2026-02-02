@@ -26,6 +26,8 @@ export type SidebarNavItem = {
   href: string;
   badge?: React.ReactNode;
   icon?: React.ReactNode;
+  /** Stable icon index (0–12) so filtered lists still get correct icons. */
+  iconIndex?: number;
   /** Optional access requirement - if not met, item will be filtered out */
   access?: string;
 };
@@ -57,21 +59,22 @@ const iconComponents: LucideIcon[] = [
   Settings,
 ];
 
-// Base items without icons - icons will be added in the component to avoid SSR hydration issues
+// Base items without icons - icons will be added in the component to avoid SSR hydration issues.
+// iconIndex is stable so when admin filters by access, each item keeps the correct icon.
 export const defaultSidebarItems: SidebarNavItem[] = [
-  { label: "Dashboard", href: "/", icon: undefined },
-  { label: "People", href: "/people", icon: undefined },
-  { label: "Children", href: "/children", icon: undefined },
-  { label: "Parents & Guardians", href: "/parents", icon: undefined },
-  { label: "Lessons", href: "/lessons", icon: undefined },
-  { label: "Classes", href: "/classes", icon: undefined },
-  { label: "Sessions & Rota", href: "/sessions", icon: undefined },
-  { label: "Attendance", href: "/attendance", icon: undefined },
-  { label: "Notices & Announcements", href: "/notices", icon: undefined },
-  { label: "Safeguarding", href: "/safeguarding", icon: undefined },
-  { label: "Billing", href: "/billing", icon: undefined },
-  { label: "Reports", href: "/reports", icon: undefined },
-  { label: "Settings", href: "/settings", icon: undefined },
+  { label: "Dashboard", href: "/", icon: undefined, iconIndex: 0 },
+  { label: "People", href: "/people", icon: undefined, iconIndex: 1 },
+  { label: "Children", href: "/children", icon: undefined, iconIndex: 2 },
+  { label: "Parents & Guardians", href: "/parents", icon: undefined, iconIndex: 3 },
+  { label: "Lessons", href: "/lessons", icon: undefined, iconIndex: 4 },
+  { label: "Classes", href: "/classes", icon: undefined, iconIndex: 5 },
+  { label: "Sessions & Rota", href: "/sessions", icon: undefined, iconIndex: 6 },
+  { label: "Attendance", href: "/attendance", icon: undefined, iconIndex: 7 },
+  { label: "Notices & Announcements", href: "/notices", icon: undefined, iconIndex: 8 },
+  { label: "Safeguarding", href: "/safeguarding", icon: undefined, iconIndex: 9 },
+  { label: "Billing", href: "/billing", icon: undefined, iconIndex: 10 },
+  { label: "Reports", href: "/reports", icon: undefined, iconIndex: 11 },
+  { label: "Settings", href: "/settings", icon: undefined, iconIndex: 12 },
 ];
 
 const isActive = (currentPath: string, href: string) =>
@@ -93,19 +96,21 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     setIsMounted(true);
   }, []);
 
-  // Add icons to items on client side only to avoid hydration mismatches
-  // Only render icons after component has mounted to prevent SSR/client mismatch
+  // Add icons to items on client side only to avoid hydration mismatches.
+  // Use item.iconIndex when present so filtered lists (e.g. by access) keep correct icons.
   const itemsWithIcons = React.useMemo(() => {
     return items.map((item, index) => {
-      // If item already has an icon, use it; otherwise add from iconComponents
       if (item.icon !== undefined && item.icon !== null) {
         return item;
       }
-      // Only render icons after mount to avoid hydration issues
       if (!isMounted) {
         return { ...item, icon: null };
       }
-      const IconComponent = iconComponents[index];
+      const iconIndex =
+        typeof item.iconIndex === "number" && item.iconIndex >= 0 && item.iconIndex < iconComponents.length
+          ? item.iconIndex
+          : index;
+      const IconComponent = iconComponents[iconIndex];
       return {
         ...item,
         icon: IconComponent ? <IconComponent className="h-4 w-4" /> : null,

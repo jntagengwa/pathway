@@ -202,7 +202,12 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
             }
           />
           <main className="flex-1 overflow-y-auto px-8 py-6">
-            <div className="mx-auto w-full max-w-5xl space-y-4">
+            <div
+              className={cn(
+                "mx-auto w-full space-y-4",
+                pathname === "/sessions" ? "max-w-[90rem]" : "max-w-5xl",
+              )}
+            >
               {showMockBanner && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
                   Running in mock API mode - some data is sample only.

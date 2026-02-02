@@ -17,6 +17,7 @@ interface SessionShape {
   title: string | null;
   createdAt: Date;
   updatedAt: Date;
+  group: { id: string; name: string } | null;
 }
 
 describe("SessionsController", () => {
@@ -33,6 +34,7 @@ describe("SessionsController", () => {
     title: "Kids service",
     createdAt: new Date("2024-12-31T00:00:00Z"),
     updatedAt: new Date("2024-12-31T00:00:00Z"),
+    group: { id: "g1", name: "Kids" },
   };
 
   // Strictly typed mock to avoid `any`
