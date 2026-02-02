@@ -2,10 +2,14 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { createGroupDto, type CreateGroupDto } from "./dto/create-group.dto";
 import { updateGroupDto, type UpdateGroupDto } from "./dto/update-group.dto";
+import { EntitlementsService } from "../billing/entitlements.service";
+import { getPlanDefinition } from "../billing/billing-plans";
 import { ZodError } from "zod";
 
 function isPrismaError(err: unknown): err is { code: string } {
@@ -17,14 +21,52 @@ function isPrismaError(err: unknown): err is { code: string } {
   );
 }
 
+export type ListGroupsOptions = { activeOnly?: boolean };
+
 @Injectable()
 export class GroupsService {
-  async list(tenantId: string) {
-    return prisma.group.findMany({
-      where: { tenantId },
-      select: { id: true, name: true, tenantId: true },
-      orderBy: { name: "asc" },
+  constructor(
+    @Inject(forwardRef(() => EntitlementsService))
+    private readonly entitlements: EntitlementsService,
+  ) {}
+
+  async list(tenantId: string, options: ListGroupsOptions = {}) {
+    const where: { tenantId: string; isActive?: boolean } = { tenantId };
+    if (options.activeOnly) {
+      where.isActive = true;
+    }
+
+    const groups = await prisma.group.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        tenantId: true,
+        minAge: true,
+        maxAge: true,
+        description: true,
+        isActive: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { sessions: true } },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
+
+    return groups.map((g) => ({
+      id: g.id,
+      name: g.name,
+      tenantId: g.tenantId,
+      minAge: g.minAge,
+      maxAge: g.maxAge,
+      description: g.description,
+      isActive: g.isActive,
+      sortOrder: g.sortOrder,
+      createdAt: g.createdAt,
+      updatedAt: g.updatedAt,
+      sessionsCount: g._count.sessions,
+    }));
   }
 
   async getById(id: string, tenantId: string) {
@@ -36,52 +78,93 @@ export class GroupsService {
         tenantId: true,
         minAge: true,
         maxAge: true,
+        description: true,
+        isActive: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { sessions: true } },
       },
     });
     if (!group) throw new NotFoundException("Group not found");
-    return group;
+    return {
+      ...group,
+      sessionsCount: group._count.sessions,
+      _count: undefined,
+    };
   }
 
   async create(input: CreateGroupDto, tenantId: string) {
-    // Normalize then validate
     const normalized: CreateGroupDto = {
       ...input,
       tenantId,
       name: String(input.name).trim(),
-      minAge: input.minAge,
-      maxAge: input.maxAge,
+      minAge: input.minAge ?? undefined,
+      maxAge: input.maxAge ?? undefined,
+      description: input.description?.trim() || undefined,
+      isActive: input.isActive ?? true,
+      sortOrder: input.sortOrder ?? undefined,
     };
 
     try {
       const parsed = createGroupDto.parse(normalized);
 
-      // additional validation: minAge must be <= maxAge
-      if (parsed.minAge > parsed.maxAge) {
+      const minAge = parsed.minAge ?? null;
+      const maxAge = parsed.maxAge ?? null;
+      if (
+        minAge !== null &&
+        maxAge !== null &&
+        typeof minAge === "number" &&
+        typeof maxAge === "number" &&
+        minAge > maxAge
+      ) {
         throw new BadRequestException("minAge cannot exceed maxAge");
       }
 
-      // ensure tenant exists to return clean 400 instead of FK error
-      const tenantExists = await prisma.tenant.findUnique({
+      const tenant = await prisma.tenant.findUnique({
         where: { id: parsed.tenantId },
-        select: { id: true },
+        select: { id: true, orgId: true },
       });
-      if (!tenantExists) {
+      if (!tenant) {
         throw new BadRequestException("tenant not found");
       }
 
-      // optional: prevent duplicate group names per tenant (if you have a unique index)
-      // adjust if schema enforces uniqueness differently
+      // Plan gating: Core plan max 4 active classes
+      if (parsed.isActive !== false) {
+        const resolved = await this.entitlements.resolve(tenant.orgId);
+        const planCode =
+          resolved.subscription?.planCode ?? resolved.flags?.planCode;
+        const def = getPlanDefinition(
+          typeof planCode === "string" ? planCode : null,
+        );
+        const maxActive = def?.maxActiveClasses ?? null;
+        if (maxActive !== null) {
+          const activeCount = await prisma.group.count({
+            where: { tenantId: parsed.tenantId, isActive: true },
+          });
+          if (activeCount >= maxActive) {
+            throw new BadRequestException(
+              `Your plan allows a maximum of ${maxActive} active classes. Upgrade to add more.`,
+            );
+          }
+        }
+      }
+
       const existing = await prisma.group.findFirst({
         where: { tenantId: parsed.tenantId, name: parsed.name },
       });
-      if (existing)
+      if (existing) {
         throw new BadRequestException("group name already exists for tenant");
+      }
 
       return await prisma.group.create({
         data: {
           name: parsed.name,
-          minAge: parsed.minAge,
-          maxAge: parsed.maxAge,
+          minAge: parsed.minAge ?? undefined,
+          maxAge: parsed.maxAge ?? undefined,
+          description: parsed.description ?? undefined,
+          isActive: parsed.isActive ?? true,
+          sortOrder: parsed.sortOrder ?? undefined,
           tenant: { connect: { id: parsed.tenantId } },
         },
         select: {
@@ -90,14 +173,19 @@ export class GroupsService {
           tenantId: true,
           minAge: true,
           maxAge: true,
+          description: true,
+          isActive: true,
+          sortOrder: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
     } catch (e: unknown) {
+      if (e instanceof BadRequestException) throw e;
       if (e instanceof ZodError) {
         throw new BadRequestException(e.errors);
       }
       if (isPrismaError(e) && e.code === "P2002") {
-        // unique constraint violation
         throw new BadRequestException("group already exists");
       }
       throw e;
@@ -115,31 +203,76 @@ export class GroupsService {
 
       const existing = await prisma.group.findFirst({
         where: { id, tenantId },
-        select: { id: true, tenantId: true },
+        select: { id: true, tenantId: true, isActive: true },
       });
       if (!existing) throw new NotFoundException("Group not found");
 
-      // if both ages provided, ensure logical order
+      // Plan gating when activating a class
+      if (parsed.isActive === true && !existing.isActive) {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { orgId: true },
+        });
+        if (tenant) {
+          const resolved = await this.entitlements.resolve(tenant.orgId);
+          const planCode =
+            resolved.subscription?.planCode ?? resolved.flags?.planCode;
+          const def = getPlanDefinition(
+            typeof planCode === "string" ? planCode : null,
+          );
+          const maxActive = def?.maxActiveClasses ?? null;
+          if (maxActive !== null) {
+            const activeCount = await prisma.group.count({
+              where: { tenantId, isActive: true },
+            });
+            if (activeCount >= maxActive) {
+              throw new BadRequestException(
+                `Your plan allows a maximum of ${maxActive} active classes. Upgrade to add more.`,
+              );
+            }
+          }
+        }
+      }
+
+      const minAge = parsed.minAge ?? null;
+      const maxAge = parsed.maxAge ?? null;
       if (
-        typeof parsed.minAge === "number" &&
-        typeof parsed.maxAge === "number" &&
-        parsed.minAge > parsed.maxAge
+        minAge !== null &&
+        maxAge !== null &&
+        typeof minAge === "number" &&
+        typeof maxAge === "number" &&
+        minAge > maxAge
       ) {
         throw new BadRequestException("minAge cannot exceed maxAge");
       }
 
+      const data: Record<string, unknown> = {};
+      if (parsed.name !== undefined) data.name = parsed.name;
+      if (parsed.minAge !== undefined) data.minAge = parsed.minAge;
+      if (parsed.maxAge !== undefined) data.maxAge = parsed.maxAge;
+      if (parsed.description !== undefined) data.description = parsed.description;
+      if (parsed.isActive !== undefined) data.isActive = parsed.isActive;
+      if (parsed.sortOrder !== undefined) data.sortOrder = parsed.sortOrder;
+
       return await prisma.group.update({
         where: { id },
-        data: parsed,
+        data,
         select: {
           id: true,
           name: true,
           tenantId: true,
           minAge: true,
           maxAge: true,
+          description: true,
+          isActive: true,
+          sortOrder: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
     } catch (e: unknown) {
+      if (e instanceof BadRequestException) throw e;
+      if (e instanceof NotFoundException) throw e;
       if (e instanceof ZodError) {
         throw new BadRequestException(e.errors);
       }

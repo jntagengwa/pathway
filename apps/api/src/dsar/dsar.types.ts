@@ -6,7 +6,12 @@ export interface ChildDsarExport {
     allergies: string | null;
     disabilities: string[];
     notes: string | null;
-    group?: { id: string; name: string; minAge: number; maxAge: number } | null;
+    group?: {
+      id: string;
+      name: string;
+      minAge: number | null;
+      maxAge: number | null;
+    } | null;
   };
   parents: Array<{
     id: string;

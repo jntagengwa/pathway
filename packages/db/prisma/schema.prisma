@@ -334,8 +334,11 @@ model Child {
 model Group {
   id          String       @id @default(uuid())
   name        String
-  minAge      Int
-  maxAge      Int
+  minAge      Int?
+  maxAge      Int?
+  description String?
+  isActive    Boolean      @default(true)
+  sortOrder   Int?
   tenantId    String
   tenant      Tenant       @relation(fields: [tenantId], references: [id])
   children              Child[]
@@ -343,7 +346,10 @@ model Group {
   sessions              Session[]
   lessons               Lesson[]
   staffPreferredGroups  StaffPreferredGroup[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
+  @@unique([tenantId, name])
   @@index([tenantId])
 }
 

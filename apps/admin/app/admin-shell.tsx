@@ -36,13 +36,14 @@ const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = 
   { ...defaultSidebarItems[2], access: "staff-or-admin" }, // Children
   { ...defaultSidebarItems[3], access: "staff-or-admin" }, // Parents & Guardians
   { ...defaultSidebarItems[4], access: "staff-or-admin" }, // Lessons
-  { ...defaultSidebarItems[5], access: "staff-or-admin" }, // Sessions & Rota
-  { ...defaultSidebarItems[6], access: "staff-or-admin" }, // Attendance
-  { ...defaultSidebarItems[7], access: "staff-or-admin" }, // Notices & Announcements
-  { ...defaultSidebarItems[8], access: "safeguarding-admin" }, // Safeguarding
-  { ...defaultSidebarItems[9], access: "billing" }, // Billing
-  { ...defaultSidebarItems[10], access: "admin-only" }, // Reports
-  { ...defaultSidebarItems[11], access: "admin-only" }, // Settings
+  { ...defaultSidebarItems[5], access: "staff-or-admin" }, // Classes
+  { ...defaultSidebarItems[6], access: "staff-or-admin" }, // Sessions & Rota
+  { ...defaultSidebarItems[7], access: "staff-or-admin" }, // Attendance
+  { ...defaultSidebarItems[8], access: "staff-or-admin" }, // Notices & Announcements
+  { ...defaultSidebarItems[9], access: "safeguarding-admin" }, // Safeguarding
+  { ...defaultSidebarItems[10], access: "billing" }, // Billing
+  { ...defaultSidebarItems[11], access: "admin-only" }, // Reports
+  { ...defaultSidebarItems[12], access: "admin-only" }, // Settings
 ];
 
 const titleMap: Record<string, string> = {
@@ -53,6 +54,7 @@ const titleMap: Record<string, string> = {
   "/children": "Children",
   "/parents": "Parents & Guardians",
   "/lessons": "Lessons",
+  "/classes": "Classes",
   "/sessions": "Sessions & Rota",
   "/attendance": "Attendance",
   "/notices": "Notices & Announcements",

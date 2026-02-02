@@ -24,6 +24,8 @@ export type PlanDefinition = {
   smsMessagesIncluded: number | null;
   leaderSeatsIncluded: number | null;
   maxSitesIncluded: number | null;
+  /** Max active classes/groups per site. Core=4, Starter+=null (no limit). */
+  maxActiveClasses: number | null;
   flags?: { canExceedAv30WithOverage?: boolean; enterpriseOnly?: boolean };
 };
 
@@ -39,6 +41,7 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: 1,
+    maxActiveClasses: 4,
   },
   CORE_YEARLY: {
     code: "CORE_YEARLY",
@@ -51,6 +54,7 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: 1,
+    maxActiveClasses: 4,
   },
   MINIMUM_MONTHLY: {
     code: "MINIMUM_MONTHLY",
@@ -63,6 +67,7 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: 1,
+    maxActiveClasses: 4,
   },
   MINIMUM_YEARLY: {
     code: "MINIMUM_YEARLY",
@@ -75,6 +80,7 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: 1,
+    maxActiveClasses: 4,
   },
   STARTER_MONTHLY: {
     code: "STARTER_MONTHLY",
@@ -82,11 +88,12 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     displayName: "Starter",
     billingPeriod: "monthly",
     selfServe: true,
-    av30Included: 50, // Option A: Starter includes 50 Active People (AV30).
-    storageGbIncluded: null, // Option A does not define storage included for Starter.
-    smsMessagesIncluded: null, // Option A does not define SMS included for Starter.
-    leaderSeatsIncluded: null, // Option A does not define leader seats; keep null until specified.
-    maxSitesIncluded: 1, // Option A: Starter includes 1 site.
+    av30Included: 50,
+    storageGbIncluded: null,
+    smsMessagesIncluded: null,
+    leaderSeatsIncluded: null,
+    maxSitesIncluded: 1,
+    maxActiveClasses: null,
   },
   STARTER_YEARLY: {
     code: "STARTER_YEARLY",
@@ -99,6 +106,7 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: 1,
+    maxActiveClasses: null,
   },
   GROWTH_MONTHLY: {
     code: "GROWTH_MONTHLY",
@@ -106,11 +114,12 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     displayName: "Growth",
     billingPeriod: "monthly",
     selfServe: true,
-    av30Included: 200, // Option A: Growth includes 200 Active People (AV30).
-    storageGbIncluded: null, // Option A does not define storage included for Growth.
-    smsMessagesIncluded: null, // Option A does not define SMS included for Growth.
-    leaderSeatsIncluded: null, // Option A does not define leader seats; keep null until specified.
-    maxSitesIncluded: 3, // Option A: Growth includes 3 sites.
+    av30Included: 200,
+    storageGbIncluded: null,
+    smsMessagesIncluded: null,
+    leaderSeatsIncluded: null,
+    maxSitesIncluded: 3,
+    maxActiveClasses: null,
   },
   GROWTH_YEARLY: {
     code: "GROWTH_YEARLY",
@@ -123,6 +132,7 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: 3,
+    maxActiveClasses: null,
   },
   ENTERPRISE_CONTACT: {
     code: "ENTERPRISE_CONTACT",
@@ -130,11 +140,12 @@ export const PLAN_CATALOGUE: Readonly<Record<PlanCode, PlanDefinition>> = {
     displayName: "Enterprise (contact us)",
     billingPeriod: "none",
     selfServe: false,
-    av30Included: null, // Enterprise is bespoke; caps set per contract/snapshot.
+    av30Included: null,
     storageGbIncluded: null,
     smsMessagesIncluded: null,
     leaderSeatsIncluded: null,
     maxSitesIncluded: null,
+    maxActiveClasses: null,
     flags: { enterpriseOnly: true },
   },
 };

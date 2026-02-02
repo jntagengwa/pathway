@@ -68,7 +68,7 @@ export default function EditStaffPage() {
     try {
       const [staffData, groupsData] = await Promise.all([
         fetchStaffDetailForEdit(userId),
-        fetchGroups(),
+        fetchGroups({ activeOnly: true }),
       ]);
       if (!staffData) {
         setNotFound(true);

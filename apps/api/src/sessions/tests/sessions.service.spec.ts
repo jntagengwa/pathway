@@ -237,10 +237,14 @@ describe("SessionsService", () => {
     });
 
     it("rejects when new group is cross-tenant", async () => {
+      const crossTenantGroupId = "22222222-2222-2222-2222-222222222222";
       sFindFirst.mockResolvedValue(base);
-      gFindUnique.mockResolvedValue({ id: "g2", tenantId: "other" });
+      gFindUnique.mockResolvedValue({
+        id: crossTenantGroupId,
+        tenantId: "other-tenant-id",
+      });
       await expect(
-        svc.update(base.id, { groupId: "g2" }, ids.tenant),
+        svc.update(base.id, { groupId: crossTenantGroupId }, ids.tenant),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

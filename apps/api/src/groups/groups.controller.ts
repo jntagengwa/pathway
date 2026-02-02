@@ -9,6 +9,7 @@ import {
   BadRequestException,
   UseGuards,
   Inject,
+  Query,
 } from "@nestjs/common";
 import { CurrentTenant } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
@@ -22,8 +23,12 @@ export class GroupsController {
   constructor(@Inject(GroupsService) private readonly groupsService: GroupsService) {}
 
   @Get()
-  async list(@CurrentTenant("tenantId") tenantId: string) {
-    return this.groupsService.list(tenantId);
+  async list(
+    @CurrentTenant("tenantId") tenantId: string,
+    @Query("activeOnly") activeOnly?: string,
+  ) {
+    const activeOnlyBool = activeOnly === "true" || activeOnly === "1";
+    return this.groupsService.list(tenantId, { activeOnly: activeOnlyBool });
   }
 
   @Get(":id")

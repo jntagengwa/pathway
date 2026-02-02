@@ -51,7 +51,7 @@ describe("GroupsController", () => {
 
   it("list should return array", async () => {
     await expect(controller.list(tenantId)).resolves.toEqual([group]);
-    expect(service.list).toHaveBeenCalledWith(tenantId);
+    expect(service.list).toHaveBeenCalledWith(tenantId, { activeOnly: false });
   });
 
   it("getById should return a group when found", async () => {

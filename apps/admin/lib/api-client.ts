@@ -751,11 +751,12 @@ type ApiSessionDetail = {
 
 const mapApiSessionDetailToAdmin = (
   s: ApiSessionDetail,
-): AdminSessionDetail => ({
+): AdminSessionDetail & { groupId?: string | null } => ({
   id: s.id,
   title: s.title ?? "Session",
   startsAt: s.startsAt,
   endsAt: s.endsAt,
+  groupId: s.groupId ?? undefined,
   ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "-",
   room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "-",
   status: mapSessionStatus(s.startsAt, s.endsAt),
@@ -933,7 +934,9 @@ export async function updateSession(
     ...(input.title ? { title: input.title.trim() } : {}),
     ...(input.startsAt ? { startsAt: input.startsAt } : {}),
     ...(input.endsAt ? { endsAt: input.endsAt } : {}),
-    ...(input.groupId ? { groupId: input.groupId } : {}),
+    ...(input.groupId !== undefined
+      ? { groupId: input.groupId || null }
+      : {}),
     ...(input.tenantId ? { tenantId: input.tenantId } : {}),
   };
 
@@ -3090,7 +3093,10 @@ export type GroupOption = {
   name: string;
 };
 
-export async function fetchGroups(): Promise<GroupOption[]> {
+/** Fetch groups; use activeOnly: true for session creation / staff preference pickers */
+export async function fetchGroups(options?: {
+  activeOnly?: boolean;
+}): Promise<GroupOption[]> {
   if (isUsingMockApi()) {
     return [
       { id: "g1", name: "Year 3" },
@@ -3099,7 +3105,11 @@ export async function fetchGroups(): Promise<GroupOption[]> {
     ];
   }
 
-  const res = await fetch(`${API_BASE_URL}/groups`, {
+  const params = new URLSearchParams();
+  if (options?.activeOnly) params.set("activeOnly", "true");
+  const qs = params.toString();
+  const url = `${API_BASE_URL}/groups${qs ? `?${qs}` : ""}`;
+  const res = await fetch(url, {
     headers: buildAuthHeaders(),
     cache: "no-store",
   });
@@ -3111,6 +3121,171 @@ export async function fetchGroups(): Promise<GroupOption[]> {
 
   const json = (await res.json()) as GroupOption[];
   return json;
+}
+
+// --- Classes / Groups management ---
+
+export type ClassRow = {
+  id: string;
+  name: string;
+  tenantId: string;
+  minAge: number | null;
+  maxAge: number | null;
+  description: string | null;
+  isActive: boolean;
+  sortOrder: number | null;
+  createdAt: string;
+  updatedAt: string;
+  sessionsCount: number;
+};
+
+export type CreateClassPayload = {
+  name: string;
+  minAge?: number | null;
+  maxAge?: number | null;
+  description?: string | null;
+  isActive?: boolean;
+  sortOrder?: number | null;
+};
+
+export type UpdateClassPayload = {
+  name?: string;
+  minAge?: number | null;
+  maxAge?: number | null;
+  description?: string | null;
+  isActive?: boolean;
+  sortOrder?: number | null;
+};
+
+export async function fetchClasses(): Promise<ClassRow[]> {
+  if (isUsingMockApi()) {
+    return [
+      {
+        id: "g1",
+        name: "Year 3",
+        tenantId: "t1",
+        minAge: 7,
+        maxAge: 8,
+        description: null,
+        isActive: true,
+        sortOrder: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        sessionsCount: 3,
+      },
+    ];
+  }
+
+  const res = await fetch(`${API_BASE_URL}/groups`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch classes: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as ClassRow[];
+}
+
+export async function fetchClassById(id: string): Promise<ClassRow | null> {
+  if (isUsingMockApi()) {
+    return {
+      id,
+      name: "Year 3",
+      tenantId: "t1",
+      minAge: 7,
+      maxAge: 8,
+      description: null,
+      isActive: true,
+      sortOrder: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionsCount: 3,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/groups/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch class: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as ClassRow;
+}
+
+export async function createClass(
+  tenantId: string,
+  payload: CreateClassPayload,
+): Promise<ClassRow> {
+  if (isUsingMockApi()) {
+    return {
+      id: "g-new",
+      name: payload.name,
+      tenantId: "t1",
+      minAge: payload.minAge ?? null,
+      maxAge: payload.maxAge ?? null,
+      description: payload.description ?? null,
+      isActive: payload.isActive ?? true,
+      sortOrder: payload.sortOrder ?? null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionsCount: 0,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/groups`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify({ ...payload, tenantId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to create class: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as ClassRow;
+}
+
+export async function updateClass(
+  id: string,
+  payload: UpdateClassPayload,
+): Promise<ClassRow> {
+  if (isUsingMockApi()) {
+    return {
+      id,
+      name: payload.name ?? "Updated",
+      tenantId: "t1",
+      minAge: payload.minAge ?? null,
+      maxAge: payload.maxAge ?? null,
+      description: payload.description ?? null,
+      isActive: payload.isActive ?? true,
+      sortOrder: payload.sortOrder ?? null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionsCount: 0,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/groups/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update class: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as ClassRow;
 }
 
 export async function fetchStaffById(
