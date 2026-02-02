@@ -1,4 +1,14 @@
 import "reflect-metadata";
+import { config } from "dotenv";
+import path from "node:path";
+
+// Load .env from cwd (e.g. apps/api), then from repo root so RESEND_API_KEY etc. are available
+config();
+config({
+  path: path.resolve(process.cwd(), "../../.env"),
+  override: false,
+});
+
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";

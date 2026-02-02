@@ -65,7 +65,9 @@ export type AdminSessionFormValues = {
   title: string;
   startsAt: string;
   endsAt: string;
+  /** @deprecated use groupIds */
   groupId?: string;
+  groupIds?: string[];
   tenantId?: string;
 };
 
@@ -417,6 +419,23 @@ function buildAuthHeaders(): HeadersInit {
   return headers;
 }
 
+/** Get current user id from API (when session.user.id is missing). */
+export async function fetchMe(): Promise<{ userId: string }> {
+  if (isUsingMockApi()) {
+    return { userId: "" };
+  }
+  const res = await fetch(`${API_BASE_URL}/auth/me`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to get current user (${res.status}): ${body || res.statusText}`);
+  }
+  return res.json() as Promise<{ userId: string }>;
+}
+
 // --- Auth / Active Site helpers ---
 export type SiteOption = {
   id: string;
@@ -622,7 +641,11 @@ export const mapApiAssignmentToAdminRow = (
   const startsAt = sessionMeta?.startsAt ?? undefined;
   const endsAt = sessionMeta?.endsAt ?? undefined;
   const staffId = assignment.userId ?? "unknown";
-  const sessionGroupName = assignment.session?.group?.name ?? undefined;
+  const sessionGroupName =
+    assignment.session?.groups?.length
+      ? assignment.session.groups.map((g) => g.name).join(", ")
+      : (assignment.session as { group?: { name: string } })?.group?.name ??
+        undefined;
 
   return {
     id: assignment.id,
@@ -754,6 +777,7 @@ type ApiSessionDetail = {
   room?: string | null;
   roomName?: string | null;
   groupId?: string | null;
+  groups?: { id: string; name: string }[];
   groupLabel?: string | null;
   attendanceMarked?: number | null;
   attendanceTotal?: number | null;
@@ -766,14 +790,15 @@ type ApiSessionDetail = {
 
 const mapApiSessionDetailToAdmin = (
   s: ApiSessionDetail,
-): AdminSessionDetail & { groupId?: string | null } => ({
+): AdminSessionDetail & { groupId?: string | null; groupIds?: string[] } => ({
   id: s.id,
   title: s.title ?? "Session",
   startsAt: s.startsAt,
   endsAt: s.endsAt,
-  groupId: s.groupId ?? undefined,
+  groupId: s.groups?.[0]?.id ?? s.groupId ?? undefined,
+  groupIds: s.groups?.map((g) => g.id) ?? (s.groupId ? [s.groupId] : []),
   ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "-",
-  room: s.roomName ?? s.room ?? s.groupLabel ?? s.groupId ?? "-",
+  room: s.roomName ?? s.room ?? s.groupLabel ?? s.groups?.[0]?.name ?? s.groupId ?? "-",
   status: mapSessionStatus(s.startsAt, s.endsAt),
   attendanceMarked:
     s.attendanceMarked ??
@@ -816,6 +841,7 @@ export async function fetchSessionById(
 
   const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
     headers: buildAuthHeaders(),
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -856,6 +882,7 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
 
   const res = await fetch(`${API_BASE_URL}/sessions`, {
     headers: buildAuthHeaders(),
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -871,7 +898,8 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     title: string | null;
     startsAt: string;
     endsAt: string;
-    groupId: string | null;
+    groupId?: string | null;
+    groups?: { id: string; name: string }[];
     group?: { id: string; name: string } | null;
     groupLabel?: string | null;
     ageGroup?: string | null;
@@ -893,8 +921,8 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     title: s.title ?? "Session",
     startsAt: s.startsAt,
     endsAt: s.endsAt,
-    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? s.group?.name ?? "-",
-    room: s.roomName ?? s.room ?? s.groupLabel ?? s.group?.name ?? s.groupId ?? "-",
+    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? s.groups?.[0]?.name ?? s.group?.name ?? "-",
+    room: s.roomName ?? s.room ?? s.groupLabel ?? s.groups?.[0]?.name ?? s.group?.name ?? s.groupId ?? "-",
     status: mapSessionStatus(s.startsAt, s.endsAt),
     attendanceMarked:
       s.attendanceMarked ??
@@ -911,13 +939,20 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
   }));
 }
 
-// CreateSessionDto fields: tenantId (server will enforce), groupId?, startsAt, endsAt, title?
+// CreateSessionDto: tenantId, groupIds?, startsAt, endsAt, title?
 export async function createSession(
   input: AdminSessionFormValues,
 ): Promise<AdminSessionDetail> {
+  const groupIds = (
+    input.groupIds?.length
+      ? input.groupIds
+      : input.groupId
+        ? [input.groupId]
+        : []
+  ).filter(Boolean);
   const payload = {
     tenantId: input.tenantId ?? getDefaultTenantId(),
-    groupId: input.groupId || undefined,
+    ...(groupIds.length ? { groupIds } : {}),
     startsAt: input.startsAt,
     endsAt: input.endsAt,
     title: input.title?.trim() || undefined,
@@ -926,6 +961,7 @@ export async function createSession(
   const res = await fetch(`${API_BASE_URL}/sessions`, {
     method: "POST",
     headers: buildAuthHeaders(),
+    credentials: "include",
     cache: "no-store",
     body: JSON.stringify(payload),
   });
@@ -941,24 +977,29 @@ export async function createSession(
   return mapApiSessionDetailToAdmin(json);
 }
 
-// UpdateSessionDto fields: tenantId?, groupId?, startsAt?, endsAt?, title?
+// UpdateSessionDto: tenantId?, groupIds?, startsAt?, endsAt?, title?
 export async function updateSession(
   id: string,
   input: Partial<AdminSessionFormValues>,
 ): Promise<AdminSessionDetail> {
+  const groupIds =
+    input.groupIds !== undefined
+      ? input.groupIds.filter(Boolean)
+      : input.groupId !== undefined
+        ? (input.groupId ? [input.groupId] : [])
+        : undefined;
   const payload = {
     ...(input.title ? { title: input.title.trim() } : {}),
     ...(input.startsAt ? { startsAt: input.startsAt } : {}),
     ...(input.endsAt ? { endsAt: input.endsAt } : {}),
-    ...(input.groupId !== undefined
-      ? { groupId: input.groupId || null }
-      : {}),
+    ...(groupIds !== undefined ? { groupIds } : {}),
     ...(input.tenantId ? { tenantId: input.tenantId } : {}),
   };
 
   const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
     method: "PATCH",
     headers: buildAuthHeaders(),
+    credentials: "include",
     cache: "no-store",
     body: JSON.stringify(payload),
   });
@@ -1039,8 +1080,10 @@ export async function bulkCreateSessions(
 // Do not expose safeguarding content or internal provider payloads.
 export async function fetchAssignmentsForOrg(
   params: {
+    userId?: string;
     dateFrom?: string;
     dateTo?: string;
+    status?: string;
     sessionId?: string;
     sessionLookup?: Record<
       string,
@@ -1054,8 +1097,10 @@ export async function fetchAssignmentsForOrg(
   } = {},
 ): Promise<AdminAssignmentRow[]> {
   const {
+    userId,
     dateFrom,
     dateTo,
+    status,
     sessionId,
     sessionLookup: providedSessionLookup,
     userLookup: providedUserLookup,
@@ -1197,6 +1242,18 @@ export async function fetchAssignmentsForOrg(
 
   const assignmentQuery = new URLSearchParams();
   if (sessionId) assignmentQuery.set("sessionId", sessionId);
+  if (params.userId) assignmentQuery.set("userId", params.userId);
+  if (params.dateFrom) assignmentQuery.set("dateFrom", params.dateFrom);
+  if (params.dateTo) assignmentQuery.set("dateTo", params.dateTo);
+  if (params.status)
+    assignmentQuery.set(
+      "status",
+      params.status === "confirmed"
+        ? "CONFIRMED"
+        : params.status === "declined"
+          ? "DECLINED"
+          : "PENDING",
+    );
 
   const res = await fetch(
     `${API_BASE_URL}/assignments${
@@ -1204,6 +1261,7 @@ export async function fetchAssignmentsForOrg(
     }`,
     {
       headers: buildAuthHeaders(),
+      credentials: "include",
       cache: "no-store",
     },
   );
@@ -1243,7 +1301,11 @@ export async function fetchStaffEligibilityForSession(params: {
   search.set("endsAt", params.endsAt);
   const res = await fetch(
     `${API_BASE_URL}/staff/for-session-assignment?${search.toString()}`,
-    { headers: buildAuthHeaders(), cache: "no-store" },
+    {
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      cache: "no-store",
+    },
   );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -1289,6 +1351,7 @@ export async function createAssignment(
   const res = await fetch(`${API_BASE_URL}/assignments`, {
     method: "POST",
     headers: buildAuthHeaders(),
+    credentials: "include",
     cache: "no-store",
     body: JSON.stringify(payload),
   });
@@ -1361,6 +1424,14 @@ export async function updateAssignment(
   });
 }
 
+/** Update only the assignment status (accept/decline). Staff can only update their own unless admin. */
+export async function updateAssignmentStatus(
+  assignmentId: string,
+  status: "pending" | "confirmed" | "declined",
+): Promise<AdminAssignmentRow> {
+  return updateAssignment(assignmentId, { status });
+}
+
 export async function deleteAssignment(id: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/assignments/${id}`, {
     method: "DELETE",
@@ -1376,12 +1447,109 @@ export async function deleteAssignment(id: string): Promise<void> {
   }
 }
 
-export async function fetchAssignmentsForCurrentStaff(params: {
+/** Fetch assignments for the current staff user (My Schedule). Pass userId from session. */
+export async function fetchMyAssignments(params: {
+  userId: string;
   dateFrom?: string;
   dateTo?: string;
+  status?: "pending" | "confirmed" | "declined";
 }): Promise<AdminAssignmentRow[]> {
-  // TODO: once auth exposes staff userId, filter assignments to current staff only and reuse in mobile app.
-  return fetchAssignmentsForOrg(params);
+  return fetchAssignmentsForOrg({
+    userId: params.userId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+    status: params.status,
+  });
+}
+
+/** Minimal swap request shape for My Schedule / swap UI */
+export type AdminSwapRequestRow = {
+  id: string;
+  assignmentId: string;
+  fromUserId: string;
+  toUserId: string | null;
+  status: "REQUESTED" | "ACCEPTED" | "DECLINED" | "CANCELLED";
+  createdAt: string;
+};
+
+export async function createSwapRequest(params: {
+  fromUserId: string;
+  assignmentId: string;
+  toUserId: string;
+}): Promise<AdminSwapRequestRow> {
+  const res = await fetch(`${API_BASE_URL}/swaps`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({
+      fromUserId: params.fromUserId,
+      assignmentId: params.assignmentId,
+      toUserId: params.toUserId,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to create swap request (${res.status}): ${body || res.statusText}`);
+  }
+  return res.json() as Promise<AdminSwapRequestRow>;
+}
+
+/** Fetch swap requests where the current user is from or to. */
+export async function fetchMySwapRequests(userId: string): Promise<AdminSwapRequestRow[]> {
+  const [fromRes, toRes] = await Promise.all([
+    fetch(`${API_BASE_URL}/swaps?fromUserId=${encodeURIComponent(userId)}`, {
+      headers: buildAuthHeaders(),
+      cache: "no-store",
+    }),
+    fetch(`${API_BASE_URL}/swaps?toUserId=${encodeURIComponent(userId)}`, {
+      headers: buildAuthHeaders(),
+      cache: "no-store",
+    }),
+  ]);
+  if (!fromRes.ok || !toRes.ok) {
+    const body = await fromRes.text().catch(() => "") || (await toRes.text().catch(() => ""));
+    throw new Error(`Failed to load swap requests: ${body || "unknown"}`);
+  }
+  const fromList = (await fromRes.json()) as AdminSwapRequestRow[];
+  const toList = (await toRes.json()) as AdminSwapRequestRow[];
+  const seen = new Set<string>();
+  const merged: AdminSwapRequestRow[] = [];
+  for (const r of [...fromList, ...toList]) {
+    if (!seen.has(r.id)) {
+      seen.add(r.id);
+      merged.push(r);
+    }
+  }
+  merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return merged;
+}
+
+export async function acceptSwapRequest(id: string): Promise<AdminSwapRequestRow> {
+  const res = await fetch(`${API_BASE_URL}/swaps/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({ status: "ACCEPTED" }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to accept swap (${res.status}): ${body || res.statusText}`);
+  }
+  return res.json() as Promise<AdminSwapRequestRow>;
+}
+
+export async function declineSwapRequest(id: string): Promise<AdminSwapRequestRow> {
+  const res = await fetch(`${API_BASE_URL}/swaps/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({ status: "DECLINED" }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to decline swap (${res.status}): ${body || res.statusText}`);
+  }
+  return res.json() as Promise<AdminSwapRequestRow>;
 }
 
 // TODO: replace with real API call using tenant-scoped endpoint and auth headers
@@ -3217,6 +3385,7 @@ export async function fetchGroups(options?: {
   const url = `${API_BASE_URL}/groups${qs ? `?${qs}` : ""}`;
   const res = await fetch(url, {
     headers: buildAuthHeaders(),
+    credentials: "include",
     cache: "no-store",
   });
 

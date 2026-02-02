@@ -69,12 +69,13 @@ export const defaultSidebarItems: SidebarNavItem[] = [
   { label: "Lessons", href: "/lessons", icon: undefined, iconIndex: 4 },
   { label: "Classes", href: "/classes", icon: undefined, iconIndex: 5 },
   { label: "Sessions & Rota", href: "/sessions", icon: undefined, iconIndex: 6 },
-  { label: "Attendance", href: "/attendance", icon: undefined, iconIndex: 7 },
-  { label: "Notices & Announcements", href: "/notices", icon: undefined, iconIndex: 8 },
-  { label: "Safeguarding", href: "/safeguarding", icon: undefined, iconIndex: 9 },
-  { label: "Billing", href: "/billing", icon: undefined, iconIndex: 10 },
-  { label: "Reports", href: "/reports", icon: undefined, iconIndex: 11 },
-  { label: "Settings", href: "/settings", icon: undefined, iconIndex: 12 },
+  { label: "My schedule", href: "/my-schedule", icon: undefined, iconIndex: 7 },
+  { label: "Attendance", href: "/attendance", icon: undefined, iconIndex: 8 },
+  { label: "Notices & Announcements", href: "/notices", icon: undefined, iconIndex: 9 },
+  { label: "Safeguarding", href: "/safeguarding", icon: undefined, iconIndex: 10 },
+  { label: "Billing", href: "/billing", icon: undefined, iconIndex: 11 },
+  { label: "Reports", href: "/reports", icon: undefined, iconIndex: 12 },
+  { label: "Settings", href: "/settings", icon: undefined, iconIndex: 13 },
 ];
 
 const isActive = (currentPath: string, href: string) =>

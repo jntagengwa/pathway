@@ -38,12 +38,13 @@ const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = 
   { ...defaultSidebarItems[4], access: "staff-or-admin" }, // Lessons
   { ...defaultSidebarItems[5], access: "staff-or-admin" }, // Classes
   { ...defaultSidebarItems[6], access: "staff-or-admin" }, // Sessions & Rota
-  { ...defaultSidebarItems[7], access: "staff-or-admin" }, // Attendance
-  { ...defaultSidebarItems[8], access: "staff-or-admin" }, // Notices & Announcements
-  { ...defaultSidebarItems[9], access: "safeguarding-admin" }, // Safeguarding
-  { ...defaultSidebarItems[10], access: "billing" }, // Billing
-  { ...defaultSidebarItems[11], access: "admin-only" }, // Reports
-  { ...defaultSidebarItems[12], access: "admin-only" }, // Settings
+  { ...defaultSidebarItems[7], access: "staff-or-admin" }, // My schedule
+  { ...defaultSidebarItems[8], access: "staff-or-admin" }, // Attendance
+  { ...defaultSidebarItems[9], access: "staff-or-admin" }, // Notices & Announcements
+  { ...defaultSidebarItems[10], access: "safeguarding-admin" }, // Safeguarding
+  { ...defaultSidebarItems[11], access: "billing" }, // Billing
+  { ...defaultSidebarItems[12], access: "admin-only" }, // Reports
+  { ...defaultSidebarItems[13], access: "admin-only" }, // Settings
 ];
 
 const titleMap: Record<string, string> = {
@@ -56,6 +57,7 @@ const titleMap: Record<string, string> = {
   "/lessons": "Lessons",
   "/classes": "Classes",
   "/sessions": "Sessions & Rota",
+  "/my-schedule": "My schedule",
   "/attendance": "Attendance",
   "/notices": "Notices & Announcements",
   "/safeguarding": "Safeguarding & Wellbeing",

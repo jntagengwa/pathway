@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { ChildrenController } from "../../children/children.controller";
 import { ChildrenService } from "../../children/children.service";
 import { CreateChildDto } from "../../children/dto/create-child.dto";
@@ -37,6 +38,8 @@ describe("ChildrenController", () => {
       providers: [{ provide: ChildrenService, useValue: mockService }],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

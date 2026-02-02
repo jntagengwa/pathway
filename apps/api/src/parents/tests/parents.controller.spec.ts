@@ -6,6 +6,7 @@ import {
   UserOrgRole,
   UserTenantRole,
 } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { ParentsController } from "../parents.controller";
 import { ParentsService } from "../parents.service";
 import type { ParentDetailDto, ParentSummaryDto } from "../dto/parents.dto";
@@ -58,6 +59,8 @@ describe("ParentsController", () => {
       ],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

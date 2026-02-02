@@ -3,6 +3,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { SwapsController } from "../..//swaps/swaps.controller";
 import { SwapsService } from "../..//swaps/swaps.service";
 import { CreateSwapDto, UpdateSwapDto } from "../..//swaps/dto";
@@ -102,6 +103,8 @@ describe("SwapsController", () => {
       providers: [{ provide: SwapsService, useValue: serviceMock }],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

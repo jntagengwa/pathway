@@ -74,16 +74,15 @@ export class SessionsService {
   async list(filters: SessionListFilters) {
     const where: {
       tenantId: string;
-      groupId?: string | null;
+      groups?: { some: { id: string } };
       AND?: Array<Record<string, unknown>>;
     } = { tenantId: filters.tenantId };
 
-    if (filters.groupId) where.groupId = filters.groupId;
+    if (filters.groupId) where.groups = { some: { id: filters.groupId } };
 
     const andClauses: Array<Record<string, unknown>> = [];
     const { from, to } = filters;
     if (from && to) {
-      // overlapping window: startsAt <= to AND endsAt >= from
       andClauses.push({ startsAt: { lte: to } });
       andClauses.push({ endsAt: { gte: from } });
     } else if (from) {
@@ -97,13 +96,16 @@ export class SessionsService {
       where,
       orderBy: { startsAt: "asc" },
       include: {
-        group: { select: { id: true, name: true } },
+        groups: { select: { id: true, name: true } },
       },
     });
   }
 
   async getById(id: string, tenantId: string) {
-    const s = await prisma.session.findFirst({ where: { id, tenantId } });
+    const s = await prisma.session.findFirst({
+      where: { id, tenantId },
+      include: { groups: { select: { id: true, name: true } } },
+    });
     if (!s) throw new NotFoundException("Session not found");
     return s;
   }
@@ -130,32 +132,41 @@ export class SessionsService {
     });
     if (!tenant) throw new BadRequestException("tenant not found");
 
-    // optional group tenant check
-    if (parsed.groupId) {
-      const grp = await prisma.group.findUnique({
-        where: { id: parsed.groupId },
-        select: { tenantId: true },
+    const groupIds = (
+      parsed.groupIds?.length
+        ? parsed.groupIds
+        : parsed.groupId
+          ? [parsed.groupId]
+          : []
+    ) as string[];
+
+    if (groupIds.length) {
+      const groups = await prisma.group.findMany({
+        where: { id: { in: groupIds }, tenantId },
+        select: { id: true },
       });
-      if (!grp) throw new BadRequestException("group not found");
-      if (grp.tenantId !== tenantId)
-        throw new BadRequestException("group/tenant mismatch");
+      const found = new Set(groups.map((g) => g.id));
+      const missing = groupIds.filter((id) => !found.has(id));
+      if (missing.length) throw new BadRequestException("group not found or wrong tenant");
     }
 
-    // At this point inputs are valid and tenant/group consistency is checked
     try {
       const created = await prisma.session.create({
         data: {
           tenantId,
-          groupId: parsed.groupId ?? null,
+          groups: groupIds.length
+            ? { connect: groupIds.map((id) => ({ id })) }
+            : undefined,
           startsAt: parsed.startsAt,
           endsAt: parsed.endsAt,
           title: parsed.title?.trim() ?? null,
         },
+        include: { groups: { select: { id: true, name: true } } },
       });
-    return created;
-  } catch (e) {
-    this.handlePrismaError(e, "create");
-  }
+      return created;
+    } catch (e) {
+      this.handlePrismaError(e, "create");
+    }
   }
 
   /**
@@ -223,7 +234,7 @@ export class SessionsService {
         const session = await prisma.session.create({
           data: {
             tenantId,
-            groupId,
+            groups: { connect: [{ id: groupId }] },
             startsAt,
             endsAt,
             title,
@@ -267,54 +278,33 @@ export class SessionsService {
   async update(id: string, input: UpdateSessionDto, tenantId: string) {
     const changes = updateSessionSchema.parse(input);
 
-    // Fetch current for cross-field validation when only one date is provided
     const current = await prisma.session.findFirst({
       where: { id, tenantId },
-      select: { tenantId: true, groupId: true, startsAt: true, endsAt: true },
+      select: { tenantId: true, startsAt: true, endsAt: true, groups: { select: { id: true } } },
     });
     if (!current) throw new NotFoundException("Session not found");
 
-    // Prevent cross-tenant changes
     if (changes.tenantId && changes.tenantId !== tenantId) {
       throw new BadRequestException("tenantId must match current tenant");
     }
 
-    // If groupId provided, validate tenant match
-    if (typeof changes.groupId !== "undefined" && changes.groupId !== null) {
-      const grp = await prisma.group.findUnique({
-        where: { id: changes.groupId },
-        select: { tenantId: true },
-      });
-      if (!grp) throw new BadRequestException("group not found");
-      const targetTenantId = tenantId;
-      if (grp.tenantId !== targetTenantId)
-        throw new BadRequestException("group/tenant mismatch");
-    }
+    const groupIds =
+      changes.groupIds !== undefined
+        ? (changes.groupIds ?? [])
+        : changes.groupId !== undefined
+          ? (changes.groupId ? [changes.groupId] : [])
+          : undefined;
 
-    // If tenantId provided, ensure it exists
-    if (typeof changes.tenantId !== "undefined") {
-      const t = await prisma.tenant.findUnique({
-        where: { id: changes.tenantId },
+    if (groupIds && groupIds.length) {
+      const groups = await prisma.group.findMany({
+        where: { id: { in: groupIds }, tenantId },
         select: { id: true },
       });
-      if (!t) throw new BadRequestException("tenant not found");
-      // If current or incoming group is set, re-validate group/tenant consistency
-      const candidateGroupId =
-        typeof changes.groupId === "undefined"
-          ? current.groupId
-          : changes.groupId;
-      if (candidateGroupId) {
-        const grp = await prisma.group.findUnique({
-          where: { id: candidateGroupId },
-          select: { tenantId: true },
-        });
-        if (!grp) throw new BadRequestException("group not found");
-        if (grp.tenantId !== tenantId)
-          throw new BadRequestException("group/tenant mismatch");
-      }
+      const found = new Set(groups.map((g) => g.id));
+      const missing = groupIds.filter((id) => !found.has(id));
+      if (missing.length) throw new BadRequestException("group not found or wrong tenant");
     }
 
-    // Validate date ordering if only one boundary provided
     const nextStarts = changes.startsAt ?? current.startsAt;
     const nextEnds = changes.endsAt ?? current.endsAt;
     if (nextEnds <= nextStarts)
@@ -325,10 +315,9 @@ export class SessionsService {
         where: { id },
         data: {
           tenantId: current.tenantId,
-          groupId:
-            typeof changes.groupId === "undefined"
-              ? current.groupId
-              : (changes.groupId ?? null),
+          ...(groupIds !== undefined
+            ? { groups: { set: groupIds.map((id) => ({ id })) } }
+            : {}),
           startsAt: nextStarts,
           endsAt: nextEnds,
           title:
@@ -336,6 +325,7 @@ export class SessionsService {
               ? undefined
               : (changes.title?.trim() ?? null),
         },
+        include: { groups: { select: { id: true, name: true } } },
       });
       return updated;
     } catch (e) {

@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { OrgsController } from "../orgs.controller";
 import { OrgsService } from "../orgs.service";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 
 // Helper type: the resolved return type of OrgsService.register
 type RegisterReturn = Awaited<ReturnType<OrgsService["register"]>>;
@@ -23,6 +24,8 @@ describe("OrgsController", () => {
       providers: [{ provide: OrgsService, useValue: mockOrgsService }],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

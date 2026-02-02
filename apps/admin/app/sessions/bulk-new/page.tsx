@@ -3,8 +3,9 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, ChevronDown } from "lucide-react";
-import { Button, Card, Input, Label, Select, cn } from "@pathway/ui";
+import { ArrowLeft } from "lucide-react";
+import { Button, Card, Input, Label } from "@pathway/ui";
+import { DropdownMultiSelect } from "../../../components/dropdown-multi-select";
 import {
   bulkCreateSessions,
   countBulkSessions,
@@ -49,24 +50,6 @@ export default function BulkNewSessionsPage() {
   const [groupsLoadError, setGroupsLoadError] = React.useState<string | null>(
     null,
   );
-  const [classesDropdownOpen, setClassesDropdownOpen] =
-    React.useState(false);
-  const classesDropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        classesDropdownRef.current &&
-        !classesDropdownRef.current.contains(event.target as Node)
-      ) {
-        setClassesDropdownOpen(false);
-      }
-    }
-    if (classesDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [classesDropdownOpen]);
 
   // Only fetch classes and staff after session is ready so auth header is set
   React.useEffect(() => {
@@ -180,73 +163,15 @@ export default function BulkNewSessionsPage() {
         ) : null}
 
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-          <div className="flex flex-col gap-2" ref={classesDropdownRef}>
-            <Label>Classes / groups</Label>
-            <button
-              type="button"
-              onClick={() => setClassesDropdownOpen((open) => !open)}
-              className={cn(
-                "flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-border-subtle bg-white px-3 py-2 text-left text-sm text-text-primary shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                !groupIds.length && "text-text-muted",
-              )}
-              aria-expanded={classesDropdownOpen}
-              aria-haspopup="listbox"
-            >
-              <span className="min-w-0 truncate" title={groupIds.length ? groupIds.map((id) => classes.find((c) => c.id === id)?.name ?? id).join(", ") : undefined}>
-                {groupIds.length === 0
-                  ? "Select classes…"
-                  : groupIds
-                      .map((id) => classes.find((c) => c.id === id)?.name ?? id)
-                      .join(", ")}
-              </span>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 shrink-0 text-text-muted transition-transform",
-                  classesDropdownOpen && "rotate-180",
-                )}
-              />
-            </button>
-            {classesDropdownOpen ? (
-              <div className="z-10 max-h-48 overflow-y-auto rounded-md border border-border-subtle bg-white py-1 shadow-md">
-                {classes.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-text-muted">
-                    No classes available
-                  </p>
-                ) : (
-                  <ul role="listbox" className="py-1">
-                    {classes.map((c) => {
-                      const checked = groupIds.includes(c.id);
-                      return (
-                        <li key={c.id}>
-                          <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-muted">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => {
-                                setGroupIds((prev) =>
-                                  checked
-                                    ? prev.filter((id) => id !== c.id)
-                                    : [...prev, c.id],
-                                );
-                              }}
-                              className="h-4 w-4 rounded border-border-subtle"
-                            />
-                            <span className="truncate">{c.name}</span>
-                          </label>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            ) : null}
-            <p className="text-xs text-text-muted">
-              Sessions will be created for each selected class.
-            </p>
-            {groupsLoadError ? (
-              <p className="text-xs text-status-danger">{groupsLoadError}</p>
-            ) : null}
-          </div>
+          <DropdownMultiSelect
+            label="Classes / groups"
+            options={classes.map((c) => ({ value: c.id, label: c.name }))}
+            value={groupIds}
+            onChange={setGroupIds}
+            placeholder="Select classes…"
+            helperText="Sessions will be created for each selected class."
+            error={groupsLoadError ?? undefined}
+          />
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-2">
@@ -327,32 +252,15 @@ export default function BulkNewSessionsPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="assignments">Pre-assign teachers (optional)</Label>
-            <Select
-              id="assignments"
-              multiple
-              value={assignmentUserIds}
-              onChange={(e) => {
-                const selected = Array.from(
-                  e.target.selectedOptions,
-                  (o) => o.value,
-                );
-                setAssignmentUserIds(selected);
-              }}
-              className="min-h-[80px]"
-            >
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.fullName}
-                </option>
-              ))}
-            </Select>
-            <p className="text-xs text-text-muted">
-              Assigned staff may be unavailable for some sessions; you can
-              adjust after creation.
-            </p>
-          </div>
+          <DropdownMultiSelect
+            id="assignments"
+            label="Pre-assign teachers (optional)"
+            options={staff.map((s) => ({ value: s.id, label: s.fullName }))}
+            value={assignmentUserIds}
+            onChange={setAssignmentUserIds}
+            placeholder="Select staff…"
+            helperText="Assigned staff may be unavailable for some sessions; you can adjust after creation."
+          />
 
           <div className="rounded-lg border border-border-subtle bg-surface-alt px-4 py-3">
             <p className="font-medium text-text-primary">

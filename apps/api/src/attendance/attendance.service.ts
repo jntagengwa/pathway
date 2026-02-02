@@ -64,12 +64,16 @@ export class AttendanceService {
     if (input.sessionId) {
       const session = await prisma.session.findUnique({
         where: { id: input.sessionId },
-        select: { id: true, tenantId: true, groupId: true },
+        select: { id: true, tenantId: true, groups: { select: { id: true } } },
       });
       if (!session || session.tenantId !== tenantId) {
         throw new NotFoundException("Attendance not found");
       }
-      if (session.groupId && session.groupId !== input.groupId) {
+      if (
+        session.groups.length > 0 &&
+        input.groupId &&
+        !session.groups.some((g) => g.id === input.groupId)
+      ) {
         throw new BadRequestException("session is for a different group");
       }
     }
@@ -140,17 +144,16 @@ export class AttendanceService {
     if (input.sessionId) {
       const session = await prisma.session.findUnique({
         where: { id: input.sessionId },
-        select: { id: true, tenantId: true, groupId: true },
+        select: { id: true, tenantId: true, groups: { select: { id: true } } },
       });
       if (!session || session.tenantId !== tenantId) {
         throw new NotFoundException("Attendance not found");
       }
-      // If either the incoming groupId or the current groupId exists, ensure it matches the session's group (when session has one)
       const effectiveGroupId = input.groupId ?? current.groupId ?? undefined;
       if (
-        session.groupId &&
+        session.groups.length > 0 &&
         effectiveGroupId &&
-        session.groupId !== effectiveGroupId
+        !session.groups.some((g) => g.id === effectiveGroupId)
       ) {
         throw new BadRequestException("session is for a different group");
       }

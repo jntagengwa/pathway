@@ -343,7 +343,7 @@ model Group {
   tenant      Tenant       @relation(fields: [tenantId], references: [id])
   children              Child[]
   attendances           Attendance[]
-  sessions              Session[]
+  sessions              Session[]   // many-to-many with Session
   lessons               Lesson[]
   staffPreferredGroups  StaffPreferredGroup[]
   createdAt   DateTime     @default(now())
@@ -386,8 +386,7 @@ model Session {
   id          String       @id @default(uuid())
   tenantId    String
   tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  groupId     String?
-  group       Group?       @relation(fields: [groupId], references: [id])
+  groups      Group[]      // many-to-many: session can be for multiple classes
   startsAt    DateTime
   endsAt      DateTime
   title       String?
@@ -397,7 +396,6 @@ model Session {
   updatedAt   DateTime     @updatedAt
 
   @@index([tenantId])
-  @@index([groupId])
   @@index([startsAt])
 }
 

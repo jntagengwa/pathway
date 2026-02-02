@@ -86,9 +86,9 @@ describe("Sessions (e2e)", () => {
         data: {
           id: ids.session,
           tenantId,
+          groups: { connect: [{ id: ids.group }] },
           startsAt: new Date("2025-01-01T15:00:00.000Z"),
           endsAt: new Date("2025-01-01T16:00:00.000Z"),
-          groupId: ids.group,
         },
       });
     });
@@ -107,9 +107,9 @@ describe("Sessions (e2e)", () => {
         data: {
           id: ids.otherSession,
           tenantId: otherTenantId,
+          groups: { connect: [{ id: ids.otherGroup }] },
           startsAt: new Date("2025-02-01T15:00:00.000Z"),
           endsAt: new Date("2025-02-01T16:00:00.000Z"),
-          groupId: ids.otherGroup,
         },
       });
     });

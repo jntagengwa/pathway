@@ -64,7 +64,7 @@ describe("Assignments (e2e)", () => {
       const session = await tx.session.create({
         data: {
           tenantId,
-          groupId: group.id,
+          groups: { connect: [{ id: group.id }] },
           startsAt: new Date(Date.now() + 60 * 60 * 1000),
           endsAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
         },

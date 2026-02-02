@@ -84,12 +84,12 @@ export class DsarService {
       .map((a) => a.sessionId)
       .filter((id): id is string => Boolean(id));
 
-    const sessions = sessionIds.length
+    const sessionsRaw = sessionIds.length
       ? await prisma.session.findMany({
           where: { id: { in: Array.from(new Set(sessionIds)) }, tenantId },
           select: {
             id: true,
-            groupId: true,
+            groups: { select: { id: true } },
             startsAt: true,
             endsAt: true,
             title: true,
@@ -97,6 +97,14 @@ export class DsarService {
           orderBy: { startsAt: "desc" },
         })
       : [];
+
+    const sessions = sessionsRaw.map((s) => ({
+      id: s.id,
+      groupIds: s.groups.map((g) => g.id),
+      startsAt: s.startsAt,
+      endsAt: s.endsAt,
+      title: s.title,
+    }));
 
     return {
       child,

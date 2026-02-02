@@ -72,7 +72,7 @@ async function seedTenantData(
         data: {
           id: sessionId,
           tenantId,
-          groupId,
+          groups: { connect: [{ id: groupId }] },
           startsAt: baseTime,
           endsAt: new Date(baseTime.getTime() + 60 * 60 * 1000),
           title: `Session ${label}`,
