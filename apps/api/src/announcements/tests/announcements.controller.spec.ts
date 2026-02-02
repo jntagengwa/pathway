@@ -2,6 +2,7 @@ import { Test } from "@nestjs/testing";
 import { AnnouncementsController } from "../announcements.controller";
 import { AnnouncementsService } from "../announcements.service";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import {
   Av30HardCapExceededError,
   EntitlementsEnforcementService,
@@ -81,6 +82,8 @@ describe("AnnouncementsController", () => {
       ],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

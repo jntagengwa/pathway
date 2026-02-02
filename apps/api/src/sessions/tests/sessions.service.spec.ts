@@ -8,12 +8,12 @@ import type { Prisma } from "@pathway/db";
 type SessionRow = {
   id: string;
   tenantId: string;
-  groupId: string | null;
   startsAt: Date;
   endsAt: Date;
   title: string | null;
   createdAt: Date;
   updatedAt: Date;
+  groups?: { id: string; name: string }[];
 };
 
 describe("SessionsService", () => {
@@ -39,6 +39,9 @@ describe("SessionsService", () => {
       args: Prisma.GroupFindUniqueArgs,
     ) => Promise<{ id: string; tenantId: string } | null>
   >;
+  const gFindMany = jest.fn() as jest.MockedFunction<
+    (args: Prisma.GroupFindManyArgs) => Promise<{ id: string }[]>
+  >;
 
   const svc = new SessionsService();
 
@@ -53,12 +56,12 @@ describe("SessionsService", () => {
   const base: SessionRow = {
     id: "sess-1",
     tenantId: ids.tenant,
-    groupId: ids.group,
     startsAt: now,
     endsAt: later,
     title: "Sunday 11am",
     createdAt: now,
     updatedAt: now,
+    groups: [{ id: ids.group, name: "Kids" }],
   };
 
   beforeEach(() => {
@@ -96,6 +99,11 @@ describe("SessionsService", () => {
       .mockImplementation(
         gFindUnique as unknown as typeof realPrisma.group.findUnique,
       );
+    jest
+      .spyOn(realPrisma.group, "findMany")
+      .mockImplementation(
+        gFindMany as unknown as typeof realPrisma.group.findMany,
+      );
   });
 
   afterEach(() => {
@@ -113,7 +121,7 @@ describe("SessionsService", () => {
         where: { tenantId: ids.tenant },
         orderBy: { startsAt: "asc" },
         include: {
-          group: { select: { id: true, name: true } },
+          groups: { select: { id: true, name: true } },
         },
       });
     });
@@ -126,6 +134,7 @@ describe("SessionsService", () => {
       expect(res.id).toBe(base.id);
       expect(sFindFirst).toHaveBeenCalledWith({
         where: { id: base.id, tenantId: ids.tenant },
+        include: { groups: { select: { id: true, name: true } } },
       });
     });
 
@@ -138,15 +147,15 @@ describe("SessionsService", () => {
   });
 
   describe("create", () => {
-    it("validates tenant exists and optional group belongs to tenant; creates row", async () => {
+    it("validates tenant exists and optional groups belong to tenant; creates row", async () => {
       tFindUnique.mockResolvedValue({ id: ids.tenant });
-      gFindUnique.mockResolvedValue({ id: ids.group, tenantId: ids.tenant });
+      gFindMany.mockResolvedValue([{ id: ids.group }]);
       sCreate.mockResolvedValue(base);
 
       const res = await svc.create(
         {
           tenantId: ids.tenant,
-          groupId: ids.group,
+          groupIds: [ids.group],
           startsAt: now,
           endsAt: later,
           title: "Sunday 11am",
@@ -158,11 +167,12 @@ describe("SessionsService", () => {
       expect(sCreate).toHaveBeenCalledWith({
         data: {
           tenantId: ids.tenant,
-          groupId: ids.group,
+          groups: { connect: [{ id: ids.group }] },
           startsAt: now,
           endsAt: later,
           title: "Sunday 11am",
         },
+        include: { groups: { select: { id: true, name: true } } },
       });
     });
 
@@ -191,12 +201,12 @@ describe("SessionsService", () => {
 
     it("rejects when group belongs to different tenant", async () => {
       tFindUnique.mockResolvedValue({ id: ids.tenant });
-      gFindUnique.mockResolvedValue({ id: ids.group, tenantId: "other" });
+      gFindMany.mockResolvedValue([]);
       await expect(
         svc.create(
           {
             tenantId: ids.tenant,
-            groupId: ids.group,
+            groupIds: [ids.group],
             startsAt: now,
             endsAt: later,
           },
@@ -208,8 +218,11 @@ describe("SessionsService", () => {
 
   describe("update", () => {
     it("updates fields and validates times and group tenant", async () => {
-      sFindFirst.mockResolvedValue(base);
-      gFindUnique.mockResolvedValue({ id: ids.group, tenantId: ids.tenant });
+      sFindFirst.mockResolvedValue({
+        ...base,
+        groups: [{ id: ids.group, name: "Kids" }],
+      });
+      gFindMany.mockResolvedValue([{ id: ids.group }]);
       const updated: SessionRow = {
         ...base,
         title: "Updated",
@@ -222,6 +235,7 @@ describe("SessionsService", () => {
       expect(sUpdate).toHaveBeenCalledWith({
         where: { id: base.id },
         data: expect.objectContaining({ title: "Updated" }),
+        include: { groups: { select: { id: true, name: true } } },
       });
     });
 
@@ -241,13 +255,17 @@ describe("SessionsService", () => {
 
     it("rejects when new group is cross-tenant", async () => {
       const crossTenantGroupId = "22222222-2222-2222-2222-222222222222";
-      sFindFirst.mockResolvedValue(base);
-      gFindUnique.mockResolvedValue({
-        id: crossTenantGroupId,
-        tenantId: "other-tenant-id",
+      sFindFirst.mockResolvedValue({
+        ...base,
+        groups: [],
       });
+      gFindMany.mockResolvedValue([]);
       await expect(
-        svc.update(base.id, { groupId: crossTenantGroupId }, ids.tenant),
+        svc.update(
+          base.id,
+          { groupIds: [crossTenantGroupId] },
+          ids.tenant,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

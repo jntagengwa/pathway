@@ -109,6 +109,14 @@ export class SwapsService {
       if (!toUser) throw new NotFoundException("toUser not found");
     }
 
+    // When accepting, reassign the assignment from requester to recipient
+    if (dto.status === SwapStatus.ACCEPTED && nextToUserId) {
+      await prisma.assignment.update({
+        where: { id: existing.assignmentId },
+        data: { userId: nextToUserId },
+      });
+    }
+
     return prisma.swapRequest.update({
       where: { id },
       data: {

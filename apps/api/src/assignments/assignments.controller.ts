@@ -7,8 +7,10 @@ import {
   Param,
   Delete,
   Query,
+  Req,
   Inject,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { AssignmentsService } from "./assignments.service";
 import { z } from "zod";
 import {
@@ -43,7 +45,7 @@ export class AssignmentsController {
     const av30 = await this.enforcement.checkAv30ForOrg(orgId);
     this.enforcement.assertWithinHardCap(av30);
     // TODO(Epic4-UI): Surface av30 status in response metadata for warnings
-    return this.assignmentsService.create(dto, tenantId);
+    return this.assignmentsService.create(dto, tenantId, orgId);
   }
 
   @Get()
@@ -57,6 +59,8 @@ export class AssignmentsController {
       userId: z.string().uuid().optional(),
       role: z.nativeEnum(Role).optional(),
       status: z.nativeEnum(AssignmentStatus).optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
     });
 
     const filters = querySchema.parse(query);
@@ -67,6 +71,8 @@ export class AssignmentsController {
       ...(filters.userId ? { userId: filters.userId } : {}),
       ...(filters.role ? { role: filters.role } : {}),
       ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.dateFrom ? { dateFrom: filters.dateFrom } : {}),
+      ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
     });
   }
 
@@ -85,10 +91,13 @@ export class AssignmentsController {
     @Param("id") id: string,
     @Body() body: unknown,
     @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @Req() req: Request & { authUserId?: string },
   ) {
     z.string().uuid().parse(id);
     const dto: UpdateAssignmentDto = updateAssignmentDto.parse(body);
-    return this.assignmentsService.update(id, dto, tenantId);
+    const currentUserId = req.authUserId;
+    return this.assignmentsService.update(id, dto, tenantId, orgId, currentUserId);
   }
 
   @Delete(":id")

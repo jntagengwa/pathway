@@ -19,6 +19,7 @@ type PrismaSwapDelegate = {
 
 type PrismaAssignmentDelegate = {
   findFirst: jest.Mock<Promise<any>, [any?]>;
+  update: jest.Mock<Promise<any>, [any?]>;
 };
 
 type PrismaUserDelegate = {
@@ -64,6 +65,10 @@ describe("SwapsService", () => {
       },
       assignment: {
         findFirst: jest.fn(async () => ({ id: base.assignmentId })),
+        update: jest.fn(async ({ where, data }) => ({
+          id: where.id,
+          ...data,
+        })),
       },
       user: {
         findFirst: jest.fn(async () => ({ id: base.fromUserId })),

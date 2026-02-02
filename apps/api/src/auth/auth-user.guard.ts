@@ -7,6 +7,7 @@ import {
 import { parseAuthTokenFromRequest } from "./auth-token.util";
 import { prisma } from "@pathway/db";
 import type { Request, Response } from "express";
+import { AuthIdentityService } from "./auth-identity.service";
 
 interface AuthenticatedRequest extends Request {
   authUserId?: string;
@@ -15,14 +16,33 @@ interface AuthenticatedRequest extends Request {
   [key: string]: unknown;
 }
 
+const userInclude = {
+  user: {
+    include: {
+      siteMemberships: {
+        include: {
+          tenant: {
+            include: { org: true },
+          },
+        },
+      },
+      orgMemberships: { include: { org: true } },
+      orgRoles: { include: { org: true } },
+    },
+  },
+} as const;
+
 /**
  * Guard that:
  * 1. Authenticates user via Auth0 JWT (looks up UserIdentity)
- * 2. Resolves active tenant from cookie or User.lastActiveTenantId
- * 3. Sets up full PathwayRequestContext with tenant/org for RLS
+ * 2. If identity missing, creates user/identity just-in-time from JWT claims
+ * 3. Resolves active tenant from cookie or User.lastActiveTenantId
+ * 4. Sets up full PathwayRequestContext with tenant/org for RLS
  */
 @Injectable()
 export class AuthUserGuard implements CanActivate {
+  constructor(private readonly authIdentityService: AuthIdentityService) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const res = context.switchToHttp().getResponse<Response>();
@@ -36,32 +56,41 @@ export class AuthUserGuard implements CanActivate {
     }
 
     // Look up user by Auth0 identity
-    const identity = await prisma.userIdentity.findUnique({
+    let identity = await prisma.userIdentity.findUnique({
       where: {
         provider_providerSubject: {
           provider: "auth0",
           providerSubject: auth0Sub,
         },
       },
-      include: {
-        user: {
-          include: {
-            siteMemberships: {
-              include: {
-                tenant: {
-                  include: { org: true },
-                },
-              },
-            },
-            orgMemberships: { include: { org: true } },
-            orgRoles: { include: { org: true } },
-          },
-        },
-      },
+      include: userInclude,
     });
 
+    // Just-in-time provisioning: if admin identity upsert failed at login, create user/identity from JWT claims
     if (!identity?.user) {
-      console.log("[AuthUserGuard] ❌ User not found for Auth0 subject:", auth0Sub);
+      try {
+        await this.authIdentityService.upsertFromAuth0({
+          provider: "auth0",
+          subject: auth0Sub,
+          email: claims.email,
+          name: claims.name ?? claims.given_name ?? undefined,
+        });
+      } catch (err) {
+        console.warn("[AuthUserGuard] JIT upsert failed:", err);
+        throw new UnauthorizedException("User not found for this Auth0 identity");
+      }
+      identity = await prisma.userIdentity.findUnique({
+        where: {
+          provider_providerSubject: {
+            provider: "auth0",
+            providerSubject: auth0Sub,
+          },
+        },
+        include: userInclude,
+      });
+    }
+
+    if (!identity?.user) {
       throw new UnauthorizedException("User not found for this Auth0 identity");
     }
 

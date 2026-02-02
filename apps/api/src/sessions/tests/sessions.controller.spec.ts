@@ -5,19 +5,19 @@ import { SessionsService } from "../sessions.service";
 import { CreateSessionDto } from "../dto/create-session.dto";
 import { UpdateSessionDto } from "../dto/update-session.dto";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../../billing/entitlements-enforcement.service";
 
 // Minimal shape used in tests (avoid importing Prisma types here)
 interface SessionShape {
   id: string;
   tenantId: string;
-  groupId: string | null;
   startsAt: Date;
   endsAt: Date;
   title: string | null;
   createdAt: Date;
   updatedAt: Date;
-  group: { id: string; name: string } | null;
+  groups: { id: string; name: string }[];
 }
 
 describe("SessionsController", () => {
@@ -28,16 +28,14 @@ describe("SessionsController", () => {
   const baseSession: SessionShape = {
     id: "sess-1",
     tenantId,
-    groupId: "g1",
     startsAt: new Date("2025-01-01T09:00:00Z"),
     endsAt: new Date("2025-01-01T10:00:00Z"),
     title: "Kids service",
     createdAt: new Date("2024-12-31T00:00:00Z"),
     updatedAt: new Date("2024-12-31T00:00:00Z"),
-    group: { id: "g1", name: "Kids" },
+    groups: [{ id: "g1", name: "Kids" }],
   };
 
-  // Strictly typed mock to avoid `any`
   const serviceMock: jest.Mocked<
     Pick<SessionsService, "list" | "getById" | "create" | "update">
   > = {
@@ -84,6 +82,8 @@ describe("SessionsController", () => {
       ],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

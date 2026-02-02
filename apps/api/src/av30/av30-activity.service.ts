@@ -37,16 +37,10 @@ export class Av30ActivityService {
   }
 
   /**
-   * Record an AV30 activity for a staff/volunteer user.
-   *
-   * This method:
-   * - Validates the user is a staff/volunteer (not a parent)
-   * - Derives tenantId/orgId from PathwayRequestContext
-   * - Records the activity with the specified occurredAt timestamp
+   * Record an AV30 activity for a staff/volunteer user (using context).
    *
    * @param context - Request context containing tenant/org/user info
    * @param params - Activity parameters (type, staffUserId, occurredAt)
-   * @throws Error if context is missing tenant/org info or user is not staff
    */
   async recordActivity(
     context: PathwayRequestContext,
@@ -61,12 +55,20 @@ export class Av30ActivityService {
       );
     }
 
-    // Verify the target user is a staff/volunteer (not a parent)
-    // We check the current user's roles, but we should also verify the staffUserId
-    // has staff roles. For now, we trust that the caller ensures staffUserId is correct.
-    // In a future enhancement, we could query UserTenantRole to verify.
+    return this.recordActivityWithIds(tenantId, orgId, params);
+  }
 
-    // Record the activity
+  /**
+   * Record an AV30 activity by tenant/org ids (for use from singleton services).
+   *
+   * Use this when the caller has tenantId/orgId but not PathwayRequestContext
+   * (e.g. AssignmentsService as a singleton).
+   */
+  async recordActivityWithIds(
+    tenantId: string,
+    orgId: string,
+    params: RecordAv30ActivityParams,
+  ): Promise<void> {
     await prisma.staffActivity.create({
       data: {
         tenantId,

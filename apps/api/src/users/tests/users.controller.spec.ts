@@ -3,6 +3,7 @@ import { NotFoundException } from "@nestjs/common";
 import { UsersController } from "../users.controller";
 import { UsersService } from "../users.service";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 
 describe("UsersController", () => {
   let controller: UsersController;
@@ -29,6 +30,8 @@ describe("UsersController", () => {
       providers: [{ provide: UsersService, useValue: mockService }],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

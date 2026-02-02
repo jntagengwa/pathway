@@ -5,6 +5,7 @@ import { Role, AssignmentStatus } from "@pathway/db";
 import { CreateAssignmentDto } from "../dto/create-assignment.dto";
 import { UpdateAssignmentDto } from "../dto/update-assignment.dto";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../../billing/entitlements-enforcement.service";
 
 type AssignmentShape = {
@@ -39,12 +40,15 @@ describe("AssignmentsController", () => {
   };
 
   type ServiceMock = {
-    create: jest.Mock<Promise<AssignmentShape>, [CreateAssignmentDto, string]>;
+    create: jest.Mock<
+      Promise<AssignmentShape>,
+      [CreateAssignmentDto, string, string]
+    >;
     findAll: jest.Mock<Promise<readonly AssignmentShape[]>, [FindAllQuery]>;
     findOne: jest.Mock<Promise<AssignmentShape>, [string, string]>;
     update: jest.Mock<
       Promise<AssignmentShape>,
-      [string, UpdateAssignmentDto, string]
+      [string, UpdateAssignmentDto, string, string, string | undefined]
     >;
     remove: jest.Mock<
       Promise<{ deleted: boolean; id: string }>,
@@ -90,6 +94,8 @@ describe("AssignmentsController", () => {
     })
       .overrideGuard(PathwayAuthGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get<AssignmentsController>(AssignmentsController);
@@ -110,7 +116,7 @@ describe("AssignmentsController", () => {
       };
 
       const result = await controller.create(dto, "tenant-1", "org-123");
-      expect(service.create).toHaveBeenCalledWith(dto, "tenant-1");
+      expect(service.create).toHaveBeenCalledWith(dto, "tenant-1", "org-123");
       expect(result).toEqual(assignment);
     });
 
@@ -172,12 +178,23 @@ describe("AssignmentsController", () => {
       };
       service.update.mockResolvedValue(updated);
       const dto: UpdateAssignmentDto = { status: AssignmentStatus.DECLINED };
+      const req = { authUserId: "user-1" } as Parameters<
+        AssignmentsController["update"]
+      >[4];
 
-      const result = await controller.update(assignment.id, dto, "tenant-1");
+      const result = await controller.update(
+        assignment.id,
+        dto,
+        "tenant-1",
+        "org-123",
+        req,
+      );
       expect(service.update).toHaveBeenCalledWith(
         assignment.id,
         dto,
         "tenant-1",
+        "org-123",
+        "user-1",
       );
       expect(result).toEqual(updated);
     });

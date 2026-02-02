@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { DsarController } from "../dsar.controller";
 import { DsarService } from "../dsar.service";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { SafeguardingGuard } from "../../common/safeguarding/safeguarding.guard";
 
 describe("DsarController", () => {
@@ -20,6 +21,8 @@ describe("DsarController", () => {
       providers: [{ provide: DsarService, useValue: serviceMock }],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(SafeguardingGuard)
       .useValue({ canActivate: () => true })

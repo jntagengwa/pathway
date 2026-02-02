@@ -30,13 +30,10 @@ jest.mock("@pathway/db", () => {
 
 import { AssignmentsService } from "../assignments.service";
 import { Role, AssignmentStatus, prisma } from "@pathway/db";
-import { PathwayRequestContext, UserTenantRole } from "@pathway/auth";
 import { Av30ActivityService } from "../../av30/av30-activity.service";
 import { Av30ActivityType } from "@pathway/types/av30";
-import type { Request } from "express";
 import { CreateAssignmentDto } from "../dto/create-assignment.dto";
 import { UpdateAssignmentDto } from "../dto/update-assignment.dto";
-import type { AuthContext } from "@pathway/auth/src/types/auth-context";
 
 // Handy typed helpers for casting prisma method to jest.Mock without using `any`
 const asMock = (fn: unknown): jest.Mock => fn as unknown as jest.Mock;
@@ -44,36 +41,7 @@ const asMock = (fn: unknown): jest.Mock => fn as unknown as jest.Mock;
 describe("AssignmentsService", () => {
   let service: AssignmentsService;
   let mockAv30Service: Av30ActivityService;
-  let mockRequestContext: PathwayRequestContext;
-
-  const createMockContext = (): PathwayRequestContext => {
-    const context: AuthContext = {
-      user: {
-        userId: "user-123",
-        email: "staff@example.com",
-        authProvider: "debug",
-      },
-      org: {
-        orgId: "org-123",
-        auth0OrgId: "auth0|org123",
-      },
-      tenant: {
-        tenantId: "tenant-123",
-        orgId: "org-123",
-      },
-      roles: {
-        org: [],
-        tenant: [UserTenantRole.TEACHER],
-      },
-      permissions: [],
-      rawClaims: {},
-    };
-
-    const mockRequest = {} as unknown as Request;
-    const ctx = new PathwayRequestContext(mockRequest);
-    ctx.setContext(context);
-    return ctx;
-  };
+  let mockMailerService: { sendShiftAssignmentNotification: jest.Mock };
 
   const now = new Date();
   const baseAssignment = {
@@ -91,11 +59,17 @@ describe("AssignmentsService", () => {
     mockAv30Service = {
       recordActivityForCurrentUser: jest.fn().mockResolvedValue(undefined),
       recordActivity: jest.fn().mockResolvedValue(undefined),
+      recordActivityWithIds: jest.fn().mockResolvedValue(undefined),
     } as unknown as Av30ActivityService;
 
-    mockRequestContext = createMockContext();
+    mockMailerService = {
+      sendShiftAssignmentNotification: jest.fn().mockResolvedValue(undefined),
+    };
 
-    service = new AssignmentsService(mockAv30Service, mockRequestContext);
+    service = new AssignmentsService(
+      mockAv30Service,
+      mockMailerService as never,
+    );
   });
 
   it("should create an assignment", async () => {
@@ -107,6 +81,7 @@ describe("AssignmentsService", () => {
     asMock(prisma.user.findUnique).mockResolvedValue({
       id: baseAssignment.userId,
       tenantId: "tenant-1",
+      siteMemberships: [{ tenantId: "tenant-1" }],
     });
 
     const dto: CreateAssignmentDto = {
@@ -116,14 +91,15 @@ describe("AssignmentsService", () => {
       status: AssignmentStatus.CONFIRMED,
     };
 
-    const created = await service.create(dto, "tenant-1");
+    const created = await service.create(dto, "tenant-1", "org-1");
 
     expect(prisma.assignment.create).toHaveBeenCalledWith({ data: dto });
     expect(created).toEqual(baseAssignment);
     // Verify AV30 activity was recorded for assignment creation
-    expect(mockAv30Service.recordActivity).toHaveBeenCalledTimes(1);
-    expect(mockAv30Service.recordActivity).toHaveBeenCalledWith(
-      mockRequestContext,
+    expect(mockAv30Service.recordActivityWithIds).toHaveBeenCalledTimes(1);
+    expect(mockAv30Service.recordActivityWithIds).toHaveBeenCalledWith(
+      "tenant-1",
+      "org-1",
       {
         activityType: Av30ActivityType.ASSIGNMENT_PUBLISHED,
         staffUserId: baseAssignment.userId,
@@ -186,6 +162,7 @@ describe("AssignmentsService", () => {
       baseAssignment.id,
       updateDto,
       "tenant-1",
+      "org-1",
     );
 
     expect(prisma.assignment.update).toHaveBeenCalledWith({
@@ -194,9 +171,10 @@ describe("AssignmentsService", () => {
     });
     expect(result).toEqual(updated);
     // Verify AV30 activity was recorded for assignment decline
-    expect(mockAv30Service.recordActivity).toHaveBeenCalledTimes(1);
-    expect(mockAv30Service.recordActivity).toHaveBeenCalledWith(
-      mockRequestContext,
+    expect(mockAv30Service.recordActivityWithIds).toHaveBeenCalledTimes(1);
+    expect(mockAv30Service.recordActivityWithIds).toHaveBeenCalledWith(
+      "tenant-1",
+      "org-1",
       {
         activityType: Av30ActivityType.ASSIGNMENT_DECLINED,
         staffUserId: baseAssignment.userId,
@@ -217,12 +195,13 @@ describe("AssignmentsService", () => {
     });
     asMock(prisma.assignment.update).mockResolvedValue(updated);
 
-    await service.update(baseAssignment.id, updateDto, "tenant-1");
+    await service.update(baseAssignment.id, updateDto, "tenant-1", "org-1");
 
     // Verify AV30 activity was recorded for assignment acceptance
-    expect(mockAv30Service.recordActivity).toHaveBeenCalledTimes(1);
-    expect(mockAv30Service.recordActivity).toHaveBeenCalledWith(
-      mockRequestContext,
+    expect(mockAv30Service.recordActivityWithIds).toHaveBeenCalledTimes(1);
+    expect(mockAv30Service.recordActivityWithIds).toHaveBeenCalledWith(
+      "tenant-1",
+      "org-1",
       {
         activityType: Av30ActivityType.ASSIGNMENT_ACCEPTED,
         staffUserId: baseAssignment.userId,

@@ -4,6 +4,7 @@ import { BillingController } from "../billing.controller";
 import { BillingService } from "../billing.service";
 import { EntitlementsService } from "../entitlements.service";
 import { EntitlementsEnforcementService } from "../entitlements-enforcement.service";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 
 describe("BillingController", () => {
   let controller: BillingController;
@@ -23,7 +24,10 @@ describe("BillingController", () => {
           useValue: { checkAv30ForOrg: jest.fn() },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthUserGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(BillingController);
     service = module.get(BillingService);

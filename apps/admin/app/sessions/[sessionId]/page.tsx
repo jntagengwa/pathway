@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ArrowLeft, CalendarClock, MapPin, Trash2 } from "lucide-react";
 import { Badge, Button, Card, Label, Select } from "@pathway/ui";
 import {
@@ -79,6 +80,7 @@ function formatTimeRange(startsAt?: string, endsAt?: string) {
 export default function SessionDetailPage() {
   const params = useParams<{ sessionId: string }>();
   const router = useRouter();
+  const { status: sessionStatus } = useSession();
   const sessionId = params.sessionId;
 
   const [session, setSession] = React.useState<AdminSessionDetail | null>(null);
@@ -158,25 +160,39 @@ export default function SessionDetailPage() {
   }, [sessionId, refreshAssignments]);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    if (sessionStatus === "authenticated") {
+      void load();
+    }
+  }, [sessionStatus, load]);
 
   React.useEffect(() => {
     if (!session?.startsAt || !session?.endsAt) {
       setStaffEligibility([]);
       return;
     }
-    const sessionWithGroup = session as { groupId?: string | null };
+    const sessionWithGroups = session as {
+      groupIds?: string[];
+      groupId?: string | null;
+    };
+    const groupId =
+      sessionWithGroups.groupIds?.[0] ?? sessionWithGroups.groupId ?? null;
     setStaffEligibilityLoading(true);
     fetchStaffEligibilityForSession({
-      groupId: sessionWithGroup.groupId ?? null,
+      groupId,
       startsAt: session.startsAt,
       endsAt: session.endsAt,
     })
       .then(setStaffEligibility)
       .catch(() => setStaffEligibility([]))
       .finally(() => setStaffEligibilityLoading(false));
-  }, [session?.id, session?.startsAt, session?.endsAt, (session as { groupId?: string | null } | null)?.groupId]);
+  }, [
+    session?.id,
+    session?.startsAt,
+    session?.endsAt,
+    (session as { groupIds?: string[]; groupId?: string | null } | null)
+      ?.groupIds?.[0],
+    (session as { groupId?: string | null } | null)?.groupId,
+  ]);
 
   const assignedStaffIds = React.useMemo(
     () => new Set(assignments.map((a) => a.staffId)),
@@ -244,7 +260,7 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {sessionStatus === "loading" || isLoading ? (
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-2">
             <div className="flex flex-col gap-3">

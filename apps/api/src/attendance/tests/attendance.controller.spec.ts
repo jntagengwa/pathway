@@ -5,6 +5,7 @@ import { AttendanceService } from "../attendance.service";
 import { CreateAttendanceDto } from "../dto/create-attendance.dto";
 import { UpdateAttendanceDto } from "../dto/update-attendance.dto";
 import { PathwayAuthGuard } from "@pathway/auth";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
 
 // Shared row type for clear expectations
 interface AttendanceRow {
@@ -50,6 +51,8 @@ describe("AttendanceController", () => {
       providers: [{ provide: AttendanceService, useValue: mockService }],
     })
       .overrideGuard(PathwayAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthUserGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

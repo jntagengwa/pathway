@@ -8,6 +8,16 @@ type SendInviteEmailParams = {
   invitedByName?: string;
 };
 
+/** Params for shift-assignment notification (staff asked to accept a class shift). */
+export type SendShiftAssignmentParams = {
+  to: string;
+  staffName: string;
+  sessionTitle: string;
+  sessionStartsAt: string;
+  acceptUrl: string;
+  orgName?: string;
+};
+
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
@@ -83,6 +93,165 @@ export class MailerService {
       this.logger.error(`[📧 MAILER] ❌ Exception while sending email to ${to}:`, error);
       throw new Error(`Failed to send invite email: ${String(error)}`);
     }
+  }
+
+  /**
+   * Send an email asking staff to accept a class shift.
+   * In the future this will be complemented by mobile push notifications.
+   */
+  async sendShiftAssignmentNotification(
+    params: SendShiftAssignmentParams,
+  ): Promise<void> {
+    const { to, staffName, sessionTitle, sessionStartsAt, acceptUrl, orgName } =
+      params;
+
+    this.logger.log(
+      `[📧 MAILER] Step 9: sendShiftAssignmentNotification called for to=${to}, sessionTitle=${sessionTitle}`,
+    );
+
+    const subject = `You've been assigned: ${sessionTitle} – please accept or decline`;
+    const html = this.buildShiftAssignmentHtml({
+      staffName,
+      sessionTitle,
+      sessionStartsAt,
+      acceptUrl,
+      orgName,
+    });
+    const text = this.buildShiftAssignmentText({
+      staffName,
+      sessionTitle,
+      sessionStartsAt,
+      acceptUrl,
+      orgName,
+    });
+
+    this.logger.log(
+      `[📧 MAILER] Step 10: isEnabled=${this.isEnabled}, resend=${!!this.resend}, fromAddress=${this.fromAddress ?? "(not set)"}`,
+    );
+    if (!this.isEnabled || !this.resend) {
+      this.logger.log(
+        `[📧 MAILER] Step 10b: MOCK MODE - not sending. Would send to ${to}, Subject: ${subject}, Accept: ${acceptUrl}`,
+      );
+      return;
+    }
+
+    this.logger.log(`[📧 MAILER] Step 11: Calling Resend API...`);
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromAddress,
+        to,
+        subject,
+        html,
+        text,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `[📧 MAILER] Step 12 FAIL: Resend API returned error:`,
+          result.error,
+        );
+        throw new Error(`Resend API error: ${JSON.stringify(result.error)}`);
+      }
+
+      this.logger.log(`[📧 MAILER] Step 12: ✅ Shift assignment email sent to ${to}, id=${result.data?.id ?? "n/a"}`);
+    } catch (error) {
+      this.logger.error(
+        `[📧 MAILER] Step 12 FAIL: Exception sending shift assignment to ${to}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to send shift assignment email: ${String(error)}`,
+      );
+    }
+  }
+
+  private buildShiftAssignmentHtml(params: {
+    staffName: string;
+    sessionTitle: string;
+    sessionStartsAt: string;
+    acceptUrl: string;
+    orgName?: string;
+  }): string {
+    const { staffName, sessionTitle, sessionStartsAt, acceptUrl, orgName } =
+      params;
+    const footer = orgName
+      ? `This assignment was sent by ${orgName}.`
+      : "If you didn't expect this, you can safely ignore this email.";
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shift assignment</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">Nexsteps</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #1a1a1a;">
+                Hi ${staffName},
+              </h2>
+              <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: #525252;">
+                You've been assigned to the following session. Please accept or decline so the rota can be updated.
+              </p>
+              <p style="margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #1a1a1a;">${sessionTitle}</p>
+              <p style="margin: 0 0 24px; font-size: 14px; color: #737373;">${sessionStartsAt}</p>
+              <table cellpadding="0" cellspacing="0" style="margin: 0 0 24px;">
+                <tr>
+                  <td style="border-radius: 6px; background-color: #0066cc;">
+                    <a href="${acceptUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none;">View schedule &amp; respond</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #737373;">${footer}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `.trim();
+  }
+
+  private buildShiftAssignmentText(params: {
+    staffName: string;
+    sessionTitle: string;
+    sessionStartsAt: string;
+    acceptUrl: string;
+    orgName?: string;
+  }): string {
+    const { staffName, sessionTitle, sessionStartsAt, acceptUrl, orgName } =
+      params;
+    const footer = orgName
+      ? `This assignment was sent by ${orgName}.`
+      : "If you didn't expect this, you can safely ignore this email.";
+
+    return `
+Nexsteps
+
+Hi ${staffName},
+
+You've been assigned to the following session. Please accept or decline so the rota can be updated.
+
+${sessionTitle}
+${sessionStartsAt}
+
+View your schedule and respond: ${acceptUrl}
+
+${footer}
+    `.trim();
   }
 
   private buildInviteEmailHtml(params: {

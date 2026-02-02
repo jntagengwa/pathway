@@ -2,8 +2,10 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { Badge, Button, Card, Input, Label, Select } from "@pathway/ui";
+import { Badge, Button, Card, Input, Label } from "@pathway/ui";
+import { DropdownMultiSelect } from "../../../../components/dropdown-multi-select";
 import {
   AdminSessionFormValues,
   AdminAssignmentRow,
@@ -30,6 +32,7 @@ const eligibilityReasonLabel: Record<
 export default function EditSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const router = useRouter();
+  const { status: sessionStatus } = useSession();
   const sessionId = params.sessionId;
 
   const [form, setForm] = React.useState<AdminSessionFormValues | null>(null);
@@ -50,18 +53,20 @@ export default function EditSessionPage() {
   >([]);
   const [staffEligibilityLoading, setStaffEligibilityLoading] =
     React.useState(false);
-  const [addStaffId, setAddStaffId] = React.useState("");
+  const [selectedStaffIds, setSelectedStaffIds] = React.useState<string[]>([]);
   const [addRole, setAddRole] = React.useState("Lead");
   const [addSubmitting, setAddSubmitting] = React.useState(false);
   const [removeId, setRemoveId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
     fetchGroups({ activeOnly: true })
       .then(setGroups)
       .catch(() => setGroups([]));
-  }, []);
+  }, [sessionStatus]);
 
   React.useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
     const load = async () => {
       setLoading(true);
       setError(null);
@@ -71,12 +76,17 @@ export default function EditSessionPage() {
           setError("Session not found.");
           setForm(null);
         } else {
-          const r = result as { groupId?: string | null };
+          const sessionResult = result as {
+            groupIds?: string[];
+            groupId?: string;
+          };
           setForm({
             title: result.title,
             startsAt: result.startsAt.slice(0, 16),
             endsAt: result.endsAt.slice(0, 16),
-            groupId: r.groupId ?? "",
+            groupIds:
+              sessionResult.groupIds ??
+              (sessionResult.groupId ? [sessionResult.groupId] : []),
           });
         }
       } catch (err) {
@@ -87,7 +97,7 @@ export default function EditSessionPage() {
       }
     };
     void load();
-  }, [sessionId]);
+  }, [sessionId, sessionStatus]);
 
   const sessionLookup = React.useMemo(
     () =>
@@ -133,14 +143,14 @@ export default function EditSessionPage() {
     }
     setStaffEligibilityLoading(true);
     fetchStaffEligibilityForSession({
-      groupId: form.groupId || null,
+      groupId: form.groupIds?.[0] ?? null,
       startsAt: form.startsAt,
       endsAt: form.endsAt,
     })
       .then(setStaffEligibility)
       .catch(() => setStaffEligibility([]))
       .finally(() => setStaffEligibilityLoading(false));
-  }, [form?.groupId, form?.startsAt, form?.endsAt]);
+  }, [form?.groupIds, form?.startsAt, form?.endsAt]);
 
   const assignedStaffIds = React.useMemo(
     () => new Set(assignments.map((a) => a.staffId)),
@@ -151,7 +161,10 @@ export default function EditSessionPage() {
     [staffEligibility, assignedStaffIds],
   );
 
-  const handleChange = (key: keyof AdminSessionFormValues, value: string) => {
+  const handleChange = (
+    key: keyof AdminSessionFormValues,
+    value: string | string[],
+  ) => {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
     setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
   };
@@ -185,7 +198,7 @@ export default function EditSessionPage() {
     try {
       await updateSession(sessionId, {
         ...form,
-        groupId: form.groupId || undefined,
+        groupIds: form.groupIds?.filter(Boolean) ?? [],
       });
       router.push(`/sessions/${sessionId}`);
     } catch (err) {
@@ -272,25 +285,15 @@ export default function EditSessionPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="group">Group / class</Label>
-              <Select
-                id="group"
-                value={form.groupId ?? ""}
-                onChange={(e) => handleChange("groupId", e.target.value)}
-              >
-                <option value="">None</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </Select>
-              <p className="text-xs text-text-muted">
-                Assign this session to a class. Manage classes from the Classes
-                page.
-              </p>
-            </div>
+            <DropdownMultiSelect
+              id="group"
+              label="Classes / groups"
+              options={groups.map((g) => ({ value: g.id, label: g.name }))}
+              value={form.groupIds ?? []}
+              onChange={(ids) => handleChange("groupIds", ids)}
+              placeholder="Select classes…"
+              helperText="Assign this session to one or more classes. Manage classes from the Classes page."
+            />
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button
@@ -377,82 +380,75 @@ export default function EditSessionPage() {
               Add teacher
             </h3>
             <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[200px] flex-1">
-                <Label htmlFor="add-staff" className="text-xs">
-                  Staff member
-                </Label>
-                <Select
+              <div className="min-w-[220px] flex-1">
+                <DropdownMultiSelect
                   id="add-staff"
-                  value={addStaffId}
-                  onChange={(e) => setAddStaffId(e.target.value)}
+                  label="Staff (select one or more, then Add selected)"
+                  options={staffOptions.map((s) => ({
+                    value: s.id,
+                    label: s.eligible
+                      ? s.fullName
+                      : `${s.fullName} — ${s.reason ? eligibilityReasonLabel[s.reason] : "Unavailable"}`,
+                    title: s.reason
+                      ? eligibilityReasonLabel[s.reason]
+                      : undefined,
+                  }))}
+                  value={selectedStaffIds}
+                  onChange={setSelectedStaffIds}
+                  placeholder="Select staff…"
                   disabled={staffEligibilityLoading}
-                  className="mt-1"
-                >
-                  <option value="">Select…</option>
-                  {staffOptions.map((s) => (
-                    <option
-                      key={s.id}
-                      value={s.id}
-                      title={
-                        s.reason
-                          ? eligibilityReasonLabel[s.reason]
-                          : undefined
-                      }
-                    >
-                      {s.eligible
-                        ? s.fullName
-                        : `${s.fullName} — ${s.reason ? eligibilityReasonLabel[s.reason] : "Unavailable"}`}
-                    </option>
-                  ))}
-                </Select>
+                />
               </div>
               <div className="w-32">
                 <Label htmlFor="add-role" className="text-xs">
                   Role
                 </Label>
-                <Select
+                <select
                   id="add-role"
                   value={addRole}
                   onChange={(e) => setAddRole(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 flex h-10 w-full rounded-md border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <option value="Lead">Lead</option>
                   <option value="Support">Support</option>
-                </Select>
+                </select>
               </div>
               <Button
                 type="button"
                 size="sm"
-                disabled={!addStaffId || addSubmitting}
+                disabled={selectedStaffIds.length === 0 || addSubmitting}
                 onClick={async () => {
-                  if (!addStaffId) return;
+                  if (selectedStaffIds.length === 0) return;
                   setAddSubmitting(true);
                   setAssignmentError(null);
-                  try {
-                    await createAssignment(
-                      {
-                        sessionId,
-                        staffId: addStaffId,
-                        role: addRole,
-                        status: "confirmed",
-                      },
-                      { sessionLookup },
-                    );
-                    await loadAssignments();
-                    setAddStaffId("");
-                    setAddRole("Lead");
-                  } catch (err) {
-                    setAssignmentError(
-                      err instanceof Error
-                        ? err.message
-                        : "Failed to add assignment",
-                    );
-                  } finally {
-                    setAddSubmitting(false);
+                  const toAdd = selectedStaffIds;
+                  setSelectedStaffIds([]);
+                  let failed = false;
+                  for (const staffId of toAdd) {
+                    try {
+                      await createAssignment(
+                        {
+                          sessionId,
+                          staffId,
+                          role: addRole,
+                          status: "confirmed",
+                        },
+                        { sessionLookup },
+                      );
+                    } catch (err) {
+                      failed = true;
+                      setAssignmentError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to add assignment",
+                      );
+                    }
                   }
+                  if (!failed) await loadAssignments();
+                  setAddSubmitting(false);
                 }}
               >
-                {addSubmitting ? "Adding…" : "Add"}
+                {addSubmitting ? "Adding…" : "Add selected"}
               </Button>
             </div>
             <p className="mt-2 text-xs text-text-muted">
