@@ -185,6 +185,9 @@ importers:
       '@types/supertest':
         specifier: ^2.0.16
         version: 2.0.16
+      dotenv:
+        specifier: ^17.2.2
+        version: 17.2.2
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.19.13)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2))
