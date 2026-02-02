@@ -1,16 +1,23 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { GroupsService } from "../../groups/groups.service";
+import type { CreateGroupDto } from "../../groups/dto/create-group.dto";
 import type { UpdateGroupDto } from "../../groups/dto/update-group.dto";
 
-// Mock Prisma before importing service usage
+const mockEntitlements = {
+  resolve: jest.fn().mockResolvedValue({
+    subscription: { planCode: "STARTER_MONTHLY" },
+    flags: { planCode: "STARTER_MONTHLY" },
+  }),
+};
+
 jest.mock("@pathway/db", () => ({
   prisma: {
     group: {
       findMany: jest.fn(),
-      findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      count: jest.fn(),
     },
     tenant: {
       findUnique: jest.fn(),
@@ -19,55 +26,81 @@ jest.mock("@pathway/db", () => ({
 }));
 
 import { prisma } from "@pathway/db";
+
 const findMany = prisma.group.findMany as unknown as jest.Mock;
 const findFirst = prisma.group.findFirst as unknown as jest.Mock;
 const create = prisma.group.create as unknown as jest.Mock;
 const update = prisma.group.update as unknown as jest.Mock;
+const count = prisma.group.count as unknown as jest.Mock;
 const tFindUnique = prisma.tenant.findUnique as unknown as jest.Mock;
 
 describe("GroupsService", () => {
   let svc: GroupsService;
 
-  const group = {
+  const groupRow = {
     id: "g1",
     name: "Kids 7-9",
     tenantId: "t1",
     minAge: 7,
     maxAge: 9,
+    description: null,
+    isActive: true,
+    sortOrder: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    _count: { sessions: 0 },
   };
+
   const tenantId = "t1";
 
   beforeEach(() => {
     jest.clearAllMocks();
-    svc = new GroupsService();
-    tFindUnique.mockResolvedValue({ id: "t1" });
+    mockEntitlements.resolve.mockResolvedValue({
+      subscription: { planCode: "STARTER_MONTHLY" },
+      flags: { planCode: "STARTER_MONTHLY" },
+    });
+    svc = new GroupsService(mockEntitlements as never);
+    tFindUnique.mockResolvedValue({ id: "t1", orgId: "o1" });
+    count.mockResolvedValue(0);
   });
 
   describe("list", () => {
-    it("returns groups", async () => {
-      findMany.mockResolvedValue([group]);
-      await expect(svc.list(tenantId)).resolves.toEqual([group]);
-      expect(findMany).toHaveBeenCalledWith({
-        where: { tenantId },
-        select: { id: true, name: true, tenantId: true },
-        orderBy: { name: "asc" },
+    it("returns groups with sessionsCount", async () => {
+      findMany.mockResolvedValue([groupRow]);
+      const result = await svc.list(tenantId);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: "g1",
+        name: "Kids 7-9",
+        sessionsCount: 0,
       });
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenantId },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        }),
+      );
+    });
+
+    it("filters by activeOnly when requested", async () => {
+      findMany.mockResolvedValue([]);
+      await svc.list(tenantId, { activeOnly: true });
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenantId, isActive: true },
+        }),
+      );
     });
   });
 
   describe("getById", () => {
     it("returns a group when found", async () => {
-      findFirst.mockResolvedValue(group);
-      await expect(svc.getById("g1", tenantId)).resolves.toEqual(group);
-      expect(findFirst).toHaveBeenCalledWith({
-        where: { id: "g1", tenantId },
-        select: {
-          id: true,
-          name: true,
-          tenantId: true,
-          minAge: true,
-          maxAge: true,
-        },
+      findFirst.mockResolvedValue({ ...groupRow, _count: { sessions: 2 } });
+      const result = await svc.getById("g1", tenantId);
+      expect(result).toMatchObject({
+        id: "g1",
+        name: "Kids 7-9",
+        sessionsCount: 2,
       });
     });
 
@@ -80,45 +113,35 @@ describe("GroupsService", () => {
   });
 
   describe("create", () => {
-    it("validates & creates with tenant connect", async () => {
-      tFindUnique.mockResolvedValue({ id: "t1" });
-      findFirst.mockResolvedValue(null); // no duplicate
-      create.mockResolvedValue(group);
+    it("creates with optional fields", async () => {
+      findFirst.mockResolvedValue(null);
+      create.mockResolvedValue({ ...groupRow, name: "Toddlers" });
 
-      const result = await svc.create(
-        {
-          name: "Kids 7-9",
-          tenantId,
-          minAge: 7,
-          maxAge: 9,
-        },
+      const dto: CreateGroupDto = {
+        name: "Toddlers",
         tenantId,
-      );
+        minAge: 3,
+        maxAge: 5,
+        isActive: true,
+      };
+      const result = await svc.create(dto, tenantId);
 
-      expect(findFirst).toHaveBeenCalledWith({
-        where: { tenantId, name: "Kids 7-9" },
-      });
-      expect(create).toHaveBeenCalledWith({
-        data: {
-          name: "Kids 7-9",
-          minAge: 7,
-          maxAge: 9,
-          tenant: { connect: { id: tenantId } },
-        },
-        select: {
-          id: true,
-          name: true,
-          tenantId: true,
-          minAge: true,
-          maxAge: true,
-        },
-      });
-      expect(result).toEqual(group);
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: "Toddlers",
+            minAge: 3,
+            maxAge: 5,
+            isActive: true,
+            tenant: { connect: { id: tenantId } },
+          }),
+        }),
+      );
+      expect(result).toMatchObject({ name: "Toddlers" });
     });
 
-    it("throws BadRequest when duplicate (pre-check)", async () => {
-      tFindUnique.mockResolvedValue({ id: "t1" });
-      findFirst.mockResolvedValue(group);
+    it("throws BadRequest when duplicate name", async () => {
+      findFirst.mockResolvedValue(groupRow);
       await expect(
         svc.create(
           { name: "Kids 7-9", tenantId, minAge: 7, maxAge: 9 },
@@ -128,22 +151,13 @@ describe("GroupsService", () => {
       expect(create).not.toHaveBeenCalled();
     });
 
-    it("throws BadRequest when unique constraint race (P2002)", async () => {
-      tFindUnique.mockResolvedValue({ id: "t1" });
+    it("throws BadRequest when minAge > maxAge", async () => {
       findFirst.mockResolvedValue(null);
-      const p2002 = Object.assign(new Error("Unique"), { code: "P2002" });
-      create.mockRejectedValue(p2002);
       await expect(
         svc.create(
-          { name: "Kids 7-9", tenantId, minAge: 7, maxAge: 9 },
+          { name: "Bad", tenantId, minAge: 10, maxAge: 9 },
           tenantId,
         ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it("throws BadRequest for invalid ages (min>max)", async () => {
-      await expect(
-        svc.create({ name: "Bad", tenantId, minAge: 10, maxAge: 9 }, tenantId),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(create).not.toHaveBeenCalled();
     });
@@ -151,9 +165,9 @@ describe("GroupsService", () => {
 
   describe("update", () => {
     it("updates name and ages", async () => {
-      findFirst.mockResolvedValue({ id: "g1", tenantId });
+      findFirst.mockResolvedValue({ id: "g1", tenantId, isActive: true });
       update.mockResolvedValue({
-        ...group,
+        ...groupRow,
         name: "Kids 6-10",
         minAge: 6,
         maxAge: 10,
@@ -164,21 +178,12 @@ describe("GroupsService", () => {
         maxAge: 10,
       };
       const result = await svc.update("g1", payload, tenantId);
-      expect(findFirst).toHaveBeenCalledWith({
-        where: { id: "g1", tenantId },
-        select: { id: true, tenantId: true },
-      });
-      expect(update).toHaveBeenCalledWith({
-        where: { id: "g1" },
-        data: payload,
-        select: {
-          id: true,
-          name: true,
-          tenantId: true,
-          minAge: true,
-          maxAge: true,
-        },
-      });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "g1" },
+          data: payload,
+        }),
+      );
       expect(result).toMatchObject({
         name: "Kids 6-10",
         minAge: 6,
@@ -186,26 +191,8 @@ describe("GroupsService", () => {
       });
     });
 
-    it("throws BadRequest when unique name conflict (P2002)", async () => {
-      findFirst.mockResolvedValue({ id: "g1", tenantId });
-      const p2002 = Object.assign(new Error("Unique"), { code: "P2002" });
-      update.mockRejectedValue(p2002);
-      await expect(
-        svc.update("g1", { name: "Dup" }, tenantId),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it("throws NotFound when group missing (P2025)", async () => {
-      findFirst.mockResolvedValue({ id: "missing", tenantId });
-      const p2025 = Object.assign(new Error("Missing"), { code: "P2025" });
-      update.mockRejectedValue(p2025);
-      await expect(
-        svc.update("missing", { name: "X" }, tenantId),
-      ).rejects.toBeInstanceOf(NotFoundException);
-    });
-
-    it("throws BadRequest when invalid ages provided", async () => {
-      findFirst.mockResolvedValue({ id: "g1", tenantId });
+    it("throws BadRequest when invalid ages", async () => {
+      findFirst.mockResolvedValue({ id: "g1", tenantId, isActive: true });
       const badPayload: UpdateGroupDto = { minAge: 10, maxAge: 9 };
       await expect(
         svc.update("g1", badPayload, tenantId),

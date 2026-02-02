@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const updateSessionSchema = z.object({
   tenantId: z.string().optional(),
-  groupId: z.string().optional(),
+  groupId: z.string().uuid().nullable().optional(),
   startsAt: z.coerce.date().optional(),
   endsAt: z.coerce.date().optional(),
   title: z.string().optional(),

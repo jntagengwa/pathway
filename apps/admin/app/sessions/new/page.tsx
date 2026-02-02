@@ -3,10 +3,12 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Button, Card, Input, Label } from "@pathway/ui";
+import { Button, Card, Input, Label, Select } from "@pathway/ui";
 import {
   AdminSessionFormValues,
   createSession,
+  fetchGroups,
+  type GroupOption,
 } from "../../../lib/api-client";
 
 const defaultStart = () => {
@@ -30,10 +32,17 @@ export default function NewSessionPage() {
     endsAt: defaultEnd(),
     groupId: "",
   });
+  const [groups, setGroups] = React.useState<GroupOption[]>([]);
   const [error, setError] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] =
     React.useState<Partial<Record<keyof AdminSessionFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    fetchGroups({ activeOnly: true })
+      .then(setGroups)
+      .catch(() => setGroups([]));
+  }, []);
 
   const handleChange = (
     key: keyof AdminSessionFormValues,
@@ -159,16 +168,23 @@ export default function NewSessionPage() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="group">Group / class</Label>
-              <Input
+              <Select
                 id="group"
                 value={form.groupId ?? ""}
                 onChange={(e) => handleChange("groupId", e.target.value)}
-              placeholder="e.g. Willow class"
-              />
+              >
+                <option value="">None</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </Select>
               <p className="text-xs text-text-muted">
-              TODO: replace with a group picker when the API exposes classes.
+                Assign this session to a class. Manage classes from the Classes
+                page.
               </p>
-          </div>
+            </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button

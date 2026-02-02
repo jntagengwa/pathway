@@ -3,11 +3,13 @@
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Button, Card, Input, Label } from "@pathway/ui";
+import { Button, Card, Input, Label, Select } from "@pathway/ui";
 import {
   AdminSessionFormValues,
   fetchSessionById,
   updateSession,
+  fetchGroups,
+  type GroupOption,
 } from "../../../../lib/api-client";
 
 export default function EditSessionPage() {
@@ -16,11 +18,18 @@ export default function EditSessionPage() {
   const sessionId = params.sessionId;
 
   const [form, setForm] = React.useState<AdminSessionFormValues | null>(null);
+  const [groups, setGroups] = React.useState<GroupOption[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] =
     React.useState<Partial<Record<keyof AdminSessionFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    fetchGroups({ activeOnly: true })
+      .then(setGroups)
+      .catch(() => setGroups([]));
+  }, []);
 
   React.useEffect(() => {
     const load = async () => {
@@ -32,11 +41,12 @@ export default function EditSessionPage() {
           setError("Session not found.");
           setForm(null);
         } else {
+          const r = result as { groupId?: string | null };
           setForm({
             title: result.title,
             startsAt: result.startsAt.slice(0, 16),
             endsAt: result.endsAt.slice(0, 16),
-            groupId: undefined,
+            groupId: r.groupId ?? "",
           });
         }
       } catch (err) {
@@ -172,14 +182,21 @@ export default function EditSessionPage() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="group">Group / class</Label>
-              <Input
+              <Select
                 id="group"
                 value={form.groupId ?? ""}
                 onChange={(e) => handleChange("groupId", e.target.value)}
-                placeholder="e.g. Willow class"
-              />
+              >
+                <option value="">None</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </Select>
               <p className="text-xs text-text-muted">
-                TODO: replace with a group selector once available.
+                Assign this session to a class. Manage classes from the Classes
+                page.
               </p>
             </div>
 
