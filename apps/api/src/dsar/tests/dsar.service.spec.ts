@@ -76,7 +76,7 @@ describe("DsarService", () => {
     prismaMock.session.findMany.mockResolvedValue([
       {
         id: "s1",
-        groupId: "g1",
+        groups: [{ id: "g1" }],
         startsAt: new Date("2025-01-01T09:00:00Z"),
         endsAt: new Date("2025-01-01T10:00:00Z"),
         title: "Maths",

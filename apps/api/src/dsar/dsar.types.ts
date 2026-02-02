@@ -40,7 +40,7 @@ export interface ChildDsarExport {
   }>;
   sessions: Array<{
     id: string;
-    groupId: string | null;
+    groupIds: string[];
     startsAt: Date;
     endsAt: Date;
     title: string | null;

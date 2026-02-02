@@ -90,7 +90,7 @@ describe("DSAR (e2e)", () => {
       const session = await tx.session.create({
         data: {
           tenantId: tenantA,
-          groupId: groupId,
+          groups: { connect: [{ id: groupId }] },
           startsAt: new Date("2025-01-01T09:00:00Z"),
           endsAt: new Date("2025-01-01T10:00:00Z"),
           title: "DSAR Session",
