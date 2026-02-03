@@ -182,7 +182,7 @@ export default function AttendanceDetailPage() {
               <Button
                 key={status}
                 size="sm"
-                variant={row.status === status ? "default" : "outline"}
+                variant={row.status === status ? "primary" : "outline"}
                 className="h-8 min-w-0 px-2 text-xs capitalize"
                 onClick={() => setStatus(row.childId, status)}
               >
