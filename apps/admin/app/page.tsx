@@ -7,9 +7,9 @@ import { Badge, Button, Card } from "@pathway/ui";
 import {
   AdminAnnouncementRow,
   AdminSessionRow,
-  // fetchAnnouncements,
   fetchRecentAnnouncements,
   fetchSessions,
+  setApiClientToken,
 } from "../lib/api-client";
 
 type StatusTone = "default" | "accent" | "warning" | "success";
@@ -117,11 +117,11 @@ export default function DashboardPage() {
   }, []);
 
   React.useEffect(() => {
-    // Only load data when session is authenticated
-    if (sessionStatus === "authenticated" && session) {
-      void loadSessions();
-      void loadAnnouncements();
-    }
+    if (sessionStatus !== "authenticated" || !session) return;
+    const token = (session as { accessToken?: string })?.accessToken ?? null;
+    setApiClientToken(token);
+    void loadSessions();
+    void loadAnnouncements();
   }, [sessionStatus, session, loadSessions, loadAnnouncements]);
 
   const todaysSessions = React.useMemo(() => {
@@ -130,9 +130,13 @@ export default function DashboardPage() {
       .sort(
         (a, b) =>
           new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
-      )
-      .slice(0, 4);
+      );
   }, [sessions]);
+
+  const nextUp = React.useMemo(() => {
+    const now = new Date().getTime();
+    return todaysSessions.find((s) => new Date(s.startsAt).getTime() >= now) ?? todaysSessions[0] ?? null;
+  }, [todaysSessions]);
 
   const pendingAttendance = React.useMemo(() => {
     return todaysSessions.filter(
@@ -156,7 +160,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-xl font-semibold text-text-primary font-heading">
-          Dashboard
+          Today
         </h1>
         <p className="text-sm text-text-muted">
           A quick overview of today’s sessions, attendance, notices, and
@@ -164,7 +168,28 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {nextUp && !isLoadingSessions && !sessionError && (
+        <Card title="Next up" className="border-accent-primary/30 bg-accent-subtle/30">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-text-primary">{nextUp.title}</p>
+              <p className="text-sm text-text-muted">
+                {formatTimeRange(nextUp.startsAt, nextUp.endsAt)?.range ?? "Time TBC"} · {nextUp.room ?? "Room TBC"} · {nextUp.ageGroup ?? "Group TBC"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" asChild>
+                <Link href={`/attendance/${nextUp.id}`}>Take attendance</Link>
+              </Button>
+              <Button size="sm" variant="secondary" asChild>
+                <Link href={`/sessions/${nextUp.id}`}>View session</Link>
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
         <Card title="Today’s Sessions">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-sm text-text-muted">
@@ -201,7 +226,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-3"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-3"
                   >
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-text-primary">
@@ -213,16 +238,24 @@ export default function DashboardPage() {
                         {session.ageGroup || "Group TBC"}
                       </span>
                     </div>
-                    <Badge
-                      variant={statusTone[session.status]}
-                      className="px-2 py-1 text-[11px]"
-                    >
-                      {session.status === "not_started"
-                        ? "Scheduled"
-                        : session.status === "in_progress"
-                          ? "In progress"
-                          : "Completed"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={statusTone[session.status]}
+                        className="px-2 py-1 text-[11px]"
+                      >
+                        {session.status === "not_started"
+                          ? "Not started"
+                          : session.status === "in_progress"
+                            ? "In progress"
+                            : "Completed"}
+                      </Badge>
+                      <Button size="sm" asChild>
+                        <Link href={`/attendance/${session.id}`}>Take attendance</Link>
+                      </Button>
+                      <Button size="sm" variant="secondary" asChild>
+                        <Link href={`/sessions/${session.id}`}>View session</Link>
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

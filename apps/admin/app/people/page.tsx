@@ -22,6 +22,9 @@ import {
   type InviteRow,
 } from "../../lib/api-client";
 import { getSafeDisplayName } from "../../lib/names";
+import { useAdminAccess } from "../../lib/use-admin-access";
+import { canAccessAdminSection } from "../../lib/access";
+import { NoAccessCard } from "../../components/no-access-card";
 
 const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; orgId: string }>) => {
   const activeSite = sites.find((site) => site.id === activeSiteId) ?? sites[0];
@@ -31,6 +34,7 @@ const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; or
 export default function PeoplePage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [people, setPeople] = React.useState<PersonRow[]>([]);
   const [invites, setInvites] = React.useState<InviteRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -75,11 +79,11 @@ export default function PeoplePage() {
   }, [sessionStatus, session]);
 
   React.useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || !canAccessAdminSection(role)) return;
     void load();
-  }, [orgId, load]);
+  }, [orgId, role, load]);
 
-  const handleResendInvite = async (inviteId: string) => {
+  const handleResendInvite = React.useCallback(async (inviteId: string) => {
     try {
       if (!orgId) {
         throw new Error("Active organisation not found.");
@@ -89,9 +93,9 @@ export default function PeoplePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend invite");
     }
-  };
+  }, [orgId, load]);
 
-  const handleRevokeInvite = async (inviteId: string) => {
+  const handleRevokeInvite = React.useCallback(async (inviteId: string) => {
     if (!confirm("Are you sure you want to revoke this invite?")) return;
     try {
       if (!orgId) {
@@ -102,7 +106,7 @@ export default function PeoplePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to revoke invite");
     }
-  };
+  }, [orgId, load]);
 
   const filteredPeople = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -235,8 +239,26 @@ export default function PeoplePage() {
         width: "180px",
       },
     ],
-    [],
+    [handleResendInvite, handleRevokeInvite],
   );
+
+  if (isLoadingAccess) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (!canAccessAdminSection(role)) {
+    return (
+      <NoAccessCard
+        title="You don't have access to People"
+        message="People management is only available to organisation and site administrators."
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

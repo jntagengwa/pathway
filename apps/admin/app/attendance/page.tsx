@@ -141,17 +141,27 @@ export default function AttendancePage() {
         align: "center",
         width: "140px",
       },
+      {
+        id: "actions",
+        header: "",
+        cell: (row) => (
+          <Button size="sm" asChild>
+            <Link href={`/attendance/${row.sessionId}`}>Take attendance</Link>
+          </Button>
+        ),
+        width: "140px",
+      },
     ],
     [],
   );
 
   const weekLabel =
-    weekStart.toLocaleDateString(undefined, {
+    weekStart.toLocaleDateString("en-GB", {
       month: "short",
       day: "numeric",
     }) +
     " – " +
-    weekEnd.toLocaleDateString(undefined, {
+    weekEnd.toLocaleDateString("en-GB", {
       month: "short",
       day: "numeric",
       year: "numeric",

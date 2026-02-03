@@ -12,11 +12,15 @@ import {
   createAssignment,
   deleteAssignment,
   fetchAssignmentsForOrg,
+  fetchMe,
   fetchSessionById,
   fetchStaffEligibilityForSession,
   updateAssignment,
+  updateAssignmentStatus,
   type StaffEligibilityRow,
 } from "../../../lib/api-client";
+import { useAdminAccess } from "../../../lib/use-admin-access";
+import { canAccessAdminSection } from "../../../lib/access";
 
 const eligibilityReasonLabel: Record<
   NonNullable<StaffEligibilityRow["reason"]>,
@@ -80,10 +84,12 @@ function formatTimeRange(startsAt?: string, endsAt?: string) {
 export default function SessionDetailPage() {
   const params = useParams<{ sessionId: string }>();
   const router = useRouter();
-  const { status: sessionStatus } = useSession();
+  const { data: authSession, status: sessionStatus } = useSession();
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const sessionId = params.sessionId;
 
   const [session, setSession] = React.useState<AdminSessionDetail | null>(null);
+  const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
@@ -164,6 +170,20 @@ export default function SessionDetailPage() {
       void load();
     }
   }, [sessionStatus, load]);
+
+  React.useEffect(() => {
+    const uid = (authSession?.user as { id?: string } | undefined)?.id;
+    if (uid) {
+      setCurrentUserId(uid);
+      return;
+    }
+    if (sessionStatus !== "authenticated") return;
+    fetchMe()
+      .then((r) => setCurrentUserId(r.userId ?? null))
+      .catch(() => setCurrentUserId(null));
+  }, [sessionStatus, authSession?.user]);
+
+  const isAdmin = canAccessAdminSection(role);
 
   React.useEffect(() => {
     if (!session?.startsAt || !session?.endsAt) {
@@ -250,13 +270,18 @@ export default function SessionDetailPage() {
             Back to sessions
           </Link>
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button asChild size="sm">
-            <Link href={`/sessions/${sessionId}/edit`}>Edit session</Link>
+          <Button size="sm" asChild>
+            <Link href={`/attendance/${sessionId}`}>Take attendance</Link>
           </Button>
+          {isAdmin && (
+            <Button asChild size="sm">
+              <Link href={`/sessions/${sessionId}/edit`}>Edit session</Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -356,8 +381,8 @@ export default function SessionDetailPage() {
 
           <Card
             className="md:col-span-2"
-            title="Staff & rota"
-            description="Schedule staff onto this session and keep statuses up to date."
+            title="Scheduled staff"
+            description={isAdmin ? "Schedule staff onto this session and keep statuses up to date." : "Staff assigned to this session."}
           >
             {assignmentError ? (
               <div className="mb-4 rounded-md bg-status-danger/5 px-3 py-2 text-sm text-status-danger">
@@ -377,6 +402,8 @@ export default function SessionDetailPage() {
                     assignment.startsAt,
                     assignment.endsAt,
                   );
+                  const isOwnAssignment = currentUserId != null && assignment.staffId === currentUserId;
+                  const showAcceptDecline = !isAdmin && isOwnAssignment && assignment.status === "pending";
                   return (
                     <div
                       key={assignment.id}
@@ -400,49 +427,94 @@ export default function SessionDetailPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <label className="text-xs text-text-muted">
-                          Status
-                          <select
-                            value={assignment.status}
-                            onChange={(e) =>
-                              handleStatusChange(
-                                assignment.id,
-                                e.target.value as AdminAssignmentRow["status"],
-                              )
-                            }
-                            className="ml-2 rounded-md border border-border-subtle bg-white px-2 py-1 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-                            disabled={rowActionId === assignment.id}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="declined">Declined</option>
-                          </select>
-                        </label>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={async () => {
-                            setRowActionId(assignment.id);
-                            setAssignmentError(null);
-                            try {
-                              await deleteAssignment(assignment.id);
-                              await refreshAssignments(session);
-                            } catch (err) {
-                              setAssignmentError(
-                                err instanceof Error
-                                  ? err.message
-                                  : "Unable to remove assignment",
-                              );
-                            } finally {
-                              setRowActionId(null);
-                            }
-                          }}
-                          disabled={rowActionId === assignment.id}
-                          className="text-status-danger hover:text-status-danger"
-                        >
-                          <Trash2 className="mr-1 h-4 w-4" />
-                          Remove
-                        </Button>
+                        {showAcceptDecline ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={async () => {
+                                setRowActionId(assignment.id);
+                                setAssignmentError(null);
+                                try {
+                                  await updateAssignmentStatus(assignment.id, "confirmed");
+                                  await refreshAssignments(session);
+                                } catch (err) {
+                                  setAssignmentError(err instanceof Error ? err.message : "Failed to accept");
+                                } finally {
+                                  setRowActionId(null);
+                                }
+                              }}
+                              disabled={rowActionId === assignment.id}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                setRowActionId(assignment.id);
+                                setAssignmentError(null);
+                                try {
+                                  await updateAssignmentStatus(assignment.id, "declined");
+                                  await refreshAssignments(session);
+                                } catch (err) {
+                                  setAssignmentError(err instanceof Error ? err.message : "Failed to decline");
+                                } finally {
+                                  setRowActionId(null);
+                                }
+                              }}
+                              disabled={rowActionId === assignment.id}
+                            >
+                              Decline
+                            </Button>
+                          </>
+                        ) : isAdmin ? (
+                          <>
+                            <label className="text-xs text-text-muted">
+                              Status
+                              <select
+                                value={assignment.status}
+                                onChange={(e) =>
+                                  handleStatusChange(
+                                    assignment.id,
+                                    e.target.value as AdminAssignmentRow["status"],
+                                  )
+                                }
+                                className="ml-2 rounded-md border border-border-subtle bg-white px-2 py-1 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                                disabled={rowActionId === assignment.id}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="declined">Declined</option>
+                              </select>
+                            </label>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                setRowActionId(assignment.id);
+                                setAssignmentError(null);
+                                try {
+                                  await deleteAssignment(assignment.id);
+                                  await refreshAssignments(session);
+                                } catch (err) {
+                                  setAssignmentError(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Unable to remove assignment",
+                                  );
+                                } finally {
+                                  setRowActionId(null);
+                                }
+                              }}
+                              disabled={rowActionId === assignment.id}
+                              className="text-status-danger hover:text-status-danger"
+                            >
+                              <Trash2 className="mr-1 h-4 w-4" />
+                              Remove
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -450,10 +522,11 @@ export default function SessionDetailPage() {
               </div>
             ) : (
               <p className="text-sm text-text-muted">
-                No staff are assigned yet. Add someone below.
+                {isAdmin ? "No staff are assigned yet. Add someone below." : "No staff assigned yet."}
               </p>
             )}
 
+            {isAdmin && (
             <div className="mt-6 border-t border-border-subtle pt-4">
               <h3 className="text-sm font-semibold text-text-primary">
                 Add staff
@@ -577,6 +650,7 @@ export default function SessionDetailPage() {
                 </div>
               </form>
             </div>
+            )}
           </Card>
 
           <Card title="Notes & Safeguarding">

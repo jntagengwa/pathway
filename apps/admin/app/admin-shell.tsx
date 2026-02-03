@@ -48,8 +48,8 @@ const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = 
 ];
 
 const titleMap: Record<string, string> = {
-  "/": "Dashboard",
-  "/dashboard": "Dashboard",
+  "/": "Today",
+  "/dashboard": "Today",
   "/people": "People",
   "/users": "People",
   "/children": "Children",
