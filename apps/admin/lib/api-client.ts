@@ -194,6 +194,17 @@ export type AdminConcernRow = {
   reportedByLabel?: string | null;
 };
 
+export type AdminConcernDetail = {
+  id: string;
+  createdAt: string;
+  updatedAt?: string | null;
+  status: "open" | "in_review" | "closed" | "other";
+  category?: string | null;
+  summary?: string | null;
+  childLabel: string;
+  details?: string | null;
+};
+
 export type AdminNotesSummary = {
   totalNotes: number;
   visibleToParents: number;
@@ -213,10 +224,7 @@ export type StaffEligibilityRow = {
   id: string;
   fullName: string;
   eligible: boolean;
-  reason?:
-    | "unavailable_at_time"
-    | "does_not_prefer_group"
-    | "blocked_on_date";
+  reason?: "unavailable_at_time" | "does_not_prefer_group" | "blocked_on_date";
 };
 
 export type AdminStaffDetail = {
@@ -431,7 +439,9 @@ export async function fetchMe(): Promise<{ userId: string }> {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Failed to get current user (${res.status}): ${body || res.statusText}`);
+    throw new Error(
+      `Failed to get current user (${res.status}): ${body || res.statusText}`,
+    );
   }
   return res.json() as Promise<{ userId: string }>;
 }
@@ -642,11 +652,10 @@ export const mapApiAssignmentToAdminRow = (
   const startsAt = sessionMeta?.startsAt ?? undefined;
   const endsAt = sessionMeta?.endsAt ?? undefined;
   const staffId = assignment.userId ?? "unknown";
-  const sessionGroupName =
-    assignment.session?.groups?.length
-      ? assignment.session.groups.map((g) => g.name).join(", ")
-      : (assignment.session as { group?: { name: string } })?.group?.name ??
-        undefined;
+  const sessionGroupName = assignment.session?.groups?.length
+    ? assignment.session.groups.map((g) => g.name).join(", ")
+    : ((assignment.session as { group?: { name: string } })?.group?.name ??
+      undefined);
 
   return {
     id: assignment.id,
@@ -799,7 +808,13 @@ const mapApiSessionDetailToAdmin = (
   groupId: s.groups?.[0]?.id ?? s.groupId ?? undefined,
   groupIds: s.groups?.map((g) => g.id) ?? (s.groupId ? [s.groupId] : []),
   ageGroup: s.ageGroupLabel ?? s.ageGroup ?? "-",
-  room: s.roomName ?? s.room ?? s.groupLabel ?? s.groups?.[0]?.name ?? s.groupId ?? "-",
+  room:
+    s.roomName ??
+    s.room ??
+    s.groupLabel ??
+    s.groups?.[0]?.name ??
+    s.groupId ??
+    "-",
   status: mapSessionStatus(s.startsAt, s.endsAt),
   attendanceMarked:
     s.attendanceMarked ??
@@ -922,8 +937,20 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     title: s.title ?? "Session",
     startsAt: s.startsAt,
     endsAt: s.endsAt,
-    ageGroup: s.ageGroupLabel ?? s.ageGroup ?? s.groups?.[0]?.name ?? s.group?.name ?? "-",
-    room: s.roomName ?? s.room ?? s.groupLabel ?? s.groups?.[0]?.name ?? s.group?.name ?? s.groupId ?? "-",
+    ageGroup:
+      s.ageGroupLabel ??
+      s.ageGroup ??
+      s.groups?.[0]?.name ??
+      s.group?.name ??
+      "-",
+    room:
+      s.roomName ??
+      s.room ??
+      s.groupLabel ??
+      s.groups?.[0]?.name ??
+      s.group?.name ??
+      s.groupId ??
+      "-",
     status: mapSessionStatus(s.startsAt, s.endsAt),
     attendanceMarked:
       s.attendanceMarked ??
@@ -987,7 +1014,9 @@ export async function updateSession(
     input.groupIds !== undefined
       ? input.groupIds.filter(Boolean)
       : input.groupId !== undefined
-        ? (input.groupId ? [input.groupId] : [])
+        ? input.groupId
+          ? [input.groupId]
+          : []
         : undefined;
   const payload = {
     ...(input.title ? { title: input.title.trim() } : {}),
@@ -1490,13 +1519,17 @@ export async function createSwapRequest(params: {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Failed to create swap request (${res.status}): ${body || res.statusText}`);
+    throw new Error(
+      `Failed to create swap request (${res.status}): ${body || res.statusText}`,
+    );
   }
   return res.json() as Promise<AdminSwapRequestRow>;
 }
 
 /** Fetch swap requests where the current user is from or to. */
-export async function fetchMySwapRequests(userId: string): Promise<AdminSwapRequestRow[]> {
+export async function fetchMySwapRequests(
+  userId: string,
+): Promise<AdminSwapRequestRow[]> {
   const [fromRes, toRes] = await Promise.all([
     fetch(`${API_BASE_URL}/swaps?fromUserId=${encodeURIComponent(userId)}`, {
       headers: buildAuthHeaders(),
@@ -1508,7 +1541,9 @@ export async function fetchMySwapRequests(userId: string): Promise<AdminSwapRequ
     }),
   ]);
   if (!fromRes.ok || !toRes.ok) {
-    const body = await fromRes.text().catch(() => "") || (await toRes.text().catch(() => ""));
+    const body =
+      (await fromRes.text().catch(() => "")) ||
+      (await toRes.text().catch(() => ""));
     throw new Error(`Failed to load swap requests: ${body || "unknown"}`);
   }
   const fromList = (await fromRes.json()) as AdminSwapRequestRow[];
@@ -1521,11 +1556,15 @@ export async function fetchMySwapRequests(userId: string): Promise<AdminSwapRequ
       merged.push(r);
     }
   }
-  merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  merged.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
   return merged;
 }
 
-export async function acceptSwapRequest(id: string): Promise<AdminSwapRequestRow> {
+export async function acceptSwapRequest(
+  id: string,
+): Promise<AdminSwapRequestRow> {
   const res = await fetch(`${API_BASE_URL}/swaps/${id}`, {
     method: "PATCH",
     headers: buildAuthHeaders(),
@@ -1534,12 +1573,16 @@ export async function acceptSwapRequest(id: string): Promise<AdminSwapRequestRow
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Failed to accept swap (${res.status}): ${body || res.statusText}`);
+    throw new Error(
+      `Failed to accept swap (${res.status}): ${body || res.statusText}`,
+    );
   }
   return res.json() as Promise<AdminSwapRequestRow>;
 }
 
-export async function declineSwapRequest(id: string): Promise<AdminSwapRequestRow> {
+export async function declineSwapRequest(
+  id: string,
+): Promise<AdminSwapRequestRow> {
   const res = await fetch(`${API_BASE_URL}/swaps/${id}`, {
     method: "PATCH",
     headers: buildAuthHeaders(),
@@ -1548,7 +1591,9 @@ export async function declineSwapRequest(id: string): Promise<AdminSwapRequestRo
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Failed to decline swap (${res.status}): ${body || res.statusText}`);
+    throw new Error(
+      `Failed to decline swap (${res.status}): ${body || res.statusText}`,
+    );
   }
   return res.json() as Promise<AdminSwapRequestRow>;
 }
@@ -2412,14 +2457,12 @@ export async function fetchAttendanceSessionSummaries(
     sessionId: s.sessionId,
     title: s.title ?? "Session",
     date: s.startsAt,
-    timeRangeLabel:
-      buildTimeRangeLabel(s.startsAt, s.endsAt) ?? "Time TBC",
+    timeRangeLabel: buildTimeRangeLabel(s.startsAt, s.endsAt) ?? "Time TBC",
     roomLabel: null,
     ageGroupLabel: s.ageGroupLabel ?? null,
     attendanceMarked: s.markedCount,
     attendanceTotal: s.totalChildCount,
-    status:
-      s.status === "complete" ? "completed" : s.status,
+    status: s.status === "complete" ? "completed" : s.status,
   }));
 }
 
@@ -2431,10 +2474,7 @@ export async function fetchAttendanceSummariesForToday(): Promise<
   from.setHours(0, 0, 0, 0);
   const to = new Date(from);
   to.setDate(to.getDate() + 1);
-  return fetchAttendanceSessionSummaries(
-    from.toISOString(),
-    to.toISOString(),
-  );
+  return fetchAttendanceSessionSummaries(from.toISOString(), to.toISOString());
 }
 
 /** API response for GET /attendance/session/:sessionId */
@@ -2484,17 +2524,13 @@ export async function fetchAttendanceDetailBySessionId(
   if (res.status === 404) return null;
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(
-      `Failed to fetch attendance detail: ${res.status} ${body}`,
-    );
+    throw new Error(`Failed to fetch attendance detail: ${res.status} ${body}`);
   }
 
   const data = (await res.json()) as ApiAttendanceSessionDetail;
   const { session, children, rows: rawRows } = data;
   const childMap = new Map(children.map((c) => [c.id, c.displayName]));
-  const rowsByChild = new Map(
-    rawRows.map((r) => [r.childId, r.present]),
-  );
+  const rowsByChild = new Map(rawRows.map((r) => [r.childId, r.present]));
 
   const rows = children.map((c) => {
     const present = rowsByChild.get(c.id);
@@ -2567,15 +2603,11 @@ export async function saveAttendanceForSession(
   );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(
-      `Failed to save attendance: ${res.status} ${body}`,
-    );
+    throw new Error(`Failed to save attendance: ${res.status} ${body}`);
   }
   const data = (await res.json()) as ApiAttendanceSessionDetail;
   const { session, children, rows: rawRows } = data;
-  const rowsByChild = new Map(
-    rawRows.map((r) => [r.childId, r.present]),
-  );
+  const rowsByChild = new Map(rawRows.map((r) => [r.childId, r.present]));
   const detailRows = children.map((c) => ({
     childId: c.id,
     childName: c.displayName,
@@ -2635,6 +2667,20 @@ const mapApiConcernToAdmin = (c: ApiConcern): AdminConcernRow => ({
   reportedByLabel: safeReporterLabel(c.reportedByLabel),
 });
 
+const mapApiConcernToDetail = (c: ApiConcern): AdminConcernDetail => ({
+  id: c.id,
+  createdAt: c.createdAt ?? new Date().toISOString(),
+  updatedAt: c.updatedAt ?? null,
+  status:
+    c.status === "open" || c.status === "in_review" || c.status === "closed"
+      ? c.status
+      : "other",
+  category: c.category ?? null,
+  summary: c.summary ?? null,
+  childLabel: safeChildLabel(c.childId, c.child ?? null),
+  details: c.details ?? null,
+});
+
 // SAFEGUARDING: used for metadata-only overviews. Never expose concern/note free text to admin UI.
 export async function fetchOpenConcerns(): Promise<AdminConcernRow[]> {
   const useMock = isUsingMockApi();
@@ -2676,6 +2722,66 @@ export async function fetchOpenConcerns(): Promise<AdminConcernRow[]> {
     );
 }
 
+/** Create a concern. Requires safeguarding admin role. */
+export async function createConcern(payload: {
+  childId: string;
+  summary: string;
+  details?: string;
+}): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE_URL}/concerns`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({
+      childId: payload.childId,
+      summary: payload.summary.trim(),
+      ...(payload.details?.trim() ? { details: payload.details.trim() } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create concern (${res.status}): ${body || res.statusText}`,
+    );
+  }
+  const json = (await res.json()) as { id: string };
+  return { id: json.id };
+}
+
+/** Fetch a single concern by id for detail view. Returns null if not found. */
+export async function fetchConcernById(
+  id: string,
+): Promise<AdminConcernDetail | null> {
+  const res = await fetch(`${API_BASE_URL}/concerns/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch concern (${res.status}): ${body || res.statusText}`,
+    );
+  }
+  const json = (await res.json()) as ApiConcern;
+  return mapApiConcernToDetail(json);
+}
+
+/** Close a concern (soft delete). Requires safeguarding admin role. */
+export async function closeConcern(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/concerns/${id}`, {
+    method: "DELETE",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to close concern (${res.status}): ${body || res.statusText}`,
+    );
+  }
+}
+
 type ApiNote = {
   id: string;
   createdAt?: string;
@@ -2708,6 +2814,30 @@ export async function fetchNotesSummary(): Promise<AdminNotesSummary> {
   const staffOnly = totalNotes - visibleToParents;
 
   return { totalNotes, visibleToParents, staffOnly };
+}
+
+/** Create a positive note (ChildNote). Requires safeguarding role. */
+export async function createNote(payload: {
+  childId: string;
+  text: string;
+}): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE_URL}/notes`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({
+      childId: payload.childId,
+      text: payload.text.trim(),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create note (${res.status}): ${body || res.statusText}`,
+    );
+  }
+  const json = (await res.json()) as { id: string };
+  return { id: json.id };
 }
 
 type ApiEntitlements = {

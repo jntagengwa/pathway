@@ -69,6 +69,9 @@ export class ConcernsService {
       const records = await tx.concern.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        include: {
+          child: { select: { firstName: true, lastName: true } },
+        },
       });
       await this.audit.recordEvent({
         actorUserId: context.actorUserId,
@@ -177,6 +180,9 @@ export class ConcernsService {
         id,
         child: { tenantId },
         deletedAt: null,
+      },
+      include: {
+        child: { select: { firstName: true, lastName: true } },
       },
     });
     if (!concern) throw new NotFoundException("Concern not found");

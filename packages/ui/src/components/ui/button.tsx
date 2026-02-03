@@ -15,6 +15,10 @@ const buttonVariants = cva(
         outline:
           "border border-border-subtle text-text-primary bg-transparent hover:bg-muted motion-safe:hover:shadow-sm",
         ghost: "bg-transparent text-text-primary hover:bg-muted",
+        destructive:
+          "bg-status-danger text-text-inverse hover:bg-status-danger/90 shadow-soft motion-safe:hover:shadow-md",
+        success:
+          "bg-status-ok text-text-inverse hover:bg-status-ok/90 shadow-soft motion-safe:hover:shadow-md",
       },
       size: {
         sm: "h-8 px-3 text-xs",

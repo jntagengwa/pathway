@@ -142,7 +142,8 @@ export function meetsAccessRequirement(
     case "admin-only":
       return canAccessAdminSection(role);
     case "billing":
-      return canAccessBilling(role) && !(context?.currentOrgIsMasterOrg ?? false);
+      // Show billing nav for org admins; billing page itself handles master-org messaging
+      return canAccessBilling(role);
     case "safeguarding-admin":
       return canAccessSafeguardingAdmin(role);
     default:

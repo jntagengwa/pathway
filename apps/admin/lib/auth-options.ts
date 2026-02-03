@@ -102,68 +102,76 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, account, profile }) {
-      console.log("[🔐 AUTH] JWT callback triggered");
-      console.log("[🔐 AUTH] Profile:", {
-        sub: token.sub,
-        email: (profile as any)?.email ?? (token as any).email,
-        name: (profile as any)?.name,
-        hasAccount: !!account,
-      });
-      
-      // On first login, persist tokens into the JWT
-      if (account?.access_token) {
-        (token as any).accessToken = account.access_token;
-      }
-      if (account?.id_token) {
-        (token as any).idToken = account.id_token;
-      }
-      
-      // Upsert identity in DB whenever we have a new Auth0 session
-      // Auth0 handles email verification - if user is here, they're verified
-      if (account?.provider === "auth0" && token.sub) {
-        console.log("[🔐 AUTH] Upserting user identity to DB...");
-        const profileEmail = (profile as any)?.email ?? (token as any).email;
-        const profileName =
-          (profile as any)?.name ??
-          (profile as any)?.given_name ??
-          (token as any).name;
-        
-        // Only pass name if it exists and is NOT an email
-        // Don't pass email as name - let the API handle fallback logic
-        const safeName = profileName && !isEmail(profileName) ? profileName : undefined;
-        
-        const identity = await upsertIdentityToApi({
-          provider: "auth0",
-          subject: token.sub,
-          email: profileEmail,
-          name: safeName,
+      try {
+        console.log("[🔐 AUTH] JWT callback triggered");
+        console.log("[🔐 AUTH] Profile:", {
+          sub: token.sub,
+          email: (profile as any)?.email ?? (token as any).email,
+          name: (profile as any)?.name,
+          hasAccount: !!account,
         });
-        if (identity.userId) {
-          (token as any).userId = identity.userId;
+
+        // On first login, persist tokens into the JWT
+        if (account?.access_token) {
+          (token as any).accessToken = account.access_token;
         }
-        if (identity.email) {
-          (token as any).email = identity.email;
+        if (account?.id_token) {
+          (token as any).idToken = account.id_token;
         }
-        if (identity.displayName) {
-          (token as any).displayName = identity.displayName;
+
+        // Upsert identity in DB whenever we have a new Auth0 session
+        // Auth0 handles email verification - if user is here, they're verified
+        if (account?.provider === "auth0" && token.sub) {
+          console.log("[🔐 AUTH] Upserting user identity to DB...");
+          const profileEmail = (profile as any)?.email ?? (token as any).email;
+          const profileName =
+            (profile as any)?.name ??
+            (profile as any)?.given_name ??
+            (token as any).name;
+
+          // Only pass name if it exists and is NOT an email
+          const safeName = profileName && !isEmail(profileName) ? profileName : undefined;
+
+          const identity = await upsertIdentityToApi({
+            provider: "auth0",
+            subject: token.sub,
+            email: profileEmail,
+            name: safeName,
+          });
+          if (identity.userId) {
+            (token as any).userId = identity.userId;
+          }
+          if (identity.email) {
+            (token as any).email = identity.email;
+          }
+          if (identity.displayName) {
+            (token as any).displayName = identity.displayName;
+          }
         }
+
+        return token;
+      } catch (err) {
+        // Never throw: log and return token so NextAuth does not redirect with error=auth0
+        console.error("[🔐 AUTH] JWT callback error (returning token so login completes):", err);
+        return token;
       }
-      
-      return token;
     },
     async session({ session, token }) {
-      // Expose accessToken on the session for admin API calls
-      if ((token as any).accessToken) {
-        (session as any).accessToken = (token as any).accessToken;
+      try {
+        if ((token as any).accessToken) {
+          (session as any).accessToken = (token as any).accessToken;
+        }
+        if ((token as any).userId) {
+          (session.user as any).id = (token as any).userId;
+        }
+        if ((token as any).displayName) {
+          session.user!.name = (token as any).displayName;
+        }
+        return session;
+      } catch (err) {
+        console.error("[🔐 AUTH] Session callback error:", err);
+        return session;
       }
-      if ((token as any).userId) {
-        (session.user as any).id = (token as any).userId;
-      }
-      if ((token as any).displayName) {
-        session.user!.name = (token as any).displayName;
-      }
-      
-      return session;
     },
   },
   pages: {
