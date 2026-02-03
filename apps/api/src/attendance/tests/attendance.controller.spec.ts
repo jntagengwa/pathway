@@ -18,7 +18,10 @@ interface AttendanceRow {
 }
 
 // Strongly-typed Jest mocks
-const listMock: jest.Mock<Promise<AttendanceRow[]>, [string]> = jest.fn();
+const listMock: jest.Mock<
+  Promise<AttendanceRow[]>,
+  [string, string | undefined]
+> = jest.fn();
 const getByIdMock: jest.Mock<
   Promise<AttendanceRow>,
   [string, string]
@@ -31,12 +34,18 @@ const updateMock: jest.Mock<
   Promise<AttendanceRow>,
   [string, UpdateAttendanceDto, string]
 > = jest.fn();
+const getSessionSummariesMock = jest.fn();
+const getSessionAttendanceDetailMock = jest.fn();
+const upsertSessionAttendanceMock = jest.fn();
 
 const mockService: AttendanceService = {
   list: listMock as unknown as AttendanceService["list"],
   getById: getByIdMock as unknown as AttendanceService["getById"],
   create: createMock as unknown as AttendanceService["create"],
   update: updateMock as unknown as AttendanceService["update"],
+  getSessionSummaries: getSessionSummariesMock as unknown as AttendanceService["getSessionSummaries"],
+  getSessionAttendanceDetail: getSessionAttendanceDetailMock as unknown as AttendanceService["getSessionAttendanceDetail"],
+  upsertSessionAttendance: upsertSessionAttendanceMock as unknown as AttendanceService["upsertSessionAttendance"],
 } as AttendanceService;
 
 describe("AttendanceController", () => {
@@ -77,7 +86,7 @@ describe("AttendanceController", () => {
     const res = await controller.list(tenantId);
     expect(Array.isArray(res)).toBe(true);
     expect(res).toEqual([row]);
-    expect(listMock).toHaveBeenCalledWith(tenantId);
+    expect(listMock).toHaveBeenCalledWith(tenantId, undefined);
   });
 
   it("getById should return a record", async () => {

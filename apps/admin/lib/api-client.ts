@@ -587,6 +587,7 @@ type ApiAssignment = {
     startsAt?: string | null;
     endsAt?: string | null;
     group?: { id: string; name: string } | null;
+    groups?: { id: string; name: string }[];
   } | null;
   user?: {
     id: string;
@@ -2355,12 +2356,29 @@ const mapAttendanceStatus = (
   return "unknown";
 };
 
-export async function fetchAttendanceSummariesForToday(): Promise<
-  AdminAttendanceRow[]
-> {
+/** API response for GET /attendance/session-summaries */
+type ApiAttendanceSessionSummary = {
+  sessionId: string;
+  title: string | null;
+  startsAt: string;
+  endsAt: string;
+  groupIds: string[];
+  ageGroupLabel: string | null;
+  markedCount: number;
+  totalChildCount: number;
+  status: "not_started" | "in_progress" | "complete";
+};
+
+/**
+ * Fetch attendance session summaries for a date range (for list page).
+ * Use for "This week" / prev/next week.
+ */
+export async function fetchAttendanceSessionSummaries(
+  from: string,
+  to: string,
+): Promise<AdminAttendanceRow[]> {
   const useMock = isUsingMockApi();
   if (useMock) {
-    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return [
       {
         id: "s1",
@@ -2377,81 +2395,72 @@ export async function fetchAttendanceSummariesForToday(): Promise<
     ];
   }
 
-  const [attendanceRes, sessions] = await Promise.all([
-    fetch(`${API_BASE_URL}/attendance`, {
-      headers: buildAuthHeaders(),
-      cache: "no-store",
-    }),
-    fetchSessions(),
-  ]);
-
-  if (!attendanceRes.ok) {
-    const body = await attendanceRes.text().catch(() => "");
+  const params = new URLSearchParams({ from, to });
+  const res = await fetch(
+    `${API_BASE_URL}/attendance/session-summaries?${params}`,
+    { headers: buildAuthHeaders(), credentials: "include", cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
     throw new Error(
-      `Failed to fetch attendance: ${attendanceRes.status} ${body}`,
+      `Failed to fetch attendance summaries: ${res.status} ${body}`,
     );
   }
-
-  const attendance = (await attendanceRes.json()) as ApiAttendanceRow[];
-  const sessionMap = new Map(sessions.map((s) => [s.id, s]));
-
-  const grouped = attendance.reduce<Record<string, ApiAttendanceRow[]>>(
-    (acc, row) => {
-      if (!row.sessionId) return acc;
-      acc[row.sessionId] = acc[row.sessionId] || [];
-      acc[row.sessionId].push(row);
-      return acc;
-    },
-    {},
-  );
-
-  const rows: AdminAttendanceRow[] = Object.entries(grouped)
-    .map(([sessionId, rowsForSession]) => {
-      const session = sessionMap.get(sessionId);
-      const dateSource =
-        session?.startsAt ??
-        rowsForSession[0]?.timestamp ??
-        new Date().toISOString();
-      const timeRangeLabel =
-        buildTimeRangeLabel(session?.startsAt, session?.endsAt) ?? "Time TBC";
-      const attendanceMarked = rowsForSession.filter(
-        (r) => typeof r.present === "boolean",
-      ).length;
-      const attendanceTotal = rowsForSession.length;
-
-      return {
-        id: sessionId,
-        sessionId,
-        title: session?.title ?? "Session",
-        date: dateSource,
-        timeRangeLabel,
-        roomLabel: session?.room ?? null,
-        ageGroupLabel: session?.ageGroup ?? null,
-        attendanceMarked,
-        attendanceTotal,
-        status:
-          session?.status ??
-          mapSessionStatus(session?.startsAt, session?.endsAt) ??
-          "not_started",
-      };
-    })
-    .filter(
-      (row) =>
-        isTodayLocal(row.date) ||
-        isTodayLocal(sessionMap.get(row.sessionId)?.startsAt) ||
-        isTodayLocal(sessionMap.get(row.sessionId)?.endsAt),
-    )
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  return rows;
+  const data = (await res.json()) as ApiAttendanceSessionSummary[];
+  return data.map((s) => ({
+    id: s.sessionId,
+    sessionId: s.sessionId,
+    title: s.title ?? "Session",
+    date: s.startsAt,
+    timeRangeLabel:
+      buildTimeRangeLabel(s.startsAt, s.endsAt) ?? "Time TBC",
+    roomLabel: null,
+    ageGroupLabel: s.ageGroupLabel ?? null,
+    attendanceMarked: s.markedCount,
+    attendanceTotal: s.totalChildCount,
+    status:
+      s.status === "complete" ? "completed" : s.status,
+  }));
 }
+
+/** Fetch summaries for today only (convenience: uses today's date range). */
+export async function fetchAttendanceSummariesForToday(): Promise<
+  AdminAttendanceRow[]
+> {
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setDate(to.getDate() + 1);
+  return fetchAttendanceSessionSummaries(
+    from.toISOString(),
+    to.toISOString(),
+  );
+}
+
+/** API response for GET /attendance/session/:sessionId */
+type ApiAttendanceSessionDetail = {
+  session: {
+    id: string;
+    title: string | null;
+    startsAt: string;
+    endsAt: string;
+    groupIds: string[];
+    ageGroupLabel: string | null;
+  };
+  children: Array<{ id: string; displayName: string }>;
+  rows: Array<{
+    id?: string;
+    childId: string;
+    present: boolean | null;
+    timestamp?: string;
+  }>;
+};
 
 export async function fetchAttendanceDetailBySessionId(
   sessionId: string,
 ): Promise<AdminAttendanceDetail | null> {
   const useMock = isUsingMockApi();
   if (useMock) {
-    // TODO: remove mock fallback once admin env always sets NEXT_PUBLIC_API_BASE_URL.
     return {
       sessionId,
       title: "Year 3 Maths",
@@ -2468,41 +2477,31 @@ export async function fetchAttendanceDetailBySessionId(
     };
   }
 
-  const [attendanceRes, session] = await Promise.all([
-    fetch(`${API_BASE_URL}/attendance`, {
-      headers: buildAuthHeaders(),
-      cache: "no-store",
-    }),
-    fetchSessionById(sessionId),
-  ]);
-
-  if (!attendanceRes.ok) {
-    const body = await attendanceRes.text().catch(() => "");
+  const res = await fetch(
+    `${API_BASE_URL}/attendance/session/${encodeURIComponent(sessionId)}`,
+    { headers: buildAuthHeaders(), credentials: "include", cache: "no-store" },
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
     throw new Error(
-      `Failed to fetch attendance: ${attendanceRes.status} ${body}`,
+      `Failed to fetch attendance detail: ${res.status} ${body}`,
     );
   }
 
-  const attendance = (await attendanceRes.json()) as ApiAttendanceRow[];
-  const rowsForSession = attendance.filter((r) => r.sessionId === sessionId);
+  const data = (await res.json()) as ApiAttendanceSessionDetail;
+  const { session, children, rows: rawRows } = data;
+  const childMap = new Map(children.map((c) => [c.id, c.displayName]));
+  const rowsByChild = new Map(
+    rawRows.map((r) => [r.childId, r.present]),
+  );
 
-  if (rowsForSession.length === 0 && !session) {
-    return null;
-  }
-
-  let childNameMap = new Map<string, string>();
-  try {
-    const children = await fetchChildren();
-    childNameMap = new Map(children.map((c) => [c.id, c.fullName]));
-  } catch {
-    // If children lookup fails, fallback to ids.
-  }
-
-  const rows = rowsForSession.map((r) => {
-    const status = mapAttendanceStatus(r.present);
+  const rows = children.map((c) => {
+    const present = rowsByChild.get(c.id);
+    const status = mapAttendanceStatus(present ?? null);
     return {
-      childId: r.childId,
-      childName: childNameMap.get(r.childId) ?? `Child ${r.childId}`,
+      childId: c.id,
+      childName: childMap.get(c.id) ?? `Child ${c.id}`,
       status,
     };
   });
@@ -2516,25 +2515,90 @@ export async function fetchAttendanceDetailBySessionId(
   );
 
   const timeRangeLabel =
-    buildTimeRangeLabel(session?.startsAt, session?.endsAt) ?? "Time TBC";
-  const date =
-    session?.startsAt ??
-    rowsForSession[0]?.timestamp ??
-    new Date().toISOString();
+    buildTimeRangeLabel(session.startsAt, session.endsAt) ?? "Time TBC";
 
   return {
-    sessionId,
-    title: session?.title ?? "Session",
-    date,
+    sessionId: session.id,
+    title: session.title ?? "Session",
+    date: session.startsAt,
     timeRangeLabel,
-    roomLabel: session?.room ?? null,
-    ageGroupLabel: session?.ageGroup ?? null,
+    roomLabel: null,
+    ageGroupLabel: session.ageGroupLabel ?? null,
     rows,
     summary,
-    status:
-      session?.status ??
-      mapSessionStatus(session?.startsAt, session?.endsAt) ??
-      "not_started",
+    status: mapSessionStatus(session.startsAt, session.endsAt),
+  };
+}
+
+/** Payload for saving attendance: childId + status (present/absent/late/unknown). */
+export type SaveAttendanceRow = {
+  childId: string;
+  status: "present" | "absent" | "late" | "unknown";
+};
+
+/**
+ * Save attendance for a session. Requires real API (no mock).
+ * Maps status to present: only "present" -> true, else false.
+ */
+export async function saveAttendanceForSession(
+  sessionId: string,
+  rows: SaveAttendanceRow[],
+): Promise<AdminAttendanceDetail> {
+  if (isUsingMockApi()) {
+    throw new Error(
+      "Cannot save attendance: API base URL is not set. Set NEXT_PUBLIC_API_URL.",
+    );
+  }
+  const payload = {
+    rows: rows.map((r) => ({
+      childId: r.childId,
+      present: r.status === "present",
+    })),
+  };
+  const res = await fetch(
+    `${API_BASE_URL}/attendance/session/${encodeURIComponent(sessionId)}`,
+    {
+      method: "PUT",
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to save attendance: ${res.status} ${body}`,
+    );
+  }
+  const data = (await res.json()) as ApiAttendanceSessionDetail;
+  const { session, children, rows: rawRows } = data;
+  const rowsByChild = new Map(
+    rawRows.map((r) => [r.childId, r.present]),
+  );
+  const detailRows = children.map((c) => ({
+    childId: c.id,
+    childName: c.displayName,
+    status: mapAttendanceStatus(rowsByChild.get(c.id) ?? null),
+  }));
+  const summary = detailRows.reduce(
+    (acc, row) => {
+      acc[row.status] += 1;
+      return acc;
+    },
+    { present: 0, absent: 0, late: 0, unknown: 0 },
+  );
+  return {
+    sessionId: session.id,
+    title: session.title ?? "Session",
+    date: session.startsAt,
+    timeRangeLabel:
+      buildTimeRangeLabel(session.startsAt, session.endsAt) ?? "Time TBC",
+    roomLabel: null,
+    ageGroupLabel: session.ageGroupLabel ?? null,
+    rows: detailRows,
+    summary,
+    status: mapSessionStatus(session.startsAt, session.endsAt),
   };
 }
 

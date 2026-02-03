@@ -4,10 +4,12 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge, Button, Card, DataTable, Input, type ColumnDef } from "@pathway/ui";
 import {
   AdminAttendanceRow,
-  fetchAttendanceSummariesForToday,
+  fetchAttendanceSessionSummaries,
+  setApiClientToken,
 } from "../../lib/api-client";
 
 const statusCopy: Record<AdminAttendanceRow["status"], string> = {
@@ -25,18 +27,47 @@ const statusTone: Record<
   completed: "success",
 };
 
+/** Monday 00:00:00 local for the week containing d. */
+function getWeekStart(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+/** End of week (Sunday 23:59:59.999) for the week containing d. */
+function getWeekEnd(d: Date): Date {
+  const start = getWeekStart(d);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  end.setMilliseconds(-1);
+  return end;
+}
+
 export default function AttendancePage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [data, setData] = React.useState<AdminAttendanceRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [weekAnchor, setWeekAnchor] = React.useState(() => new Date());
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | AdminAttendanceRow["status"]
+  >("all");
+
+  const weekStart = React.useMemo(() => getWeekStart(weekAnchor), [weekAnchor]);
+  const weekEnd = React.useMemo(() => getWeekEnd(weekAnchor), [weekAnchor]);
+  const fromStr = weekStart.toISOString();
+  const toStr = weekEnd.toISOString();
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchAttendanceSummariesForToday();
+      const result = await fetchAttendanceSessionSummaries(fromStr, toStr);
       setData(result);
     } catch (err) {
       setError(
@@ -45,14 +76,26 @@ export default function AttendancePage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fromStr, toStr]);
 
   React.useEffect(() => {
-    // Only load data when session is authenticated
-    if (sessionStatus === "authenticated" && session) {
-      void load();
-    }
+    if (sessionStatus !== "authenticated" || !session) return;
+    const token = (session as { accessToken?: string })?.accessToken ?? null;
+    setApiClientToken(token);
+    void load();
   }, [sessionStatus, session, load]);
+
+  const filteredData = React.useMemo(() => {
+    let list = data;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((row) => row.title.toLowerCase().includes(q));
+    }
+    if (statusFilter !== "all") {
+      list = list.filter((row) => row.status === statusFilter);
+    }
+    return list;
+  }, [data, search, statusFilter]);
 
   const columns = React.useMemo<ColumnDef<AdminAttendanceRow>[]>(
     () => [
@@ -102,15 +145,27 @@ export default function AttendancePage() {
     [],
   );
 
+  const weekLabel =
+    weekStart.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    }) +
+    " – " +
+    weekEnd.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary font-heading">
             Attendance
           </h1>
           <p className="text-sm text-text-muted">
-            Sessions with attendance to review or verify today.
+            Sessions to mark or verify attendance for the selected week.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -124,6 +179,62 @@ export default function AttendancePage() {
             View sessions
           </Link>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-9 w-9"
+            onClick={() =>
+              setWeekAnchor((d) => {
+                const next = new Date(d);
+                next.setDate(next.getDate() - 7);
+                return next;
+              })
+            }
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="min-w-[180px] text-sm font-medium text-text-primary">
+            {weekLabel}
+          </span>
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-9 w-9"
+            onClick={() =>
+              setWeekAnchor((d) => {
+                const next = new Date(d);
+                next.setDate(next.getDate() + 7);
+                return next;
+              })
+            }
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <Input
+          placeholder="Search by session title…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(
+              e.target.value as "all" | AdminAttendanceRow["status"],
+            )
+          }
+          className="h-9 rounded-md border border-border-subtle bg-surface px-3 text-sm text-text-primary"
+        >
+          <option value="all">All</option>
+          <option value="not_started">Not started</option>
+          <option value="in_progress">In progress</option>
+          <option value="completed">Complete</option>
+        </select>
       </div>
 
       <Card>
@@ -141,10 +252,10 @@ export default function AttendancePage() {
           </div>
         ) : (
           <DataTable
-            data={data}
+            data={filteredData}
             columns={columns}
             isLoading={isLoading}
-            emptyMessage="No sessions with attendance to review today."
+            emptyMessage="No sessions in this week. Try another week or add sessions."
             onRowClick={(row) => router.push(`/attendance/${row.sessionId}`)}
           />
         )}
