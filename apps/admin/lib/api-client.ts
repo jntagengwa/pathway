@@ -587,6 +587,7 @@ type ApiAssignment = {
     startsAt?: string | null;
     endsAt?: string | null;
     group?: { id: string; name: string } | null;
+    groups?: { id: string; name: string }[];
   } | null;
   user?: {
     id: string;
