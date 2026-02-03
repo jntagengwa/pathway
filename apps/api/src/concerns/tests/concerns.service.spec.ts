@@ -147,6 +147,9 @@ describe("ConcernsService", () => {
           deletedAt: null,
         },
         orderBy: { createdAt: "desc" },
+        include: {
+          child: { select: { firstName: true, lastName: true } },
+        },
       });
     });
   });
