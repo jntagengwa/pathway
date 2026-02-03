@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft } from "lucide-react";
-import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
+import { Badge, Button, Card, DataTable, Input, type ColumnDef } from "@pathway/ui";
 import {
   AdminAttendanceDetail,
   fetchAttendanceDetailBySessionId,
@@ -61,6 +61,10 @@ export default function AttendanceDetailPage() {
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [notFound, setNotFound] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | "present" | "absent" | "late" | "unmarked"
+  >("all");
+  const [childSearch, setChildSearch] = React.useState("");
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -121,7 +125,19 @@ export default function AttendanceDetailPage() {
     setEditRows((prev) => {
       const next = new Map(prev);
       for (const row of detail.rows) {
-        if (row.status === "unknown") next.set(row.childId, "present");
+        next.set(row.childId, "present");
+      }
+      return next;
+    });
+    setSaveError(null);
+  }, [detail]);
+
+  const clearAll = React.useCallback(() => {
+    if (!detail) return;
+    setEditRows((prev) => {
+      const next = new Map(prev);
+      for (const row of detail.rows) {
+        next.set(row.childId, "unknown");
       }
       return next;
     });
@@ -204,6 +220,18 @@ export default function AttendanceDetailPage() {
     });
     return s;
   }, [displayRows]);
+
+  const filteredDisplayRows = React.useMemo(() => {
+    let list = displayRows;
+    if (childSearch.trim()) {
+      const q = childSearch.trim().toLowerCase();
+      list = list.filter((r) => r.childName.toLowerCase().includes(q));
+    }
+    if (statusFilter !== "all") {
+      list = list.filter((r) => r.status === statusFilter);
+    }
+    return list;
+  }, [displayRows, childSearch, statusFilter]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -303,6 +331,14 @@ export default function AttendanceDetailPage() {
                 >
                   Mark all present
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={clearAll}
+                  className="capitalize"
+                >
+                  Clear all
+                </Button>
               </div>
               <p className="text-sm text-text-muted">
                 {detail.timeRangeLabel} · {detail.roomLabel ?? "Room TBC"} ·{" "}
@@ -333,11 +369,32 @@ export default function AttendanceDetailPage() {
           </Card>
 
           <Card title="Attendance Details">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap gap-1">
+                {(["all", "present", "absent", "late", "unmarked"] as const).map((f) => (
+                  <Button
+                    key={f}
+                    size="sm"
+                    variant={statusFilter === f ? "primary" : "outline"}
+                    className="capitalize"
+                    onClick={() => setStatusFilter(f)}
+                  >
+                    {f === "all" ? "All" : f === "unmarked" ? "Unmarked" : f}
+                  </Button>
+                ))}
+              </div>
+              <Input
+                placeholder="Search by child name…"
+                value={childSearch}
+                onChange={(e) => setChildSearch(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
             <DataTable
-              data={displayRows}
+              data={filteredDisplayRows}
               columns={columns}
               isLoading={false}
-              emptyMessage="No children in this session."
+              emptyMessage={displayRows.length === 0 ? "No children in this session." : "No children match the filter."}
             />
           </Card>
         </div>
