@@ -184,7 +184,7 @@ export default function AttendancePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="flex items-center gap-2">
           <Button
-            size="icon"
+            size="sm"
             variant="outline"
             className="h-9 w-9"
             onClick={() =>
@@ -201,7 +201,7 @@ export default function AttendancePage() {
             {weekLabel}
           </span>
           <Button
-            size="icon"
+            size="sm"
             variant="outline"
             className="h-9 w-9"
             onClick={() =>
