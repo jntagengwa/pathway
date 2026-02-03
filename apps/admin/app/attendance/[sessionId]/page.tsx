@@ -3,12 +3,18 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ArrowLeft } from "lucide-react";
 import { Badge, Button, Card, DataTable, type ColumnDef } from "@pathway/ui";
 import {
   AdminAttendanceDetail,
   fetchAttendanceDetailBySessionId,
+  saveAttendanceForSession,
+  setApiClientToken,
+  type SaveAttendanceRow,
 } from "../../../lib/api-client";
+
+type ChildStatus = "present" | "absent" | "late" | "unknown";
 
 const statusCopy: Record<AdminAttendanceDetail["status"], string> = {
   not_started: "Not started",
@@ -26,7 +32,7 @@ const statusTone: Record<
 };
 
 const childStatusTone: Record<
-  "present" | "absent" | "late" | "unknown",
+  ChildStatus,
   "success" | "warning" | "default" | "accent"
 > = {
   present: "success",
@@ -35,45 +41,128 @@ const childStatusTone: Record<
   unknown: "default",
 };
 
+const STATUS_OPTIONS: ChildStatus[] = ["present", "absent", "late", "unknown"];
+
 export default function AttendanceDetailPage() {
   const params = useParams<{ sessionId: string }>();
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const sessionId = params.sessionId;
 
   const [detail, setDetail] = React.useState<AdminAttendanceDetail | null>(
     null,
   );
+  const [editRows, setEditRows] = React.useState<
+    Map<string, ChildStatus>
+  >(new Map());
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [notFound, setNotFound] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setNotFound(false);
+    setSaveError(null);
+    setSaveSuccess(false);
     try {
       const result = await fetchAttendanceDetailBySessionId(sessionId);
       if (!result) {
         setNotFound(true);
         setDetail(null);
+        setEditRows(new Map());
       } else {
         setDetail(result);
+        setEditRows(
+          new Map(result.rows.map((r) => [r.childId, r.status])),
+        );
       }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load attendance",
       );
       setDetail(null);
+      setEditRows(new Map());
     } finally {
       setIsLoading(false);
     }
   }, [sessionId]);
 
   React.useEffect(() => {
+    if (sessionStatus !== "authenticated" || !session) return;
+    const token = (session as { accessToken?: string })?.accessToken ?? null;
+    setApiClientToken(token);
     void load();
-  }, [load]);
+  }, [sessionStatus, session, load]);
 
-  const columns = React.useMemo<ColumnDef<AdminAttendanceDetail["rows"][number]>[]>(
+  const hasChanges = React.useMemo(() => {
+    if (!detail) return false;
+    for (const row of detail.rows) {
+      const edited = editRows.get(row.childId);
+      if (edited !== row.status) return true;
+    }
+    return editRows.size !== detail.rows.length ? true : false;
+  }, [detail, editRows]);
+
+  const setStatus = React.useCallback((childId: string, status: ChildStatus) => {
+    setEditRows((prev) => {
+      const next = new Map(prev);
+      next.set(childId, status);
+      return next;
+    });
+    setSaveError(null);
+  }, []);
+
+  const markAllPresent = React.useCallback(() => {
+    if (!detail) return;
+    setEditRows((prev) => {
+      const next = new Map(prev);
+      for (const row of detail.rows) {
+        if (row.status === "unknown") next.set(row.childId, "present");
+      }
+      return next;
+    });
+    setSaveError(null);
+  }, [detail]);
+
+  const handleSave = React.useCallback(async () => {
+    if (!detail || !hasChanges) return;
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const rows: SaveAttendanceRow[] = detail.rows.map((r) => ({
+        childId: r.childId,
+        status: editRows.get(r.childId) ?? r.status,
+      }));
+      const updated = await saveAttendanceForSession(sessionId, rows);
+      setDetail(updated);
+      setEditRows(new Map(updated.rows.map((r) => [r.childId, r.status])));
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to save attendance",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }, [detail, sessionId, editRows, hasChanges]);
+
+  const displayRows = React.useMemo(() => {
+    if (!detail) return [];
+    return detail.rows.map((r) => ({
+      ...r,
+      status: editRows.get(r.childId) ?? r.status,
+    }));
+  }, [detail, editRows]);
+
+  const columns = React.useMemo<
+    ColumnDef<{ childId: string; childName: string; status: ChildStatus }>[]
+  >(
     () => [
       {
         id: "child",
@@ -88,58 +177,76 @@ export default function AttendanceDetailPage() {
         id: "status",
         header: "Status",
         cell: (row) => (
-          <Badge variant={childStatusTone[row.status]} className="capitalize">
-            {row.status}
-          </Badge>
+          <div className="flex flex-wrap gap-1">
+            {STATUS_OPTIONS.map((status) => (
+              <Button
+                key={status}
+                size="sm"
+                variant={row.status === status ? "default" : "outline"}
+                className="h-8 min-w-0 px-2 text-xs capitalize"
+                onClick={() => setStatus(row.childId, status)}
+              >
+                {status}
+              </Button>
+            ))}
+          </div>
         ),
-        width: "140px",
+        width: "320px",
       },
     ],
-    [],
+    [setStatus],
   );
 
-  const renderSummary = () => {
-    if (!detail) return null;
-    const items = [
-      { label: "Present", value: detail.summary.present },
-      { label: "Absent", value: detail.summary.absent },
-      { label: "Late", value: detail.summary.late },
-      { label: "Unknown", value: detail.summary.unknown },
-    ];
-    return (
-      <Card title="Summary">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-md border border-border-subtle bg-surface px-3 py-2"
-            >
-              <p className="text-xs text-text-muted">{item.label}</p>
-              <p className="text-lg font-semibold text-text-primary">
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </Card>
-    );
-  };
+  const summaryFromRows = React.useMemo(() => {
+    const s = { present: 0, absent: 0, late: 0, unknown: 0 };
+    displayRows.forEach((r) => {
+      s[r.status] += 1;
+    });
+    return s;
+  }, [displayRows]);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button asChild variant="secondary" size="sm">
           <Link href="/attendance" className="inline-flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             Back to attendance
           </Link>
         </Button>
-        <Button variant="secondary" size="sm" onClick={load}>
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasChanges && (
+            <span className="text-sm text-text-muted">Unsaved changes</span>
+          )}
+          <Button variant="secondary" size="sm" onClick={load}>
+            Refresh
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+          >
+            {isSaving ? "Saving…" : "Save"}
+          </Button>
+        </div>
       </div>
 
-      {isLoading ? (
+      {saveSuccess && (
+        <div className="rounded-md border border-status-success/30 bg-status-success/10 px-4 py-2 text-sm text-status-success">
+          Attendance saved.
+        </div>
+      )}
+      {saveError && (
+        <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
+          <p className="font-semibold">Save failed</p>
+          <p className="text-xs text-text-muted">{saveError}</p>
+          <Button size="sm" variant="secondary" onClick={handleSave} className="mt-2">
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {sessionStatus === "loading" || (sessionStatus === "authenticated" && isLoading) ? (
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-2">
             <div className="flex flex-col gap-3">
@@ -181,13 +288,21 @@ export default function AttendanceDetailPage() {
         <div className="flex flex-col gap-4">
           <Card>
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-semibold text-text-primary font-heading">
                   {detail.title}
                 </h1>
                 <Badge variant={statusTone[detail.status]}>
                   {statusCopy[detail.status]}
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={markAllPresent}
+                  className="capitalize"
+                >
+                  Mark all present
+                </Button>
               </div>
               <p className="text-sm text-text-muted">
                 {detail.timeRangeLabel} · {detail.roomLabel ?? "Room TBC"} ·{" "}
@@ -196,14 +311,33 @@ export default function AttendanceDetailPage() {
             </div>
           </Card>
 
-          {renderSummary()}
+          <Card title="Summary">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {[
+                { label: "Present", value: summaryFromRows.present },
+                { label: "Absent", value: summaryFromRows.absent },
+                { label: "Late", value: summaryFromRows.late },
+                { label: "Unknown", value: summaryFromRows.unknown },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-md border border-border-subtle bg-surface px-3 py-2"
+                >
+                  <p className="text-xs text-text-muted">{item.label}</p>
+                  <p className="text-lg font-semibold text-text-primary">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
 
           <Card title="Attendance Details">
             <DataTable
-              data={detail.rows}
+              data={displayRows}
               columns={columns}
               isLoading={false}
-              emptyMessage="No attendance rows for this session."
+              emptyMessage="No children in this session."
             />
           </Card>
         </div>
@@ -211,4 +345,3 @@ export default function AttendanceDetailPage() {
     </div>
   );
 }
-
