@@ -1,17 +1,25 @@
 // Admin API client supports two modes:
 // - Real API: NEXT_PUBLIC_API_URL (preferred) or NEXT_PUBLIC_API_BASE_URL set -> backend calls enabled.
-// - Mock mode: base URL missing -> safe, local-only mock data for development.
-// Production environments MUST set NEXT_PUBLIC_API_URL (e.g., https://api.nexsteps.dev).
+// - Explicit mock mode: NEXT_PUBLIC_USE_MOCK_API === "true" -> local-only mock data for development.
+// Production environments MUST set NEXT_PUBLIC_API_URL (e.g., https://api.nexsteps.dev) and MUST NOT
+// rely on implicit mock fallbacks.
+const useMockApiExplicit =
+  typeof process.env.NEXT_PUBLIC_USE_MOCK_API === "string" &&
+  process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+
 const publicApiUrl =
   process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+
+if (!publicApiUrl && !useMockApiExplicit) {
+  throw new Error(
+    "Admin API client misconfigured: set NEXT_PUBLIC_API_URL or NEXT_PUBLIC_API_BASE_URL, or enable NEXT_PUBLIC_USE_MOCK_API for explicit mock mode.",
+  );
+}
+
 export const API_BASE_URL = publicApiUrl ?? "http://localhost:3333";
 
 const isUsingMockApi = (): boolean => {
-  // Dev convenience: returns true when admin runs without a real API base URL.
-  // Production deployments should always set NEXT_PUBLIC_API_URL so this stays false.
-  return (
-    !process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_BASE_URL
-  );
+  return useMockApiExplicit;
 };
 
 export type AdminSessionRow = {
@@ -962,7 +970,7 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
       s.attendanceTotal ??
       (typeof s.presentCount === "number" ? s.presentCount : 0) +
         (typeof s.absentCount === "number" ? s.absentCount : 0) +
-        (typeof s.lateCount === "number" ? s.lateCount : 0), // TODO: BLOCKED - awaiting attendance totals from API.
+        (typeof s.lateCount === "number" ? s.lateCount : 0),
     leadStaff: undefined,
     supportStaff: undefined,
   }));
@@ -1672,7 +1680,7 @@ const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
   hasAdditionalNeeds:
     (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
     (Array.isArray(c.additionalNeeds) && c.additionalNeeds.length > 0),
-  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs child.status from API to reflect archived/deactivated children.
+  status: c.status === "inactive" ? "inactive" : "active",
 });
 
 const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
@@ -1686,7 +1694,7 @@ const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
   hasAdditionalNeeds:
     (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
     (Array.isArray(c.additionalNeeds) && c.additionalNeeds.length > 0),
-  status: c.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs child.status from API to reflect archived/deactivated children.
+  status: c.status === "inactive" ? "inactive" : "active",
 });
 
 export async function fetchChildById(
@@ -1724,7 +1732,11 @@ export async function fetchChildById(
   }
 
   const json = (await res.json()) as ApiChildDetail;
-  return mapApiChildDetailToAdmin(json);
+  const mapped = mapApiChildDetailToAdmin(json);
+  return {
+    ...mapped,
+    status: json.status === "inactive" ? "inactive" : "active",
+  };
 }
 
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
@@ -1812,11 +1824,15 @@ const mapApiParentToAdminParentRow = (
   id: api.id,
   fullName: api.fullName || "Unknown parent",
   email: api.email ?? "",
-  phone: null, // TODO: BLOCKED - requires phone field from parents list API.
-  children: [], // TODO: BLOCKED - list endpoint does not include child summaries yet.
+  phone: api.phone ?? null,
+  children:
+    api.children?.map((child) => ({
+      id: child.id,
+      name: child.fullName ?? child.name ?? "Child",
+    })) ?? [],
   childrenCount: api.childrenCount,
-  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED - needs primaryContact flag from API list.
-  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs parent.status to reflect archived/deactivated parents.
+  isPrimaryContact: Boolean(api.isPrimaryContact),
+  status: api.status === "inactive" ? "inactive" : "active",
 });
 
 const mapApiParentDetailToAdmin = (
@@ -1825,7 +1841,7 @@ const mapApiParentDetailToAdmin = (
   id: api.id,
   fullName: api.fullName || "Unknown parent",
   email: api.email ?? "",
-  phone: api.phone ?? null, // TODO: BLOCKED - requires phone from API.
+  phone: api.phone ?? null,
   children:
     api.children?.map((child) => ({
       id: child.id,
@@ -1835,8 +1851,8 @@ const mapApiParentDetailToAdmin = (
         (`${child.firstName ?? ""} ${child.lastName ?? ""}`.trim() || "Child"),
     })) ?? [],
   childrenCount: api.children?.length ?? undefined,
-  isPrimaryContact: Boolean(api.isPrimaryContact), // TODO: BLOCKED - needs primaryContact flag from API.
-  status: api.status === "inactive" ? "inactive" : "active", // TODO: BLOCKED - needs parent.status to reflect archived/deactivated parents.
+  isPrimaryContact: Boolean(api.isPrimaryContact),
+  status: api.status === "inactive" ? "inactive" : "active",
 });
 
 export async function fetchParentById(
@@ -2891,26 +2907,6 @@ const mapApiEntitlementsToAdmin = (
 
 // BILLING: high-level entitlements only. Do NOT surface card details or billing addresses.
 export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
-  const useMock = isUsingMockApi();
-  if (useMock) {
-    return {
-      orgId: "demo-org",
-      isMasterOrg: false,
-      subscriptionStatus: "ACTIVE",
-      planCode: "demo_plan",
-      periodStart: new Date().toISOString(),
-      periodEnd: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-      av30Cap: 50,
-      currentAv30: 32,
-      storageGbCap: 100,
-      storageGbUsage: 12,
-      smsMessagesCap: 1000,
-      smsMonthUsage: 120,
-      leaderSeatsIncluded: 10,
-      maxSites: 3,
-    };
-  }
-
   const res = await fetch(`${API_BASE_URL}/billing/entitlements`, {
     headers: buildAuthHeaders(),
     cache: "no-store",
@@ -2918,12 +2914,9 @@ export async function fetchBillingOverview(): Promise<AdminBillingOverview> {
 
   if (!res.ok) {
     if (res.status === 404) {
-      // TODO: replace fallback when a public entitlements endpoint is available.
-      return {
-        orgId: "unknown",
-        isMasterOrg: false,
-        subscriptionStatus: "NONE",
-      };
+      throw new Error(
+        "Billing not available for this organisation (no entitlements configured).",
+      );
     }
     const body = await res.text().catch(() => "");
     throw new Error(
@@ -3513,7 +3506,7 @@ const mapUserToStaffRow = (u: ApiUser): AdminStaffRow => {
         ? "inactive"
         : u.status === "active" || u.status === undefined || u.status === null
           ? "active"
-          : "unknown", // TODO: BLOCKED - map real user status when API exposes it.
+          : "unknown",
   };
 };
 
@@ -3536,7 +3529,7 @@ const mapUserToStaffDetail = (u: ApiUser): AdminStaffDetail => {
         ? "inactive"
         : u.status === "active" || u.status === undefined || u.status === null
           ? "active"
-          : "unknown", // TODO: BLOCKED - map real user status when API exposes it.
+          : "unknown",
     groups: undefined, // TODO: map staff groups/classes when API exposes them.
     sessionsCount: undefined, // TODO: derive from assignments when available.
   };
