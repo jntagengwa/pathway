@@ -3,8 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, BadgeCheck, Users } from "lucide-react";
+import { ArrowLeft, BadgeCheck, User, Users } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
+import { canAccessSafeguardingAdmin } from "../../../lib/access";
+import { useAdminAccess } from "../../../lib/use-admin-access";
 import { AdminChildDetail, fetchChildById } from "../../../lib/api-client";
 
 const statusTone: Record<AdminChildDetail["status"], "success" | "default"> = {
@@ -21,6 +23,7 @@ export default function ChildDetailPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -70,6 +73,11 @@ export default function ChildDetailPage() {
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          {!isLoadingAccess && canAccessSafeguardingAdmin(role) ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/safeguarding">View in Safeguarding</Link>
+            </Button>
+          ) : null}
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
@@ -126,13 +134,26 @@ export default function ChildDetailPage() {
           <Card className="md:col-span-2">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                  {child.fullName
-                    .split(" ")
-                    .map((part) => part[0])
-                    .join("")
-                    .toUpperCase()}
-                </div>
+                {child.hasPhotoConsent ? (
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
+                    aria-hidden
+                  >
+                    {child.fullName
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </div>
+                ) : (
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                    aria-hidden
+                  >
+                    <User className="h-5 w-5" />
+                  </div>
+                )}
                 <h1 className="text-2xl font-semibold text-text-primary font-heading">
                   {child.fullName}
                 </h1>
@@ -184,8 +205,13 @@ export default function ChildDetailPage() {
 
           <Card title="Safeguarding">
             <p className="text-sm text-text-muted">
-              Safeguarding view is available to authorised roles from the Safeguarding section.
+              Safeguarding view is available to authorised roles from the Safeguarding section. No safeguarding detail is shown here.
             </p>
+            {!isLoadingAccess && canAccessSafeguardingAdmin(role) ? (
+              <Button asChild variant="outline" size="sm" className="mt-3">
+                <Link href="/safeguarding">View in Safeguarding</Link>
+              </Button>
+            ) : null}
           </Card>
         </div>
       ) : null}
