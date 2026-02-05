@@ -37,17 +37,6 @@ export function getAdminRoleInfoFromApiResponse(
   };
 
   if (!rolesResponse) {
-    // In dev mode, temporarily grant admin access for testing
-    // TODO: Remove this once auth is properly wired
-    if (process.env.NODE_ENV === "development") {
-      return {
-        isOrgAdmin: true,
-        isOrgOwner: false,
-        isSiteAdmin: true,
-        isStaff: true,
-        isSafeguardingStaff: false,
-      };
-    }
     return defaultRole;
   }
 
