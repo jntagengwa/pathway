@@ -188,7 +188,7 @@ export default function EditLessonPage() {
                   placeholder="e.g. Willow class"
                 />
                 <p className="text-xs text-text-muted">
-                  TODO: replace with age-group/class pickers when available.
+                  Age group and class pickers will appear when available.
                 </p>
               </div>
             </div>
