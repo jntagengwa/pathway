@@ -3,11 +3,12 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
-import { Button, Card, Input, Label, Textarea } from "@pathway/ui";
+import { Button, Card, Input, Label, Textarea, Select } from "@pathway/ui";
 import {
   AdminLessonFormValues,
   createLesson,
 } from "../../../lib/api-client";
+import { fetchGroups, type GroupOption } from "../../../lib/api-client";
 
 const startOfWeekIso = () => {
   const d = new Date();
@@ -31,6 +32,28 @@ export default function NewLessonPage() {
   const [fieldErrors, setFieldErrors] =
     React.useState<Partial<Record<keyof AdminLessonFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
+  const [groups, setGroups] = React.useState<GroupOption[]>([]);
+  const [groupsError, setGroupsError] = React.useState<string | null>(null);
+  const [groupsLoading, setGroupsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadGroups = async () => {
+      setGroupsLoading(true);
+      setGroupsError(null);
+      try {
+        const result = await fetchGroups({ activeOnly: true });
+        setGroups(result);
+      } catch (err) {
+        setGroupsError(
+          err instanceof Error ? err.message : "Failed to load groups",
+        );
+        setGroups([]);
+      } finally {
+        setGroupsLoading(false);
+      }
+    };
+    void loadGroups();
+  }, []);
 
   const handleFieldChange = (
     key: keyof AdminLessonFormValues,
@@ -155,15 +178,36 @@ export default function NewLessonPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="groupId">Group / class</Label>
-              <Input
-                id="groupId"
-                value={form.groupId ?? ""}
-                onChange={(e) => handleFieldChange("groupId", e.target.value)}
-                placeholder="e.g. Willow class"
-              />
-              <p className="text-xs text-text-muted">
-                Age group and class pickers will appear when available.
-              </p>
+              {groupsLoading ? (
+                <Input
+                  id="groupId"
+                  disabled
+                  placeholder="Loading groups…"
+                  className="bg-muted"
+                />
+              ) : (
+                <Select
+                  id="groupId"
+                  value={form.groupId ?? ""}
+                  onChange={(e) => handleFieldChange("groupId", e.target.value)}
+                >
+                  <option value="">Select a group…</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+              {groupsError ? (
+                <p className="text-xs text-status-danger">
+                  {groupsError} — you can retry by refreshing the page.
+                </p>
+              ) : (
+                <p className="text-xs text-text-muted">
+                  Choose the group or class this lesson belongs to.
+                </p>
+              )}
             </div>
           </div>
 

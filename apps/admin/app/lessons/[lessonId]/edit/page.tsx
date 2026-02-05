@@ -3,12 +3,13 @@
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
-import { Button, Card, Input, Label, Textarea } from "@pathway/ui";
+import { Button, Card, Input, Label, Textarea, Select } from "@pathway/ui";
 import {
   AdminLessonFormValues,
   fetchLessonById,
   updateLesson,
 } from "../../../../lib/api-client";
+import { fetchGroups, type GroupOption } from "../../../../lib/api-client";
 
 export default function EditLessonPage() {
   const params = useParams<{ lessonId: string }>();
@@ -21,6 +22,12 @@ export default function EditLessonPage() {
   const [fieldErrors, setFieldErrors] =
     React.useState<Partial<Record<keyof AdminLessonFormValues, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
+  const [groups, setGroups] = React.useState<GroupOption[]>([]);
+  const [groupsError, setGroupsError] = React.useState<string | null>(null);
+  const [groupsLoading, setGroupsLoading] = React.useState(true);
+  const [legacyGroupLabel, setLegacyGroupLabel] = React.useState<string | null>(
+    null,
+  );
 
   const handleFieldChange = (
     key: keyof AdminLessonFormValues,
@@ -44,9 +51,12 @@ export default function EditLessonPage() {
             title: result.title,
             description: result.description ?? "",
             weekOf: result.weekOf ? result.weekOf.slice(0, 10) : "",
-            groupId: result.groupLabel ?? "",
+            groupId: (result as any).groupId ?? "",
             resources: result.resources.map((r) => ({ label: r.label })),
           });
+          if (!(result as any).groupId && result.groupLabel) {
+            setLegacyGroupLabel(result.groupLabel);
+          }
         }
       } catch (err) {
         setError(
@@ -57,7 +67,23 @@ export default function EditLessonPage() {
         setLoading(false);
       }
     };
+    const loadGroups = async () => {
+      setGroupsLoading(true);
+      setGroupsError(null);
+      try {
+        const result = await fetchGroups({ activeOnly: true });
+        setGroups(result);
+      } catch (err) {
+        setGroupsError(
+          err instanceof Error ? err.message : "Failed to load groups",
+        );
+        setGroups([]);
+      } finally {
+        setGroupsLoading(false);
+      }
+    };
     void load();
+    void loadGroups();
   }, [lessonId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,15 +207,43 @@ export default function EditLessonPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="groupId">Group / class</Label>
-                <Input
-                  id="groupId"
-                  value={form.groupId ?? ""}
-                onChange={(e) => handleFieldChange("groupId", e.target.value)}
-                  placeholder="e.g. Willow class"
-                />
-                <p className="text-xs text-text-muted">
-                  Age group and class pickers will appear when available.
-                </p>
+                {groupsLoading ? (
+                  <Input
+                    id="groupId"
+                    disabled
+                    placeholder="Loading groups…"
+                    className="bg-muted"
+                  />
+                ) : (
+                  <Select
+                    id="groupId"
+                    value={form.groupId ?? ""}
+                    onChange={(e) =>
+                      handleFieldChange("groupId", e.target.value)
+                    }
+                  >
+                    <option value="">Select a group…</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+                {groupsError ? (
+                  <p className="text-xs text-status-danger">
+                    {groupsError} — you can retry by refreshing the page.
+                  </p>
+                ) : legacyGroupLabel ? (
+                  <p className="text-xs text-text-muted">
+                    Previously saved as “{legacyGroupLabel}”. Choose a current
+                    group to update this lesson.
+                  </p>
+                ) : (
+                  <p className="text-xs text-text-muted">
+                    Choose the group or class this lesson belongs to.
+                  </p>
+                )}
               </div>
             </div>
 

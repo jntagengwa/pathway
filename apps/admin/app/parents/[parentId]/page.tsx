@@ -7,10 +7,12 @@ import { ArrowLeft, Mail, User } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
 import { AdminParentDetail, fetchParentById } from "../../../lib/api-client";
 
-const statusTone: Record<AdminParentDetail["status"], "success" | "default"> = {
-  active: "success",
-  inactive: "default",
-};
+const statusTone: Record<AdminParentDetail["status"], "success" | "default"> =
+  {
+    active: "success",
+    inactive: "default",
+    archived: "default",
+  };
 
 export default function ParentDetailPage() {
   const params = useParams<{ parentId: string }>();
@@ -114,7 +116,11 @@ export default function ParentDetailPage() {
                   {parent.fullName}
                 </h1>
                 <Badge variant={statusTone[parent.status]}>
-                  {parent.status === "active" ? "Active" : "Inactive"}
+                  {parent.status === "active"
+                    ? "Active"
+                    : parent.status === "archived"
+                      ? "Archived"
+                      : "Inactive"}
                 </Badge>
                 {parent.isPrimaryContact ? (
                   <Badge variant="accent">Primary contact</Badge>

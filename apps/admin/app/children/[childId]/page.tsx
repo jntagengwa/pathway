@@ -126,6 +126,13 @@ export default function ChildDetailPage() {
           <Card className="md:col-span-2">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+                  {child.fullName
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase()}
+                </div>
                 <h1 className="text-2xl font-semibold text-text-primary font-heading">
                   {child.fullName}
                 </h1>

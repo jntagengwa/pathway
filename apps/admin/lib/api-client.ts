@@ -1818,6 +1818,22 @@ type ApiParentDetail = {
   status?: string | null;
 };
 
+const normalizeParentStatus = (
+  apiStatus: unknown,
+): "active" | "inactive" | "archived" => {
+  if (typeof apiStatus === "string") {
+    const value = apiStatus.toLowerCase();
+    if (value === "active") return "active";
+    if (value === "archived") return "archived";
+    if (value === "inactive" || value === "deactivated") return "inactive";
+    // Safest fallback for unknown flags is to treat as inactive so we don't overstate access.
+    return "inactive";
+  }
+  // Backend did not supply status; assume active but keep TODO for future hardening.
+  // TODO: Update once parent.status or flags are guaranteed on all responses.
+  return "active";
+};
+
 const mapApiParentToAdminParentRow = (
   api: ApiParentSummary,
 ): AdminParentRow => ({
@@ -1832,7 +1848,7 @@ const mapApiParentToAdminParentRow = (
     })) ?? [],
   childrenCount: api.childrenCount,
   isPrimaryContact: Boolean(api.isPrimaryContact),
-  status: api.status === "inactive" ? "inactive" : "active",
+  status: normalizeParentStatus(api.status),
 });
 
 const mapApiParentDetailToAdmin = (
@@ -1852,7 +1868,7 @@ const mapApiParentDetailToAdmin = (
     })) ?? [],
   childrenCount: api.children?.length ?? undefined,
   isPrimaryContact: Boolean(api.isPrimaryContact),
-  status: api.status === "inactive" ? "inactive" : "active",
+  status: normalizeParentStatus(api.status),
 });
 
 export async function fetchParentById(
