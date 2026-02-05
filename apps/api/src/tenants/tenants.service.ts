@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { createTenantDto, type CreateTenantDto } from "./dto/create-tenant.dto";
+import type { UpdateTenantDto } from "./dto/update-tenant.dto";
 
 // Narrow unknown errors that may come from Prisma without using `any`
 function isPrismaError(err: unknown): err is { code: string } {
@@ -44,6 +45,32 @@ export class TenantsService {
     });
     if (!t) throw new NotFoundException("tenant not found");
     return t;
+  }
+
+  /**
+   * Update tenant (site) profile. Caller must ensure user has SITE_ADMIN for this tenant or ORG_ADMIN for tenant's org.
+   */
+  async updateProfile(
+    tenantId: string,
+    _userId: string,
+    data: UpdateTenantDto,
+  ): Promise<{ id: string; name: string; slug: string; timezone: string | null }> {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true, slug: true, timezone: true, orgId: true },
+    });
+    if (!tenant) throw new NotFoundException("Tenant not found");
+
+    const updateData: { name?: string; timezone?: string | null } = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.timezone !== undefined) updateData.timezone = data.timezone;
+
+    const updated = await prisma.tenant.update({
+      where: { id: tenantId },
+      data: updateData,
+      select: { id: true, name: true, slug: true, timezone: true },
+    });
+    return updated;
   }
 
   async create(input: CreateTenantDto) {

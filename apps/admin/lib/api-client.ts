@@ -453,6 +453,7 @@ export type SiteOption = {
   orgId: string;
   orgName: string | null;
   orgSlug?: string | null;
+  timezone?: string | null;
   role?: string | null;
 };
 
@@ -3355,10 +3356,87 @@ export async function fetchOrgOverview(): Promise<AdminOrgOverview> {
   return mapApiOrgToAdmin(firstOrg);
 }
 
+/** Update current organisation profile (name). ORG_ADMIN only. */
+export async function updateOrgProfile(input: {
+  name: string;
+}): Promise<AdminOrgOverview> {
+  if (isUsingMockApi()) {
+    throw new Error("Organisation updates are not available in mock mode.");
+  }
+  const res = await fetch(`${API_BASE_URL}/orgs/current`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({ name: input.name.trim() }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update org: ${res.status} ${body}`);
+  }
+  const json = (await res.json()) as { id: string; name: string; slug: string };
+  return mapApiOrgToAdmin(json);
+}
+
+export type AdminSiteProfile = {
+  id: string;
+  name: string;
+  slug: string;
+  timezone: string | null;
+};
+
+/** Update tenant (site) profile. SITE_ADMIN for site or ORG_ADMIN required. */
+export async function updateSiteProfile(input: {
+  siteId: string;
+  name?: string;
+  timezone?: string;
+}): Promise<AdminSiteProfile> {
+  if (isUsingMockApi()) {
+    throw new Error("Site updates are not available in mock mode.");
+  }
+  const body: { name?: string; timezone?: string } = {};
+  if (input.name !== undefined) body.name = input.name;
+  if (input.timezone !== undefined) body.timezone = input.timezone;
+  const res = await fetch(
+    `${API_BASE_URL}/tenants/${encodeURIComponent(input.siteId)}`,
+    {
+      method: "PATCH",
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Failed to update site: ${res.status} ${text}`);
+  }
+  return res.json() as Promise<AdminSiteProfile>;
+}
+
 // SETTINGS: high-level retention config only; detailed policy text belongs in docs, not raw JSON here.
 export async function fetchRetentionOverview(): Promise<AdminRetentionOverview | null> {
-  // TODO: wire to real retention config endpoint when exposed.
-  return null;
+  if (isUsingMockApi()) {
+    return null;
+  }
+  const res = await fetch(`${API_BASE_URL}/orgs/current/retention`, {
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    return null;
+  }
+  const json = (await res.json()) as {
+    attendanceRetentionYears?: number | null;
+    safeguardingRetentionYears?: number | null;
+    notesRetentionYears?: number | null;
+  };
+  return {
+    attendanceRetentionYears: json.attendanceRetentionYears ?? null,
+    safeguardingRetentionYears: json.safeguardingRetentionYears ?? null,
+    notesRetentionYears: json.notesRetentionYears ?? null,
+  };
 }
 
 export type AdminOrgExport = {

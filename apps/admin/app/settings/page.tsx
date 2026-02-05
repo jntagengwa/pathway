@@ -14,6 +14,8 @@ import {
   fetchOrgOverview,
   fetchRetentionOverview,
   requestExportOrganisationData,
+  updateOrgProfile,
+  updateSiteProfile,
   type ActiveSiteState,
   type SiteOption,
 } from "../../lib/api-client";
@@ -119,10 +121,9 @@ export default function SettingsPage() {
     setOrgSaveError(null);
     setSavingOrg(true);
     try {
-      // TODO: call updateOrgProfile({ name: editOrgName }) when API exists
-      await new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Organisation updates are not available yet.")), 0),
-      );
+      const updated = await updateOrgProfile({ name: editOrgName });
+      setOrg(updated);
+      setEditingOrg(false);
     } catch (e) {
       setOrgSaveError(e instanceof Error ? e.message : "Failed to save");
     } finally {
@@ -132,7 +133,7 @@ export default function SettingsPage() {
 
   const handleStartEditSite = () => {
     setEditSiteName(currentSite?.name ?? "");
-    setEditSiteTimezone("");
+    setEditSiteTimezone(currentSite?.timezone ?? "");
     setSiteSaveError(null);
     setEditingSite(true);
   };
@@ -141,13 +142,31 @@ export default function SettingsPage() {
     setSiteSaveError(null);
   };
   const handleSaveSite = async () => {
+    if (!siteState?.activeSiteId) {
+      setSiteSaveError("Select a site to edit site settings.");
+      return;
+    }
     setSiteSaveError(null);
     setSavingSite(true);
     try {
-      // TODO: call updateSiteProfile({ name: editSiteName, timezone: editSiteTimezone }) when API exists
-      await new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Site updates are not available yet.")), 0),
+      const updated = await updateSiteProfile({
+        siteId: siteState.activeSiteId,
+        name: editSiteName,
+        timezone: editSiteTimezone.trim() || undefined,
+      });
+      setSiteState((prev) =>
+        prev
+          ? {
+              ...prev,
+              sites: prev.sites.map((s) =>
+                s.id === updated.id
+                  ? { ...s, name: updated.name, timezone: updated.timezone }
+                  : s,
+              ),
+            }
+          : prev,
       );
+      setEditingSite(false);
     } catch (e) {
       setSiteSaveError(e instanceof Error ? e.message : "Failed to save");
     } finally {
@@ -348,7 +367,9 @@ export default function SettingsPage() {
           ) : currentSite ? (
             <div className="space-y-2">
               <p className="text-lg font-semibold text-text-primary">{currentSite.name}</p>
-              <p className="text-sm text-text-muted">Timezone: Not configured in-app yet.</p>
+              <p className="text-sm text-text-muted">
+                Timezone: {currentSite.timezone ?? "Not configured in-app yet."}
+              </p>
             </div>
           ) : (
             <p className="text-sm text-text-muted">
@@ -411,7 +432,6 @@ export default function SettingsPage() {
           ) : (
             <p className="text-sm text-text-muted">
               Not configured in-app yet.
-              {/* TODO: wire to retention config endpoint when exposed */}
             </p>
           )}
         </Card>

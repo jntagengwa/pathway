@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
   Req,
@@ -40,6 +41,16 @@ const parseOrBadRequest = async <T>(
 const slugParam = z
   .object({
     slug: z.string().min(1, "slug is required"),
+  })
+  .strict();
+
+const updateCurrentOrgBody = z
+  .object({
+    name: z
+      .string()
+      .min(1, "name is required")
+      .transform((s) => s.trim())
+      .pipe(z.string().min(2, "name must be at least 2 characters").max(120, "name must be at most 120 characters")),
   })
   .strict();
 
@@ -94,6 +105,33 @@ export class OrgsController {
   ) {
     await this.ensureOrgAdmin(req, orgId);
     return this.service.deactivateOrganisation(orgId);
+  }
+
+  /**
+   * Update current organisation profile (name). ORG_ADMIN only.
+   */
+  @Patch("current")
+  @UseGuards(AuthUserGuard)
+  async updateCurrent(
+    @CurrentOrg("orgId") orgId: string,
+    @Req() req: AuthenticatedRequest,
+    @Body() body: unknown,
+  ) {
+    await this.ensureOrgAdmin(req, orgId);
+    const dto = await parseOrBadRequest<z.infer<typeof updateCurrentOrgBody>>(
+      updateCurrentOrgBody,
+      body,
+    );
+    return this.service.updateCurrentOrg(orgId, { name: dto.name });
+  }
+
+  /**
+   * Get retention policy for current org (read-only). Any authenticated org member.
+   */
+  @Get("current/retention")
+  @UseGuards(AuthUserGuard)
+  async getCurrentRetention(@CurrentOrg("orgId") orgId: string) {
+    return this.service.getRetentionOverview(orgId);
   }
 
   /**

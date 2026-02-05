@@ -129,9 +129,10 @@ model Org {
 // maps directly to this model. Future migrations may introduce a dedicated `Site`
 // wrapper but the tenant id remains the canonical RLS key.
 model Tenant {
-  id   String @id @default(uuid())
-  name String
-  slug String @unique
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  timezone String? // IANA timezone e.g. Europe/London
 
   // NEW: link tenant (site) to its owning Org
   orgId String

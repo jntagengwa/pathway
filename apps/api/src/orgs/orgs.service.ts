@@ -207,6 +207,56 @@ export class OrgsService {
     return org;
   }
 
+  /**
+   * Update current org profile (name). Used by admin Settings.
+   */
+  async updateCurrentOrg(
+    orgId: string,
+    data: { name: string },
+  ): Promise<{ id: string; name: string; slug: string }> {
+    const org = await prisma.org.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!org) throw new NotFoundException("Organisation not found");
+    const updated = await prisma.org.update({
+      where: { id: orgId },
+      data: { name: data.name.trim() },
+      select: { id: true, name: true, slug: true },
+    });
+    return updated;
+  }
+
+  /**
+   * Get retention policy for current org (read-only). Returns years; nulls when not configured.
+   */
+  async getRetentionOverview(orgId: string): Promise<{
+    attendanceRetentionYears: number | null;
+    safeguardingRetentionYears: number | null;
+    notesRetentionYears: number | null;
+  }> {
+    const policy = await prisma.orgRetentionPolicy.findUnique({
+      where: { orgId },
+    });
+    if (!policy) {
+      return {
+        attendanceRetentionYears: null,
+        safeguardingRetentionYears: null,
+        notesRetentionYears: null,
+      };
+    }
+    // Schema has days; map to years for API. Safeguarding/notes not in schema yet.
+    const attendanceRetentionYears = Math.floor(
+      policy.attendanceRetentionDays / 365,
+    );
+    return {
+      attendanceRetentionYears:
+        attendanceRetentionYears >= 0 ? attendanceRetentionYears : null,
+      safeguardingRetentionYears: null,
+      notesRetentionYears: null,
+    };
+  }
+
   async list(orgId: string) {
     return prisma.org.findMany({
       where: { id: orgId },
