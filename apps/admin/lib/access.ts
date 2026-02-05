@@ -61,18 +61,19 @@ export function getAdminRoleInfoFromApiResponse(
   rolesResponse.siteRoles.forEach((r) => siteRoles.add(r.role));
   rolesResponse.siteMemberships.forEach((m) => siteRoles.add(m.role));
 
-  // Determine permissions
+  // Determine permissions (org + site roles; SAFEGUARDING_LEAD can be org or site level)
   const isOrgAdmin = orgRoles.has("ORG_ADMIN");
   const isOrgOwner = orgRoles.has("ORG_OWNER"); // Note: ORG_OWNER not in current enum, but checking for future
   const isSiteAdmin = siteRoles.has("SITE_ADMIN");
+  const isSafeguardingLead =
+    orgRoles.has("SAFEGUARDING_LEAD") || siteRoles.has("SAFEGUARDING_LEAD");
   const isStaff =
     siteRoles.has("STAFF") ||
     siteRoles.has("TEACHER") ||
     siteRoles.has("VIEWER") ||
     (!isOrgAdmin && !isSiteAdmin);
 
-  // TODO: Wire safeguarding lead flag from backend when available
-  const isSafeguardingStaff = false;
+  const isSafeguardingStaff = isSafeguardingLead;
 
   return {
     isOrgAdmin,
@@ -101,14 +102,15 @@ export function canAccessBilling(role: AdminRoleInfo): boolean {
 
 /**
  * Check if user can access safeguarding admin section
- * 
- * Safeguarding staff should use the mobile app for day-to-day work.
- * Admin section is for org-level reporting and oversight only.
+ * ORG_ADMIN, SITE_ADMIN, or SAFEGUARDING_LEAD can view the admin safeguarding dashboard.
  */
 export function canAccessSafeguardingAdmin(role: AdminRoleInfo): boolean {
-  // Only org admins can view the admin-level safeguarding dashboard
-  // Safeguarding staff (mobile app users) should NOT see this section
-  return role.isOrgAdmin || role.isOrgOwner;
+  return (
+    role.isOrgAdmin ||
+    role.isOrgOwner ||
+    role.isSiteAdmin ||
+    role.isSafeguardingStaff
+  );
 }
 
 /**

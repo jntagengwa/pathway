@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label, Select } from "@pathway/ui";
 import {
@@ -9,6 +9,9 @@ import {
   fetchActiveSiteState,
   type CreateInvitePayload,
 } from "../../../lib/api-client";
+import { useAdminAccess } from "../../../lib/use-admin-access";
+import { canAccessRoute } from "../../../lib/permissions";
+import { NoAccessCard } from "../../../components/no-access-card";
 
 const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; orgId: string }>) => {
   const activeSite = sites.find((site) => site.id === activeSiteId) ?? sites[0];
@@ -66,6 +69,8 @@ function StyledRadio({
 
 export default function InvitePersonPage() {
   const router = useRouter();
+  const pathname = usePathname() ?? "/people/invite";
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [email, setEmail] = React.useState("");
   const [name, setName] = React.useState("");
   const [orgRole, setOrgRole] = React.useState<"ORG_ADMIN" | "ORG_MEMBER" | "">(
@@ -90,6 +95,8 @@ export default function InvitePersonPage() {
     selectedSites?: string;
   }>({});
   const [submitting, setSubmitting] = React.useState(false);
+
+  const canAccess = canAccessRoute(pathname, role);
 
   React.useEffect(() => {
     const loadOrg = async () => {
@@ -171,6 +178,24 @@ export default function InvitePersonPage() {
       setSubmitting(false);
     }
   };
+
+  if (isLoadingAccess) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (!canAccess) {
+    return (
+      <NoAccessCard
+        title="You don't have access to invite people"
+        message="Inviting people is only available to organisation and site administrators."
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

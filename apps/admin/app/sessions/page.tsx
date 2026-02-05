@@ -331,7 +331,11 @@ export default function SessionsPage() {
   const renderSessionsTab = () => (
     <Card
       title="Upcoming Sessions"
-      description="Live data uses tenant scoping; mock data shown when API base URL is not set."
+      description={
+        process.env.NODE_ENV === "development"
+          ? "Live data uses tenant scoping; mock data shown when API base URL is not set."
+          : undefined
+      }
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={loadSessions}>

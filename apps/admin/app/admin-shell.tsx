@@ -32,7 +32,7 @@ const getDevRuntimeState = () => {
 // Define access requirements for each nav item
 const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = [
   { ...defaultSidebarItems[0], access: "staff-or-admin" }, // Dashboard
-  { ...defaultSidebarItems[1], access: "admin-only" }, // People
+  { ...defaultSidebarItems[1], access: "staff-or-admin" }, // People (list visible to staff; invite/edit gated on page)
   { ...defaultSidebarItems[2], access: "staff-or-admin" }, // Children
   { ...defaultSidebarItems[3], access: "staff-or-admin" }, // Parents & Guardians
   { ...defaultSidebarItems[4], access: "staff-or-admin" }, // Lessons

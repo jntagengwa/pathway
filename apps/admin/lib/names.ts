@@ -43,12 +43,12 @@ export function getSafeDisplayName(user: {
     return name;
   }
 
-  // 3. If we have an email but no good name, use a generic label
-  // (We avoid showing email as the "name" for UX reasons)
+  // 3. If we have an email but no good name, use local-part (e.g. "john" from "john@example.com")
   if (email) {
-    // Option: could extract username part, but for now use generic
-    // TODO: Product decision - should we show "User (email@domain.com)" or just "User"?
-    return "User";
+    const localPart = email.split("@")[0]?.trim();
+    if (localPart && localPart.length > 0) {
+      return localPart;
+    }
   }
 
   // 4. Ultimate fallback
