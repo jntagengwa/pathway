@@ -3090,7 +3090,10 @@ export async function previewPlanSelection(
   });
 }
 
-export async function fetchBillingPrices(): Promise<AdminBillingPrices> {
+/**
+ * Fetches billing prices from GET /billing/prices. Returns null on failure so UI can fall back to catalogue placeholders.
+ */
+export async function fetchBillingPrices(): Promise<AdminBillingPrices | null> {
   const useMock = isUsingMockApi();
   if (useMock) {
     return {
@@ -3107,10 +3110,7 @@ export async function fetchBillingPrices(): Promise<AdminBillingPrices> {
   });
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(
-      `Failed to load billing prices: ${res.status} ${body || res.statusText}`,
-    );
+    return null;
   }
 
   return (await res.json()) as AdminBillingPrices;
