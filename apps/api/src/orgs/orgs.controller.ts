@@ -71,6 +71,32 @@ export class OrgsController {
   }
 
   /**
+   * Export organisation data (metadata only). ORG_ADMIN only.
+   */
+  @Get("export")
+  @UseGuards(AuthUserGuard)
+  async exportData(
+    @CurrentOrg("orgId") orgId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.ensureOrgAdmin(req, orgId);
+    return this.service.exportOrganisationData(orgId);
+  }
+
+  /**
+   * Deactivate organisation. ORG_ADMIN only. Returns 501 until implemented.
+   */
+  @Post("deactivate")
+  @UseGuards(AuthUserGuard)
+  async deactivate(
+    @CurrentOrg("orgId") orgId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.ensureOrgAdmin(req, orgId);
+    return this.service.deactivateOrganisation(orgId);
+  }
+
+  /**
    * Fetch an organisation by slug.
    */
   @Get(":slug")
@@ -276,6 +302,37 @@ export class OrgsController {
       }
       throw new InternalServerErrorException(
         `Failed to list people: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  private async ensureOrgAdmin(
+    req: AuthenticatedRequest,
+    orgId: string,
+  ): Promise<void> {
+    const userId = req.authUserId as string;
+    if (!userId) {
+      throw new UnauthorizedException("User ID not found in request");
+    }
+    const membership = await prisma.orgMembership.findFirst({
+      where: {
+        userId,
+        orgId,
+        role: { in: [OrgRole.ORG_ADMIN] },
+      },
+    });
+    const orgRole = membership
+      ? null
+      : await prisma.userOrgRole.findFirst({
+          where: {
+            userId,
+            orgId,
+            role: { in: [OrgRole.ORG_ADMIN] },
+          },
+        });
+    if (!membership && !orgRole) {
+      throw new UnauthorizedException(
+        "You must be an Organisation admin to perform this action",
       );
     }
   }

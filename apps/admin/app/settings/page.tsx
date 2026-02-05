@@ -3,51 +3,90 @@
 import React from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Badge, Button, Card } from "@pathway/ui";
+import { Badge, Button, Card, Input, Label } from "@pathway/ui";
 import {
+  AdminBillingOverview,
   AdminOrgOverview,
   AdminRetentionOverview,
+  deactivateOrganisation,
+  fetchActiveSiteState,
+  fetchBillingOverview,
   fetchOrgOverview,
   fetchRetentionOverview,
+  requestExportOrganisationData,
+  type ActiveSiteState,
+  type SiteOption,
 } from "../../lib/api-client";
 import { useAdminAccess } from "../../lib/use-admin-access";
-import { canAccessAdminSection } from "../../lib/access";
+import { canAccessAdminSection, canAccessBilling, canAccessSafeguardingAdmin } from "../../lib/access";
+import type { AdminRoleInfo } from "../../lib/access";
+import { canPerform } from "../../lib/permissions";
 import { NoAccessCard } from "../../components/no-access-card";
+import { getSafeDisplayName } from "../../lib/names";
 
-// This page is a human-friendly summary; avoid rendering raw config JSON, secrets, or debug dumps.
+function getRoleLabel(role: AdminRoleInfo): string {
+  if (role.isOrgAdmin || role.isOrgOwner) return "Organisation admin";
+  if (role.isSiteAdmin) return "Site admin";
+  if (role.isSafeguardingStaff) return "Safeguarding lead";
+  if (role.isStaff) return "Staff";
+  return "Viewer";
+}
 
 export default function SettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [org, setOrg] = React.useState<AdminOrgOverview | null>(null);
   const [retention, setRetention] = React.useState<AdminRetentionOverview | null>(null);
+  const [billing, setBilling] = React.useState<AdminBillingOverview | null>(null);
+  const [siteState, setSiteState] = React.useState<ActiveSiteState | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // All hooks must be called before any conditional returns
+  const [editingOrg, setEditingOrg] = React.useState(false);
+  const [editOrgName, setEditOrgName] = React.useState("");
+  const [orgSaveError, setOrgSaveError] = React.useState<string | null>(null);
+  const [savingOrg, setSavingOrg] = React.useState(false);
+
+  const [editingSite, setEditingSite] = React.useState(false);
+  const [editSiteName, setEditSiteName] = React.useState("");
+  const [editSiteTimezone, setEditSiteTimezone] = React.useState("");
+  const [siteSaveError, setSiteSaveError] = React.useState<string | null>(null);
+  const [savingSite, setSavingSite] = React.useState(false);
+
+  const [exportLoading, setExportLoading] = React.useState(false);
+  const [exportError, setExportError] = React.useState<string | null>(null);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = React.useState(false);
+  const [deactivateLoading, setDeactivateLoading] = React.useState(false);
+  const [deactivateError, setDeactivateError] = React.useState<string | null>(null);
+
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [orgData, retentionData] = await Promise.all([
+      const [orgData, retentionData, billingData, activeSiteData] = await Promise.all([
         fetchOrgOverview(),
         fetchRetentionOverview(),
+        fetchBillingOverview(),
+        fetchActiveSiteState(),
       ]);
       setOrg(orgData);
       setRetention(retentionData);
+      setBilling(billingData);
+      setSiteState(activeSiteData);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load settings overview",
       );
       setOrg(null);
       setRetention(null);
+      setBilling(null);
+      setSiteState(null);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    // Only load data when session is authenticated and user has access
     if (
       sessionStatus === "authenticated" &&
       session &&
@@ -58,7 +97,98 @@ export default function SettingsPage() {
     }
   }, [sessionStatus, session, isLoadingAccess, role, load]);
 
-  // Access control guard - after all hooks
+  const canEditOrg = canPerform("settings:edit-org", role);
+  const canEditSite = canPerform("settings:edit-site", role);
+  const canManageBilling = canPerform("billing:access", role);
+  const canAccessSafeguarding = canAccessSafeguardingAdmin(role);
+
+  const currentSite: SiteOption | undefined = siteState?.activeSiteId
+    ? siteState.sites.find((s) => s.id === siteState.activeSiteId)
+    : undefined;
+
+  const handleStartEditOrg = () => {
+    setEditOrgName(org?.name ?? "");
+    setOrgSaveError(null);
+    setEditingOrg(true);
+  };
+  const handleCancelEditOrg = () => {
+    setEditingOrg(false);
+    setOrgSaveError(null);
+  };
+  const handleSaveOrg = async () => {
+    setOrgSaveError(null);
+    setSavingOrg(true);
+    try {
+      // TODO: call updateOrgProfile({ name: editOrgName }) when API exists
+      await new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Organisation updates are not available yet.")), 0),
+      );
+    } catch (e) {
+      setOrgSaveError(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setSavingOrg(false);
+    }
+  };
+
+  const handleStartEditSite = () => {
+    setEditSiteName(currentSite?.name ?? "");
+    setEditSiteTimezone("");
+    setSiteSaveError(null);
+    setEditingSite(true);
+  };
+  const handleCancelEditSite = () => {
+    setEditingSite(false);
+    setSiteSaveError(null);
+  };
+  const handleSaveSite = async () => {
+    setSiteSaveError(null);
+    setSavingSite(true);
+    try {
+      // TODO: call updateSiteProfile({ name: editSiteName, timezone: editSiteTimezone }) when API exists
+      await new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Site updates are not available yet.")), 0),
+      );
+    } catch (e) {
+      setSiteSaveError(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setSavingSite(false);
+    }
+  };
+
+  const handleExportOrganisationData = React.useCallback(async () => {
+    setExportError(null);
+    setExportLoading(true);
+    try {
+      const data = await requestExportOrganisationData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `organisation-export-${data.slug ?? "data"}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExportLoading(false);
+    }
+  }, []);
+
+  const handleDeactivateConfirm = React.useCallback(async () => {
+    setDeactivateError(null);
+    setDeactivateLoading(true);
+    try {
+      await deactivateOrganisation();
+      setDeactivateConfirmOpen(false);
+    } catch (e) {
+      setDeactivateError(e instanceof Error ? e.message : "Deactivation failed");
+    } finally {
+      setDeactivateLoading(false);
+    }
+  }, []);
+
   if (isLoadingAccess) {
     return (
       <div className="flex flex-col gap-4">
@@ -85,167 +215,296 @@ export default function SettingsPage() {
     </div>
   );
 
-  const orgCard = (
-    <Card title="Organisation Profile">
-      {isLoading ? (
-        loadingBlock
-      ) : error ? (
+  const planTier = billing?.planCode ?? org?.planTier ?? null;
+  const siteCount = org?.siteCount ?? billing?.maxSites ?? null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold text-text-primary">
+            Settings & Organisation
+          </h1>
+          <p className="text-sm text-text-muted">
+            Organisation details, plan tier, and key data policies for this Nexsteps account.
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={load} disabled={isLoading}>
+          Refresh
+        </Button>
+      </div>
+
+      {error && (
         <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-4 text-sm text-status-danger">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold">
-              Couldn’t load organisation information.
-            </span>
+            <span className="font-semibold">Couldn&apos;t load settings.</span>
             <Button size="sm" variant="secondary" onClick={load}>
               Retry
             </Button>
           </div>
           <p className="text-xs text-text-muted">{error}</p>
         </div>
-      ) : org ? (
-        <div className="space-y-2">
-          <p className="text-lg font-semibold text-text-primary">{org.name}</p>
-          <p className="text-sm text-text-muted">
-            Slug: {org.slug || "Not configured"}
-          </p>
-          <p className="text-sm text-text-muted">
-            {org.isMultiSite ? "Multi-site organisation" : "Single-site organisation"}
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm text-text-muted">
-          Organisation information is not available.
-        </p>
       )}
-    </Card>
-  );
 
-  const planCard = (
-    <Card title="Sites & Plan">
-      {isLoading ? (
-        loadingBlock
-      ) : error ? (
-        <p className="text-sm text-status-danger">
-          Unable to load plan information.
-        </p>
-      ) : org ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-text-muted">Plan</span>
-            {org.planTier ? (
-              <Badge variant="secondary">{org.planTier}</Badge>
-            ) : (
-              <span className="text-sm text-text-muted">Not set</span>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* A) Organisation Profile */}
+        <Card
+          title="Organisation Profile"
+          actions={
+            canEditOrg && !editingOrg && org ? (
+              <Button variant="secondary" size="sm" onClick={handleStartEditOrg}>
+                Edit
+              </Button>
+            ) : undefined
+          }
+        >
+          {isLoading ? (
+            loadingBlock
+          ) : editingOrg ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="org-name">Organisation name</Label>
+                <Input
+                  id="org-name"
+                  value={editOrgName}
+                  onChange={(e) => setEditOrgName(e.target.value)}
+                  placeholder="Organisation name"
+                />
+              </div>
+              <p className="text-sm text-text-muted">Slug: {org?.slug ?? "—"} (read-only)</p>
+              {orgSaveError && (
+                <p className="text-sm text-status-danger">{orgSaveError}</p>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveOrg} disabled={savingOrg}>
+                  {savingOrg ? "Saving…" : "Save"}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleCancelEditOrg}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : org ? (
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-text-primary">{org.name}</p>
+              <p className="text-sm text-text-muted">Slug: {org.slug ?? "Not configured"}</p>
+              <p className="text-sm text-text-muted">
+                {org.isMultiSite ? "Multi-site organisation" : "Single-site organisation"}
+              </p>
+              {planTier && (
+                <p className="text-sm text-text-muted">Plan: {planTier}</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-text-muted">Organisation information is not available.</p>
+          )}
+        </Card>
+
+        {/* A) Active Site */}
+        <Card
+          title="Active Site"
+          actions={
+            canEditSite && !editingSite && currentSite ? (
+              <Button variant="secondary" size="sm" onClick={handleStartEditSite}>
+                Edit
+              </Button>
+            ) : undefined
+          }
+        >
+          {isLoading ? (
+            loadingBlock
+          ) : editingSite ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="site-name">Site name</Label>
+                <Input
+                  id="site-name"
+                  value={editSiteName}
+                  onChange={(e) => setEditSiteName(e.target.value)}
+                  placeholder="Site name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="site-timezone">Timezone</Label>
+                <Input
+                  id="site-timezone"
+                  value={editSiteTimezone}
+                  onChange={(e) => setEditSiteTimezone(e.target.value)}
+                  placeholder="e.g. Europe/London"
+                />
+              </div>
+              {siteSaveError && (
+                <p className="text-sm text-status-danger">{siteSaveError}</p>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveSite} disabled={savingSite}>
+                  {savingSite ? "Saving…" : "Save"}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleCancelEditSite}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : currentSite ? (
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-text-primary">{currentSite.name}</p>
+              <p className="text-sm text-text-muted">Timezone: Not configured in-app yet.</p>
+            </div>
+          ) : (
+            <p className="text-sm text-text-muted">
+              Select a site from the header to see active site details.
+            </p>
+          )}
+        </Card>
+
+        {/* B) Sites & Plan */}
+        <Card title="Sites & Plan">
+          {isLoading ? (
+            loadingBlock
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-text-muted">Plan</span>
+                {planTier ? (
+                  <Badge variant="secondary">{planTier}</Badge>
+                ) : (
+                  <span className="text-sm text-text-muted">Not available</span>
+                )}
+              </div>
+              {siteCount != null && (
+                <p className="text-sm text-text-muted">
+                  {siteCount} {siteCount === 1 ? "site" : "sites"} on this plan.
+                </p>
+              )}
+              {canManageBilling ? (
+                <Button asChild size="sm" variant="secondary">
+                  <Link href="/billing">Manage plan</Link>
+                </Button>
+              ) : (
+                <p className="text-sm text-text-muted">Contact your admin to change plan or billing.</p>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* C) Data Retention */}
+        <Card title="Data Retention">
+          {isLoading ? (
+            loadingBlock
+          ) : retention &&
+            (retention.attendanceRetentionYears ||
+              retention.safeguardingRetentionYears ||
+              retention.notesRetentionYears) ? (
+            <ul className="space-y-2 text-sm text-text-primary">
+              {retention.attendanceRetentionYears != null && (
+                <li>Attendance retained for {retention.attendanceRetentionYears} years.</li>
+              )}
+              {retention.safeguardingRetentionYears != null && (
+                <li>
+                  Safeguarding concerns retained for {retention.safeguardingRetentionYears} years.
+                </li>
+              )}
+              {retention.notesRetentionYears != null && (
+                <li>Notes retained for {retention.notesRetentionYears} years.</li>
+              )}
+            </ul>
+          ) : (
+            <p className="text-sm text-text-muted">
+              Not configured in-app yet.
+              {/* TODO: wire to retention config endpoint when exposed */}
+            </p>
+          )}
+        </Card>
+
+        {/* D) Team & Access */}
+        <Card title="Team & Access">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/people">People & roles</Link>
+              </Button>
+              {canAccessSafeguarding && (
+                <Button asChild size="sm" variant="secondary">
+                  <Link href="/safeguarding">Safeguarding access</Link>
+                </Button>
+              )}
+            </div>
+            {session?.user && (
+              <div className="space-y-1 text-sm text-text-muted">
+                <p>You are signed in as: {getSafeDisplayName(session.user)}</p>
+                <p>Role: {getRoleLabel(role)}</p>
+                <p>Active site: {currentSite?.name ?? "—"}</p>
+              </div>
             )}
           </div>
-          <p className="text-sm text-text-muted">
-            {org.siteCount ? `${org.siteCount} sites on this plan.` : "Site count not available."}
-          </p>
-          <Link
-            href="/billing"
-            className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
-          >
-            See full billing and usage details.
-          </Link>
-        </div>
-      ) : (
-        <p className="text-sm text-text-muted">
-          Plan tier and site count will appear here once available.
-        </p>
-      )}
-    </Card>
-  );
+        </Card>
 
-  const retentionCard = (
-    <Card title="Data Retention">
-      {isLoading ? (
-        loadingBlock
-      ) : error ? (
-        <p className="text-sm text-status-danger">
-          Unable to load retention information.
-        </p>
-      ) : retention &&
-        (retention.attendanceRetentionYears ||
-          retention.safeguardingRetentionYears ||
-          retention.notesRetentionYears) ? (
-        <ul className="space-y-2 text-sm text-text-primary">
-          {retention.attendanceRetentionYears ? (
-            <li>
-              Attendance retained for {retention.attendanceRetentionYears} years.
-            </li>
-          ) : null}
-          {retention.safeguardingRetentionYears ? (
-            <li>
-              Safeguarding concerns retained for {retention.safeguardingRetentionYears} years.
-            </li>
-          ) : null}
-          {retention.notesRetentionYears ? (
-            <li>Notes retained for {retention.notesRetentionYears} years.</li>
-          ) : null}
-        </ul>
-      ) : (
-        <p className="text-sm text-text-muted">
-          Retention policies are configured per organisation. Key retention periods will appear here
-          once available.
-        </p>
-      )}
-      <p className="mt-3 text-xs text-text-muted">
-        {/* SETTINGS: high-level retention config only; detailed policy text belongs in docs, not raw JSON here. */}
-        SETTINGS: high-level retention config only; detailed policy text belongs in docs, not raw JSON
-        here.
-      </p>
-    </Card>
-  );
-
-  const linksCard = (
-    <Card title="Safeguarding & Billing Locations">
-      <div className="space-y-2 text-sm text-text-muted">
-        <p>
-          Safeguarding information is available under{" "}
-          <Link
-            href="/safeguarding"
-            className="text-accent-strong underline-offset-2 hover:underline"
-          >
-            Safeguarding
-          </Link>
-          .
-        </p>
-        <p>
-          Plan, AV30 usage, and limits are summarised on the{" "}
-          <Link
-            href="/billing"
-            className="text-accent-strong underline-offset-2 hover:underline"
-          >
-            Billing
-          </Link>{" "}
-          page.
-        </p>
-        <p>
-          DSAR exports are accessed through internal safeguarding/admin workflows.
-        </p>
-      </div>
-    </Card>
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary font-heading">
-            Settings & Organisation
-          </h1>
-          <p className="text-sm text-text-muted">
-            Organisation details, plan tier, and key data policies for this PathWay account.
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={load}>
-          Refresh
-        </Button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {orgCard}
-        {planCard}
-        {retentionCard}
-        {linksCard}
+        {/* E) Danger zone - ORG_ADMIN only */}
+        {canManageBilling && (
+          <Card title="Danger zone" className="md:col-span-2">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={exportLoading}
+                  onClick={handleExportOrganisationData}
+                >
+                  {exportLoading ? "Preparing…" : "Export organisation data"}
+                </Button>
+                {!deactivateConfirmOpen ? (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setDeactivateError(null);
+                      setDeactivateConfirmOpen(true);
+                    }}
+                  >
+                    Deactivate organisation
+                  </Button>
+                ) : null}
+              </div>
+              {exportError && (
+                <p className="text-sm text-status-danger">{exportError}</p>
+              )}
+              {deactivateConfirmOpen && (
+                <div className="rounded-md border border-status-danger/30 bg-status-danger/5 p-4">
+                  <p className="mb-2 font-semibold text-text-primary">
+                    Are you sure you want to deactivate this organisation?
+                  </p>
+                  <p className="mb-4 text-sm text-text-muted">
+                    This action may affect all sites and data. Confirm only if you understand the consequences.
+                  </p>
+                  {deactivateError && (
+                    <p className="mb-3 text-sm text-status-danger">{deactivateError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deactivateLoading}
+                      onClick={handleDeactivateConfirm}
+                    >
+                      {deactivateLoading ? "Deactivating…" : "Yes, deactivate organisation"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={deactivateLoading}
+                      onClick={() => {
+                        setDeactivateConfirmOpen(false);
+                        setDeactivateError(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

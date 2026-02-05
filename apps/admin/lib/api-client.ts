@@ -3361,6 +3361,50 @@ export async function fetchRetentionOverview(): Promise<AdminRetentionOverview |
   return null;
 }
 
+export type AdminOrgExport = {
+  orgName: string;
+  slug: string;
+  sites: { name: string }[];
+};
+
+export async function requestExportOrganisationData(): Promise<AdminOrgExport> {
+  if (isUsingMockApi()) {
+    throw new Error("Export is not available in mock mode.");
+  }
+  const res = await fetch(`${API_BASE_URL}/orgs/export`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(res.status === 501 ? "Export is not available yet." : `Export failed: ${res.status} ${body}`);
+  }
+  return res.json() as Promise<AdminOrgExport>;
+}
+
+export async function deactivateOrganisation(): Promise<void> {
+  if (isUsingMockApi()) {
+    throw new Error("Deactivation is not available in mock mode.");
+  }
+  const res = await fetch(`${API_BASE_URL}/orgs/deactivate`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    let msg = text;
+    try {
+      const json = JSON.parse(text) as { message?: string };
+      if (json?.message) msg = json.message;
+    } catch {
+      // use text as-is
+    }
+    throw new Error(msg || `Deactivation failed: ${res.status}`);
+  }
+}
+
 type ApiUser = {
   id: string;
   email: string | null;
