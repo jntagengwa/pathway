@@ -8,7 +8,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Badge, Button, Card } from "@pathway/ui";
-import { AdminBillingOverview, fetchBillingOverview } from "../../lib/api-client";
+import {
+  AdminBillingOverview,
+  AdminBillingPrices,
+  fetchBillingOverview,
+  fetchBillingPrices,
+} from "../../lib/api-client";
 import { useAdminAccess } from "../../lib/use-admin-access";
 import { canAccessBilling } from "../../lib/access";
 import { NoAccessCard } from "../../components/no-access-card";
@@ -19,6 +24,8 @@ import {
   getPlanInfo,
   isRenewalDateInPast,
   getDisplayPeriodEnd,
+  mergeCatalogueWithPrices,
+  PLAN_CATALOGUE,
 } from "../../lib/plan-info";
 
 const statusTone: Record<
@@ -96,6 +103,7 @@ export default function BillingPage() {
   const { data: session, status: sessionStatus } = useSession();
   const { role, isLoading: isLoadingAccess } = useAdminAccess();
   const [data, setData] = React.useState<AdminBillingOverview | null>(null);
+  const [prices, setPrices] = React.useState<AdminBillingPrices | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -103,8 +111,12 @@ export default function BillingPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchBillingOverview();
-      setData(result);
+      const [overviewResult, pricesResult] = await Promise.all([
+        fetchBillingOverview(),
+        fetchBillingPrices(),
+      ]);
+      setData(overviewResult);
+      setPrices(pricesResult ?? null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load billing overview",
@@ -119,6 +131,20 @@ export default function BillingPage() {
     if (sessionStatus !== "authenticated" || !session) return;
     void load();
   }, [sessionStatus, session, load]);
+
+  const mergedByCode = React.useMemo(() => {
+    const merged = mergeCatalogueWithPrices(
+      PLAN_CATALOGUE,
+      prices?.prices ?? [],
+    );
+    return Object.fromEntries(merged.map((p) => [p.code, p]));
+  }, [prices]);
+
+  const planInfo = data
+    ? (mergedByCode[data.planCode ?? ""] ?? getPlanInfo(data.planCode))
+    : null;
+  const planDisplayName = planInfo?.displayName ?? getPlanDisplayName(data?.planCode);
+  const priceDisplay = planInfo?.priceDisplay ?? getPlanPriceDisplay(data?.planCode);
 
   // Access control guard
   if (isLoadingAccess) {
@@ -146,10 +172,6 @@ export default function BillingPage() {
       <span className="block h-3 w-20 animate-pulse rounded bg-muted" />
     </div>
   );
-
-  const planInfo = data ? getPlanInfo(data.planCode) : null;
-  const planDisplayName = getPlanDisplayName(data?.planCode);
-  const priceDisplay = getPlanPriceDisplay(data?.planCode);
 
   const isMasterOrg = data?.isMasterOrg === true;
 

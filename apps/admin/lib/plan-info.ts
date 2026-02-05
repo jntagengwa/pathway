@@ -1,8 +1,9 @@
 /**
  * Plan information and pricing mapping
- * 
+ *
  * Maps plan codes to human-readable labels and pricing information.
- * Keep in sync with backend plan catalogue (Epic 8).
+ * Display names and tier labels come from PLAN_CATALOGUE; amounts/intervals
+ * are overridden from GET /billing/prices when available (see mergeCatalogueWithPrices).
  */
 
 export type PlanInfo = {
@@ -12,15 +13,20 @@ export type PlanInfo = {
   displayName: string;
   priceDisplay: string;
   av30Included: number | null;
-  // TODO: Add actual pricing when wired from backend or Stripe
   priceInPounds?: number | null;
 };
 
+/** Price item shape from GET /billing/prices (unitAmount in cents). */
+export type BillingPriceItem = {
+  code: string;
+  currency: string;
+  unitAmount: number;
+  interval: "month" | "year" | null;
+};
+
 /**
- * Plan catalogue mapping
- * 
- * TODO: Wire from backend /billing/prices endpoint or plan catalogue
- * For now, using placeholder values for display purposes
+ * Plan catalogue: display names, tier labels, and fallback pricing.
+ * Amounts are overridden by mergeCatalogueWithPrices when backend prices are available.
  */
 export const PLAN_CATALOGUE: Record<string, PlanInfo> = {
   CORE_MONTHLY: {
@@ -105,6 +111,53 @@ export const PLAN_CATALOGUE: Record<string, PlanInfo> = {
     priceInPounds: null,
   },
 };
+
+/**
+ * Format amount for display (unitAmount in cents -> currency string).
+ * Does not display priceId or any provider identifiers.
+ */
+function formatPriceFromApi(unitAmount: number, currency: string): string {
+  const major = unitAmount / 100;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: currency.toUpperCase() || "GBP",
+    minimumFractionDigits: major % 1 !== 0 ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(major);
+}
+
+/**
+ * Merge catalogue (names, tiers, fallbacks) with backend prices.
+ * Match by planCode and interval (month -> monthly, year -> yearly).
+ * API unitAmount is in cents; converted to pounds for GBP display.
+ */
+export function mergeCatalogueWithPrices(
+  catalogue: Record<string, PlanInfo>,
+  prices: BillingPriceItem[],
+): PlanInfo[] {
+  const priceByKey = new Map<string, BillingPriceItem>();
+  for (const p of prices) {
+    const interval = p.interval === "year" ? "yearly" : p.interval === "month" ? "monthly" : null;
+    if (interval) priceByKey.set(`${p.code}:${interval}`, p);
+  }
+
+  return Object.values(catalogue).map((entry) => {
+    const key = `${entry.code}:${entry.interval}`;
+    const apiPrice = priceByKey.get(key);
+    if (!apiPrice) return entry;
+
+    const currency = apiPrice.currency.toUpperCase() || "GBP";
+    const priceInPounds = currency === "GBP" ? apiPrice.unitAmount / 100 : null;
+    const periodLabel = entry.interval === "monthly" ? "per month" : "per year";
+    const priceDisplay = `${formatPriceFromApi(apiPrice.unitAmount, apiPrice.currency)} ${periodLabel}`;
+
+    return {
+      ...entry,
+      priceDisplay,
+      priceInPounds: priceInPounds ?? undefined,
+    };
+  });
+}
 
 /**
  * Get plan information from plan code
