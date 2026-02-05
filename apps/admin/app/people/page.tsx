@@ -23,8 +23,7 @@ import {
 } from "../../lib/api-client";
 import { getSafeDisplayName } from "../../lib/names";
 import { useAdminAccess } from "../../lib/use-admin-access";
-import { canAccessAdminSection } from "../../lib/access";
-import { NoAccessCard } from "../../components/no-access-card";
+import { canPerform } from "../../lib/permissions";
 
 const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; orgId: string }>) => {
   const activeSite = sites.find((site) => site.id === activeSiteId) ?? sites[0];
@@ -79,9 +78,9 @@ export default function PeoplePage() {
   }, [sessionStatus, session]);
 
   React.useEffect(() => {
-    if (!orgId || !canAccessAdminSection(role)) return;
+    if (!orgId) return;
     void load();
-  }, [orgId, role, load]);
+  }, [orgId, load]);
 
   const handleResendInvite = React.useCallback(async (inviteId: string) => {
     try {
@@ -128,52 +127,59 @@ export default function PeoplePage() {
     return invites.filter((inv) => inv.email.toLowerCase().includes(query));
   }, [invites, searchQuery]);
 
+  const canEditPeople = canPerform("people:edit", role);
+
   const peopleColumns = React.useMemo<ColumnDef<PersonRow>[]>(
-    () => [
-      {
-        id: "name",
-        header: "Name",
-        cell: (row) => (
-          <div className="flex flex-col">
-            <span className="font-semibold text-text-primary">
-              {getSafeDisplayName({ displayName: row.displayName, name: row.name, email: row.email })}
+    () => {
+      const cols: ColumnDef<PersonRow>[] = [
+        {
+          id: "name",
+          header: "Name",
+          cell: (row) => (
+            <div className="flex flex-col">
+              <span className="font-semibold text-text-primary">
+                {getSafeDisplayName({ displayName: row.displayName, name: row.name, email: row.email })}
+              </span>
+              <span className="text-sm text-text-muted">{row.email}</span>
+            </div>
+          ),
+        },
+        {
+          id: "orgRole",
+          header: "Org role",
+          cell: (row) => (
+            <Badge variant="default">{row.orgRole}</Badge>
+          ),
+          width: "140px",
+        },
+        {
+          id: "siteAccess",
+          header: "Site access",
+          cell: (row) => (
+            <span className="text-sm text-text-secondary">
+              {row.siteAccessSummary.allSites
+                ? "All sites"
+                : `${row.siteAccessSummary.siteCount} site(s)`}
             </span>
-            <span className="text-sm text-text-muted">{row.email}</span>
-          </div>
-        ),
-      },
-      {
-        id: "orgRole",
-        header: "Org role",
-        cell: (row) => (
-          <Badge variant="default">{row.orgRole}</Badge>
-        ),
-        width: "140px",
-      },
-      {
-        id: "siteAccess",
-        header: "Site access",
-        cell: (row) => (
-          <span className="text-sm text-text-secondary">
-            {row.siteAccessSummary.allSites
-              ? "All sites"
-              : `${row.siteAccessSummary.siteCount} site(s)`}
-          </span>
-        ),
-        width: "140px",
-      },
-      {
-        id: "actions",
-        header: "",
-        cell: (row) => (
-          <Button asChild variant="secondary" size="sm">
-            <Link href={`/people/${row.id}/edit`}>Edit</Link>
-          </Button>
-        ),
-        width: "100px",
-      },
-    ],
-    [],
+          ),
+          width: "140px",
+        },
+      ];
+      if (canEditPeople) {
+        cols.push({
+          id: "actions",
+          header: "",
+          cell: (row) => (
+            <Button asChild variant="secondary" size="sm">
+              <Link href={`/people/${row.id}/edit`}>Edit</Link>
+            </Button>
+          ),
+          width: "100px",
+        });
+      }
+      return cols;
+    },
+    [canEditPeople],
   );
 
   const inviteColumns = React.useMemo<ColumnDef<InviteRow>[]>(
@@ -251,14 +257,7 @@ export default function PeoplePage() {
     );
   }
 
-  if (!canAccessAdminSection(role)) {
-    return (
-      <NoAccessCard
-        title="You don't have access to People"
-        message="People management is only available to organisation and site administrators."
-      />
-    );
-  }
+  const canInvite = canPerform("people:invite", role);
 
   return (
     <div className="flex flex-col gap-4">
@@ -276,9 +275,11 @@ export default function PeoplePage() {
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm" onClick={() => router.push("/people/invite")}>
-            + Invite person
-          </Button>
+          {canInvite && (
+            <Button size="sm" onClick={() => router.push("/people/invite")}>
+              + Invite person
+            </Button>
+          )}
         </div>
       </div>
 
