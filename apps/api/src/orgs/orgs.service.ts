@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  NotImplementedException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { registerOrgDto } from "./dto/register-org.dto";
@@ -218,6 +219,41 @@ export class OrgsService {
         isSuite: true,
       },
     });
+  }
+
+  /**
+   * Export organisation data (metadata only: name, slug, site names). No PII.
+   * Used by admin Settings "Export organisation data".
+   */
+  async exportOrganisationData(orgId: string): Promise<{
+    orgName: string;
+    slug: string;
+    sites: { name: string }[];
+  }> {
+    const org = await prisma.org.findFirst({
+      where: { id: orgId },
+      select: {
+        name: true,
+        slug: true,
+        tenants: { select: { name: true } },
+      },
+    });
+    if (!org) throw new NotFoundException("Organisation not found");
+    return {
+      orgName: org.name,
+      slug: org.slug,
+      sites: org.tenants.map((t) => ({ name: t.name })),
+    };
+  }
+
+  /**
+   * Deactivate organisation. Not implemented yet (no deactivatedAt in schema).
+   */
+  async deactivateOrganisation(orgId: string): Promise<never> {
+    void orgId; // Reserved for future implementation
+    throw new NotImplementedException(
+      "Deactivation is not implemented yet. Contact support for organisation closure.",
+    );
   }
 
   /**

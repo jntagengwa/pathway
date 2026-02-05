@@ -75,6 +75,8 @@ export type AdminAction =
   | "classes:create"
   | "classes:edit"
   | "settings:access"
+  | "settings:edit-org"
+  | "settings:edit-site"
   | "reports:access"
   | "billing:access"
   | "safeguarding:access";
@@ -98,6 +100,10 @@ export function canPerform(
     case "classes:edit":
     case "settings:access":
     case "reports:access":
+      return canAccessAdminSection(role);
+    case "settings:edit-org":
+      return canAccessBilling(role);
+    case "settings:edit-site":
       return canAccessAdminSection(role);
     case "billing:access":
       return canAccessBilling(role);
