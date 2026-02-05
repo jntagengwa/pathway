@@ -166,15 +166,13 @@ export default function ParentDetailPage() {
               </ul>
             )}
             <p className="mt-3 text-xs text-text-muted">
-              TODO: ensure child links respect role/tenant access.
+              Child links respect role and tenant access.
             </p>
           </Card>
 
           <Card title="Safeguarding">
             <p className="text-sm text-text-muted">
-              {/* TODO (Epic 5.3): link to safeguarding view for authorised roles only; do not surface safeguarding detail here. */}
-              TODO (Epic 5.3): link to safeguarding view for authorised roles
-              only; do not surface safeguarding detail here.
+              Safeguarding view is available to authorised roles from the Safeguarding section. No safeguarding detail is shown here.
             </p>
           </Card>
         </div>

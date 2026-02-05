@@ -7,6 +7,7 @@ import { Badge, Button, Card } from "@pathway/ui";
 import {
   AdminAnnouncementRow,
   AdminSessionRow,
+  fetchOpenConcerns,
   fetchRecentAnnouncements,
   fetchSessions,
   setApiClientToken,
@@ -85,6 +86,10 @@ export default function DashboardPage() {
   const [announcementError, setAnnouncementError] = React.useState<
     string | null
   >(null);
+  const [openConcernsCount, setOpenConcernsCount] = React.useState<
+    number | null
+  >(null);
+  const [isLoadingConcerns, setIsLoadingConcerns] = React.useState(false);
 
   const loadSessions = React.useCallback(async () => {
     setIsLoadingSessions(true);
@@ -116,13 +121,26 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const loadOpenConcerns = React.useCallback(async () => {
+    setIsLoadingConcerns(true);
+    try {
+      const list = await fetchOpenConcerns();
+      setOpenConcernsCount(Array.isArray(list) ? list.length : 0);
+    } catch {
+      setOpenConcernsCount(null);
+    } finally {
+      setIsLoadingConcerns(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (sessionStatus !== "authenticated" || !session) return;
     const token = (session as { accessToken?: string })?.accessToken ?? null;
     setApiClientToken(token);
     void loadSessions();
     void loadAnnouncements();
-  }, [sessionStatus, session, loadSessions, loadAnnouncements]);
+    void loadOpenConcerns();
+  }, [sessionStatus, session, loadSessions, loadAnnouncements, loadOpenConcerns]);
 
   const todaysSessions = React.useMemo(() => {
     return sessions
@@ -319,7 +337,7 @@ export default function DashboardPage() {
         <Card title="Open Concerns">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-sm text-text-muted">
-              Safeguarding overview (metadata only).
+              Safeguarding overview (metadata only; no child-level detail).
             </p>
             <Link
               href="/safeguarding"
@@ -329,14 +347,17 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-text-muted">
-              Open concerns count will come from the safeguarding service
-              (aggregate only; no child-level detail).
-            </p>
-            <p className="text-xs text-text-muted">
-              TODO: pull aggregate open concerns count from safeguarding
-              endpoint.
-            </p>
+            {isLoadingConcerns ? (
+              <span className="inline-block h-5 w-16 animate-pulse rounded bg-muted" />
+            ) : typeof openConcernsCount === "number" ? (
+              <p className="text-lg font-semibold text-text-primary">
+                {openConcernsCount} open {openConcernsCount === 1 ? "concern" : "concerns"}
+              </p>
+            ) : (
+              <p className="text-sm text-text-muted">
+                Open concerns count not available for your role.
+              </p>
+            )}
           </div>
         </Card>
 

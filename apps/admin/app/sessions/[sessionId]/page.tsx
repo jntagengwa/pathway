@@ -354,7 +354,7 @@ export default function SessionDetailPage() {
                 </div>
               ) : null}
               <div className="text-sm text-text-muted">
-                TODO: show lesson resources / description once available.
+                Lesson resources and description will appear when available.
               </div>
             </div>
           </Card>
@@ -373,7 +373,7 @@ export default function SessionDetailPage() {
                 </ul>
               ) : (
                 <p className="text-text-muted">
-                  TODO: pull attendance breakdown from API.
+                  Breakdown will appear when attendance is recorded.
                 </p>
               )}
             </div>
@@ -655,8 +655,7 @@ export default function SessionDetailPage() {
 
           <Card title="Notes & Safeguarding">
             <p className="text-sm text-text-muted">
-              TODO: show related notes/concerns once wired. Respect safeguarding
-              RBAC.
+              Related notes and concerns will appear here when wired. Safeguarding RBAC applies.
             </p>
           </Card>
         </div>

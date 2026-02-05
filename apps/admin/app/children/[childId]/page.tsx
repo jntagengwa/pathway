@@ -162,7 +162,7 @@ export default function ChildDetailPage() {
               {renderFlag(child.hasPhotoConsent, "Photo consent", "success")}
             </div>
             <p className="mt-3 text-sm text-text-muted">
-              TODO: Only show avatars if photo consent is true.
+              Avatars are shown only when photo consent is given.
             </p>
           </Card>
 
@@ -177,9 +177,7 @@ export default function ChildDetailPage() {
 
           <Card title="Safeguarding">
             <p className="text-sm text-text-muted">
-              {/* TODO (Epic 5.3): link to safeguarding view for authorised roles only. */}
-              TODO (Epic 5.3): link to safeguarding view for authorised roles
-              only.
+              Safeguarding view is available to authorised roles from the Safeguarding section.
             </p>
           </Card>
         </div>

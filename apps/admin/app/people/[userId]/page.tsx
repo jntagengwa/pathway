@@ -180,8 +180,8 @@ export default function StaffDetailPage() {
               </p>
             ) : null}
             <p className="mt-3 text-xs text-text-muted">
-              {/* TODO: populate groups/assignments once API exposes links. */}
-              TODO: populate groups/assignments once API exposes links.
+              {/* Groups/assignments populated when API exposes links. */}
+              Groups and assignments will appear when the API exposes them.
             </p>
           </Card>
         </div>
