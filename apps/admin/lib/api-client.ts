@@ -395,6 +395,9 @@ export type AdminLessonDetail = {
   status: "draft" | "published" | "archived" | "unknown";
   updatedAt: string | null;
   weekOf?: string | null;
+  sessionId?: string | null;
+  /** Attached resource file name (when stored as bytes until S3). */
+  resourceFileName?: string | null;
   resources: { id: string; label: string; type?: string | null }[];
 };
 
@@ -404,9 +407,13 @@ export type AdminLessonFormValues = {
   description?: string;
   weekOf?: string;
   groupId?: string;
+  sessionId?: string | null;
   fileKey?: string;
   tenantId?: string;
   resources?: { label: string }[];
+  /** Temporary: upload file as base64 until S3. */
+  resourceFileBase64?: string | null;
+  resourceFileName?: string | null;
 };
 
 // Auth header builder with support for runtime token injection.
@@ -2220,16 +2227,26 @@ export async function fetchAdminKpis(): Promise<AdminKpis> {
   return kpis;
 }
 
+type ApiLessonGroup = {
+  id: string;
+  name: string;
+  minAge?: number | null;
+  maxAge?: number | null;
+};
+
 type ApiLesson = {
   id: string;
   title: string;
   description?: string | null;
   groupId?: string | null;
+  sessionId?: string | null;
+  group?: ApiLessonGroup | null;
   groupLabel?: string | null;
   ageGroupLabel?: string | null;
   tenantId?: string;
   weekOf?: string | null;
   fileKey?: string | null;
+  resourceFileName?: string | null;
   createdAt?: string;
   updatedAt?: string;
   status?: string | null;
@@ -2249,11 +2266,20 @@ const resourceLabelFromKey = (key?: string | null) => {
   return last || key;
 };
 
+/** Derive age group label from group (e.g. "6–8" or group name). */
+function lessonAgeGroupLabel(group: ApiLessonGroup | null | undefined): string | null {
+  if (!group) return null;
+  if (group.minAge != null && group.maxAge != null) {
+    return `${group.minAge}–${group.maxAge}`;
+  }
+  return group.name;
+}
+
 const mapApiLessonToAdminRow = (api: ApiLesson): AdminLessonRow => ({
   id: api.id,
   title: api.title,
-  ageGroupLabel: api.ageGroupLabel ?? api.weekOf ?? null, // TODO: map age group when backend exposes a dedicated label.
-  groupLabel: api.groupLabel ?? api.groupId ?? null, // TODO: map group/class name when API exposes it.
+  ageGroupLabel: lessonAgeGroupLabel(api.group) ?? api.ageGroupLabel ?? null,
+  groupLabel: api.group?.name ?? api.groupLabel ?? api.groupId ?? null,
   status: mapLessonStatus(api.status),
   updatedAt: api.updatedAt ?? api.createdAt ?? null,
 });
@@ -2262,20 +2288,23 @@ const mapApiLessonToAdminDetail = (api: ApiLesson): AdminLessonDetail => ({
   id: api.id,
   title: api.title,
   description: api.description ?? null,
-  ageGroupLabel: api.ageGroupLabel ?? api.weekOf ?? null, // TODO: map age group when backend exposes a dedicated label.
-  groupLabel: api.groupLabel ?? api.groupId ?? null, // TODO: map group/class name when API exposes it.
+  ageGroupLabel: lessonAgeGroupLabel(api.group) ?? api.ageGroupLabel ?? null,
+  groupLabel: api.group?.name ?? api.groupLabel ?? api.groupId ?? null,
   status: mapLessonStatus(api.status),
   updatedAt: api.updatedAt ?? api.createdAt ?? null,
   weekOf: api.weekOf ?? null,
-  resources: api.fileKey
-    ? [
-        {
-          id: api.fileKey,
-          label: resourceLabelFromKey(api.fileKey),
-          type: null,
-        },
-      ]
-    : [], // NOTE: resources are label-only here; do not expose storage keys or URLs.
+  sessionId: api.sessionId ?? null,
+  resourceFileName: api.resourceFileName ?? null,
+  resources:
+    api.resourceFileName || api.fileKey
+      ? [
+          {
+            id: api.fileKey ?? api.resourceFileName ?? "resource",
+            label: api.resourceFileName ?? resourceLabelFromKey(api.fileKey),
+            type: null,
+          },
+        ]
+      : [],
 });
 
 // LESSONS: content/curriculum only - no safeguarding notes or secrets. Do not expose raw S3 URLs or provider payloads; show safe labels only.
@@ -2355,7 +2384,7 @@ export async function fetchLessonById(
   return mapApiLessonToAdminDetail(json);
 }
 
-// CreateLessonDto fields: tenantId, title, description?, fileKey?, groupId?, weekOf (date)
+// CreateLessonDto fields: tenantId, title, description?, fileKey?, groupId?, weekOf (date), resourceFileBase64?, resourceFileName?
 export async function createLesson(
   input: AdminLessonFormValues,
 ): Promise<AdminLessonDetail> {
@@ -2365,7 +2394,14 @@ export async function createLesson(
     description: input.description?.trim() || undefined,
     fileKey: input.fileKey || undefined,
     groupId: input.groupId || undefined,
+    sessionId: input.sessionId ?? undefined,
     weekOf: input.weekOf,
+    ...(input.resourceFileBase64
+      ? {
+          resourceFileBase64: input.resourceFileBase64,
+          resourceFileName: input.resourceFileName || undefined,
+        }
+      : {}),
   };
 
   const res = await fetch(`${API_BASE_URL}/lessons`, {
@@ -2386,7 +2422,7 @@ export async function createLesson(
   return mapApiLessonToAdminDetail(json);
 }
 
-// UpdateLessonDto fields: title?, description?, fileKey?, groupId?, weekOf?
+// UpdateLessonDto fields: title?, description?, fileKey?, groupId?, weekOf?, resourceFileBase64?, resourceFileName?
 export async function updateLesson(
   id: string,
   input: Partial<AdminLessonFormValues>,
@@ -2396,7 +2432,14 @@ export async function updateLesson(
     ...(input.description ? { description: input.description.trim() } : {}),
     ...(input.fileKey ? { fileKey: input.fileKey } : {}),
     ...(input.groupId ? { groupId: input.groupId } : {}),
+    ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
     ...(input.weekOf ? { weekOf: input.weekOf } : {}),
+    ...(input.resourceFileBase64 !== undefined
+      ? {
+          resourceFileBase64: input.resourceFileBase64,
+          resourceFileName: input.resourceFileName ?? null,
+        }
+      : {}),
   };
 
   const res = await fetch(`${API_BASE_URL}/lessons/${id}`, {
@@ -2415,6 +2458,34 @@ export async function updateLesson(
 
   const json = (await res.json()) as ApiLesson;
   return mapApiLessonToAdminDetail(json);
+}
+
+/** Download the lesson resource file (stored as bytes until S3). Triggers browser download. */
+export async function downloadLessonResource(lessonId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/lessons/${lessonId}/resource`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error("No resource file for this lesson.");
+    }
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to download resource (${res.status}): ${body || res.statusText}`,
+    );
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="?([^";\n]+)"?/);
+  const fileName = match?.[1]?.trim() || "resource";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 type ApiAttendanceRow = {

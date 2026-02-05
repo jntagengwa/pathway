@@ -8,9 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
   Inject,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { z, ZodError } from "zod";
 import { LessonsService } from "./lessons.service";
 import { createLessonDto, updateLessonDto } from "./dto";
@@ -62,6 +64,36 @@ export class LessonsController {
     try {
       const filters = await listQuery.parseAsync(query);
       return await this.lessons.findAll({ ...filters, tenantId });
+    } catch (e) {
+      if (e instanceof ZodError) throw new BadRequestException(e.errors);
+      throw e;
+    }
+  }
+
+  @Get(":id/resource")
+  async getResource(
+    @Param("id") idRaw: string,
+    @CurrentTenant("tenantId") tenantId: string,
+    @Res({ passthrough: false }) res: Response,
+  ) {
+    try {
+      const id = idParam.parse(idRaw);
+      const file = await this.lessons.getResourceFile(id, tenantId);
+      if (!file) {
+        res.status(404).json({
+          message: "No resource file for this lesson",
+          error: "Not Found",
+          statusCode: 404,
+        });
+        return;
+      }
+      const safeName = file.fileName.replace(/[^\w.-]/g, "_");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${safeName}"`,
+      );
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.send(file.buffer);
     } catch (e) {
       if (e instanceof ZodError) throw new BadRequestException(e.errors);
       throw e;

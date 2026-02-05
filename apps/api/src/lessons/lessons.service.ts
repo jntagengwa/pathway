@@ -5,7 +5,11 @@ import {
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import type { Prisma } from "@pathway/db";
-import { CreateLessonDto, UpdateLessonDto } from "./dto";
+import {
+  CreateLessonDto,
+  UpdateLessonDto,
+  decodeResourceFile,
+} from "./dto";
 
 @Injectable()
 export class LessonsService {
@@ -31,15 +35,48 @@ export class LessonsService {
       }
     }
 
+    if (dto.sessionId) {
+      const session = await prisma.session.findUnique({
+        where: { id: dto.sessionId },
+        select: { id: true, tenantId: true },
+      });
+      if (!session) throw new NotFoundException("Session not found");
+      if (session.tenantId !== tenantId) {
+        throw new BadRequestException(
+          "Session must belong to the same tenant",
+        );
+      }
+    }
+
+    let resourceFileBytes: Buffer | null = null;
+    let resourceFileName: string | null = null;
+    try {
+      const decoded = decodeResourceFile(
+        dto.resourceFileBase64,
+        dto.resourceFileName,
+      );
+      if (decoded) {
+        resourceFileBytes = decoded.buffer;
+        resourceFileName = decoded.fileName;
+      }
+    } catch (e) {
+      throw new BadRequestException(
+        e instanceof Error ? e.message : "Invalid resource file",
+      );
+    }
+
     try {
       return await prisma.lesson.create({
         data: {
           tenantId,
           groupId: dto.groupId ?? null,
+          sessionId: dto.sessionId ?? null,
           title: dto.title,
           description: dto.description ?? null,
-          fileKey: dto.fileKey ?? null,
+          fileKey: dto.fileKey ?? resourceFileName ?? null,
           weekOf: dto.weekOf,
+          resourceFileBytes,
+          resourceFileName,
         },
       });
     } catch (e: unknown) {
@@ -68,13 +105,66 @@ export class LessonsService {
         : {}),
     };
 
-    return prisma.lesson.findMany({ where, orderBy: { weekOf: "desc" } });
+    return prisma.lesson.findMany({
+      where,
+      orderBy: { weekOf: "desc" },
+      select: {
+        id: true,
+        tenantId: true,
+        groupId: true,
+        sessionId: true,
+        title: true,
+        description: true,
+        fileKey: true,
+        resourceFileName: true,
+        weekOf: true,
+        createdAt: true,
+        updatedAt: true,
+        group: {
+          select: { id: true, name: true, minAge: true, maxAge: true },
+        },
+      },
+    });
   }
 
   async findOne(id: string, tenantId: string) {
-    const lesson = await prisma.lesson.findFirst({ where: { id, tenantId } });
+    const lesson = await prisma.lesson.findFirst({
+      where: { id, tenantId },
+      select: {
+        id: true,
+        tenantId: true,
+        groupId: true,
+        sessionId: true,
+        title: true,
+        description: true,
+        fileKey: true,
+        resourceFileName: true,
+        weekOf: true,
+        createdAt: true,
+        updatedAt: true,
+        group: {
+          select: { id: true, name: true, minAge: true, maxAge: true },
+        },
+      },
+    });
     if (!lesson) throw new NotFoundException("Lesson not found");
     return lesson;
+  }
+
+  /** Get stored resource file for download. Returns null if no file stored. */
+  async getResourceFile(
+    id: string,
+    tenantId: string,
+  ): Promise<{ buffer: Buffer; fileName: string } | null> {
+    const lesson = await prisma.lesson.findFirst({
+      where: { id, tenantId },
+      select: { resourceFileBytes: true, resourceFileName: true },
+    });
+    if (!lesson?.resourceFileBytes) return null;
+    return {
+      buffer: Buffer.from(lesson.resourceFileBytes),
+      fileName: lesson.resourceFileName ?? "resource",
+    };
   }
 
   /** Update a lesson. Tenant is immutable; optionally validate new group. */
@@ -96,17 +186,58 @@ export class LessonsService {
       }
     }
 
+    if (dto.sessionId !== undefined) {
+      if (dto.sessionId) {
+        const session = await prisma.session.findUnique({
+          where: { id: dto.sessionId },
+          select: { id: true, tenantId: true },
+        });
+        if (!session) throw new NotFoundException("Session not found");
+        if (session.tenantId !== existing.tenantId) {
+          throw new BadRequestException(
+            "Session must belong to the same tenant as the lesson",
+          );
+        }
+      }
+    }
+
+    let resourceFileBytes: Buffer | null | undefined = undefined;
+    let resourceFileName: string | null | undefined = undefined;
+    if (dto.resourceFileBase64 !== undefined) {
+      if (dto.resourceFileBase64 && dto.resourceFileBase64.trim()) {
+        try {
+          const decoded = decodeResourceFile(
+            dto.resourceFileBase64,
+            dto.resourceFileName ?? undefined,
+          );
+          if (decoded) {
+            resourceFileBytes = decoded.buffer;
+            resourceFileName = decoded.fileName;
+          }
+        } catch (e) {
+          throw new BadRequestException(
+            e instanceof Error ? e.message : "Invalid resource file",
+          );
+        }
+      } else {
+        resourceFileBytes = null;
+        resourceFileName = null;
+      }
+    }
+
     try {
       return await prisma.lesson.update({
         where: { id },
         data: {
-          // tenantId is intentionally not mutable
-          groupId: dto.groupId === undefined ? undefined : dto.groupId, // allow null to detach
+          groupId: dto.groupId === undefined ? undefined : dto.groupId,
+          sessionId: dto.sessionId === undefined ? undefined : dto.sessionId,
           title: dto.title ?? undefined,
           description:
             dto.description === undefined ? undefined : dto.description,
           fileKey: dto.fileKey === undefined ? undefined : dto.fileKey,
           weekOf: dto.weekOf ?? undefined,
+          ...(resourceFileBytes !== undefined ? { resourceFileBytes } : {}),
+          ...(resourceFileName !== undefined ? { resourceFileName } : {}),
         },
       });
     } catch (e: unknown) {

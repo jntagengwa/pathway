@@ -9,6 +9,11 @@ const apiBaseUrl =
 
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET;
 
+// If the API is served over HTTPS with a self-signed cert (e.g. api.localhost), Node's
+// server-side fetch can fail with UNABLE_TO_VERIFY_LEAF_SIGNATURE. For local dev only,
+// set NODE_TLS_REJECT_UNAUTHORIZED=0 when starting the admin app, or use HTTP for the
+// API (e.g. NEXT_PUBLIC_API_URL=http://localhost:3001 and ADMIN_INTERNAL_API_URL=http://localhost:3001).
+
 /**
  * Check if a string looks like an email address.
  */
@@ -75,7 +80,20 @@ async function upsertIdentityToApi(payload: {
 
     return result;
   } catch (error) {
-    console.error("❌ [AUTH] Identity upsert exception:", error);
+    const cause = error instanceof Error ? error.cause : undefined;
+    const code =
+      cause && typeof cause === "object" && "code" in cause
+        ? String((cause as { code?: string }).code)
+        : "";
+    if (code === "ECONNREFUSED") {
+      console.error(
+        "❌ [AUTH] Identity upsert failed: API unreachable at",
+        apiBaseUrl,
+        "- is the API server running? Check ADMIN_INTERNAL_API_URL / NEXT_PUBLIC_API_URL.",
+      );
+    } else {
+      console.error("❌ [AUTH] Identity upsert exception:", error);
+    }
     return {};
   }
 }

@@ -12,6 +12,7 @@ config({
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
+import { json, urlencoded } from "express";
 import cookieParser from "cookie-parser";
 import fs from "node:fs";
 import type { HttpsOptions } from "@nestjs/common/interfaces/external/https-options.interface";
@@ -45,8 +46,21 @@ async function bootstrap() {
       credentials: true,
     },
     ...(httpsOptions ? { httpsOptions } : {}),
-    rawBody: true, // Enable raw body for all routes
+    rawBody: true,
+    bodyParser: false, // Use our own parsers below so we can set a 15MB limit for lesson uploads
   });
+
+  // JSON and urlencoded with 15MB limit (lesson resource base64 ~10MB file → ~14MB payload)
+  const bodyLimit = "15mb";
+  app.use(
+    json({
+      limit: bodyLimit,
+      verify: (req: unknown, _res, buf) => {
+        (req as { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
+  app.use(urlencoded({ extended: true, limit: bodyLimit }));
 
   app.use(cookieParser());
 

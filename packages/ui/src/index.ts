@@ -13,7 +13,11 @@ export {
 } from "./components/sidebar-nav";
 export { TopBar, type TopBarProps } from "./components/top-bar";
 export { Card, type CardProps } from "./components/ui/card";
-export { Button, type ButtonProps } from "./components/ui/button";
+export {
+  Button,
+  buttonVariants,
+  type ButtonProps,
+} from "./components/ui/button";
 export { Badge, type BadgeProps } from "./components/ui/badge";
 export {
   DataTable,

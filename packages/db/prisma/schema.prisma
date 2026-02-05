@@ -393,6 +393,7 @@ model Session {
   title       String?
   assignments Assignment[]
   attendances Attendance[]
+  lessons     Lesson[]     // lessons linked to this session
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -481,20 +482,25 @@ model SwapRequest {
 }
 
 model Lesson {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  groupId     String?
-  group       Group?   @relation(fields: [groupId], references: [id])
-  title       String
-  description String?
-  fileKey     String? // storage key for uploaded content
-  weekOf      DateTime // e.g., Monday of the week
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  groupId            String?
+  group              Group?    @relation(fields: [groupId], references: [id])
+  sessionId          String?   // optional link to a session (replaces date-only association)
+  session            Session?  @relation(fields: [sessionId], references: [id])
+  title              String
+  description        String?
+  fileKey            String?   // storage key / label for resource (S3 key when integrated)
+  resourceFileBytes  Bytes?    // temporary: uploaded file content until S3
+  resourceFileName   String?   // original filename for download
+  weekOf             DateTime  // e.g., Monday of the week (kept for backward compatibility)
+  createdAt          DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([tenantId])
   @@index([groupId])
+  @@index([sessionId])
   @@index([weekOf])
 }
 
