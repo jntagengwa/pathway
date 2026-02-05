@@ -28,6 +28,7 @@ type SiteSummary = {
   orgName: string | null;
   orgSlug?: string | null;
   role?: SiteRole | null;
+  timezone?: string | null;
 };
 
 @Controller("auth/active-site")
@@ -98,6 +99,7 @@ export class ActiveSiteController {
         orgName: m.tenant.org.name,
         orgSlug: m.tenant.org.slug,
         role: m.role,
+        timezone: m.tenant.timezone ?? null,
       })),
       ...orgTenantIds.map<SiteSummary>((tenant) => ({
         id: tenant.id,
@@ -106,6 +108,7 @@ export class ActiveSiteController {
         orgName: tenant.org.name,
         orgSlug: tenant.org.slug,
         role: SiteRole.SITE_ADMIN,
+        timezone: tenant.timezone ?? null,
       })),
     ];
 

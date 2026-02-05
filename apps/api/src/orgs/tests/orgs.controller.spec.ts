@@ -3,6 +3,15 @@ import { OrgsController } from "../orgs.controller";
 import { OrgsService } from "../orgs.service";
 import { PathwayAuthGuard } from "@pathway/auth";
 import { AuthUserGuard } from "../../auth/auth-user.guard";
+import { BadRequestException } from "@nestjs/common";
+
+jest.mock("@pathway/db", () => ({
+  prisma: {
+    orgMembership: { findFirst: jest.fn().mockResolvedValue({ role: "ORG_ADMIN" }) },
+    userOrgRole: { findFirst: jest.fn().mockResolvedValue(null) },
+  },
+  OrgRole: { ORG_ADMIN: "ORG_ADMIN" },
+}));
 
 // Helper type: the resolved return type of OrgsService.register
 type RegisterReturn = Awaited<ReturnType<OrgsService["register"]>>;
@@ -10,12 +19,23 @@ type RegisterReturn = Awaited<ReturnType<OrgsService["register"]>>;
 describe("OrgsController", () => {
   let controller: OrgsController;
 
-  // Create a strictly-typed mock for OrgsService.register using the real signature
+  // Create a strictly-typed mock for OrgsService using the real signatures
   const registerMock = jest.fn() as jest.MockedFunction<
     OrgsService["register"]
   >;
-  const mockOrgsService: Pick<OrgsService, "register"> = {
+  const updateCurrentOrgMock = jest.fn() as jest.MockedFunction<
+    OrgsService["updateCurrentOrg"]
+  >;
+  const getRetentionOverviewMock = jest.fn() as jest.MockedFunction<
+    OrgsService["getRetentionOverview"]
+  >;
+  const mockOrgsService: Pick<
+    OrgsService,
+    "register" | "updateCurrentOrg" | "getRetentionOverview"
+  > = {
     register: registerMock,
+    updateCurrentOrg: updateCurrentOrgMock,
+    getRetentionOverview: getRetentionOverviewMock,
   };
 
   beforeEach(async () => {
@@ -31,6 +51,8 @@ describe("OrgsController", () => {
 
     controller = module.get<OrgsController>(OrgsController);
     registerMock.mockReset();
+    updateCurrentOrgMock.mockReset();
+    getRetentionOverviewMock.mockReset();
   });
 
   it("should delegate to OrgsService.register and return the created org", async () => {
@@ -100,5 +122,70 @@ describe("OrgsController", () => {
       "failed to register",
     );
     expect(registerMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe("updateCurrent", () => {
+    it("should return 200 and updated org when admin updates name", async () => {
+      const req = { authUserId: "user-1" } as unknown as Parameters<
+        OrgsController["updateCurrent"]
+      >[1];
+      updateCurrentOrgMock.mockResolvedValue({
+        id: "org-1",
+        name: "New Org Name",
+        slug: "acme",
+      });
+      const result = await controller.updateCurrent(
+        "org-1",
+        req,
+        { name: "New Org Name" },
+      );
+      expect(updateCurrentOrgMock).toHaveBeenCalledWith("org-1", {
+        name: "New Org Name",
+      });
+      expect(result).toEqual({
+        id: "org-1",
+        name: "New Org Name",
+        slug: "acme",
+      });
+    });
+
+    it("should throw BadRequestException for invalid name (too short)", async () => {
+      const req = { authUserId: "user-1" } as unknown as Parameters<
+        OrgsController["updateCurrent"]
+      >[1];
+      await expect(
+        controller.updateCurrent("org-1", req, { name: "x" }),
+      ).rejects.toThrow(BadRequestException);
+      expect(updateCurrentOrgMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getCurrentRetention", () => {
+    it("should return retention overview when configured", async () => {
+      getRetentionOverviewMock.mockResolvedValue({
+        attendanceRetentionYears: 7,
+        safeguardingRetentionYears: null,
+        notesRetentionYears: null,
+      });
+      const result = await controller.getCurrentRetention("org-1");
+      expect(getRetentionOverviewMock).toHaveBeenCalledWith("org-1");
+      expect(result).toEqual({
+        attendanceRetentionYears: 7,
+        safeguardingRetentionYears: null,
+        notesRetentionYears: null,
+      });
+    });
+
+    it("should return nulls when retention not configured", async () => {
+      getRetentionOverviewMock.mockResolvedValue({
+        attendanceRetentionYears: null,
+        safeguardingRetentionYears: null,
+        notesRetentionYears: null,
+      });
+      const result = await controller.getCurrentRetention("org-1");
+      expect(result.attendanceRetentionYears).toBeNull();
+      expect(result.safeguardingRetentionYears).toBeNull();
+      expect(result.notesRetentionYears).toBeNull();
+    });
   });
 });

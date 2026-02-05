@@ -3,6 +3,18 @@ import { BadRequestException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { TenantsController } from "../tenants.controller";
 import { TenantsService } from "../tenants.service";
+import { AuthUserGuard } from "../../auth/auth-user.guard";
+
+jest.mock("@pathway/db", () => ({
+  prisma: {
+    tenant: { findUnique: jest.fn().mockResolvedValue({ id: "t1", orgId: "org-1" }) },
+    siteMembership: { findFirst: jest.fn().mockResolvedValue({ role: "SITE_ADMIN" }) },
+    orgMembership: { findFirst: jest.fn().mockResolvedValue(null) },
+    userOrgRole: { findFirst: jest.fn().mockResolvedValue(null) },
+  },
+  OrgRole: { ORG_ADMIN: "ORG_ADMIN" },
+  SiteRole: { SITE_ADMIN: "SITE_ADMIN" },
+}));
 
 const ORG_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -21,14 +33,29 @@ describe("TenantsController", () => {
     list: jest.fn().mockResolvedValue([mockTenant]),
     getBySlug: jest.fn().mockResolvedValue(mockTenant),
     create: jest.fn().mockResolvedValue(mockTenant),
+    updateProfile: jest.fn().mockResolvedValue({
+      id: "1",
+      name: "Updated Site",
+      slug: "test-tenant",
+      timezone: "Europe/London",
+    }),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    (mockService.updateProfile as jest.Mock).mockResolvedValue({
+      id: "1",
+      name: "Updated Site",
+      slug: "test-tenant",
+      timezone: "Europe/London",
+    });
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TenantsController],
       providers: [{ provide: TenantsService, useValue: mockService }],
-    }).compile();
+    })
+      .overrideGuard(AuthUserGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TenantsController>(TenantsController);
     service = module.get<TenantsService>(TenantsService);
@@ -78,5 +105,41 @@ describe("TenantsController", () => {
       controller.create(bad as CreateTenantDto),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(service.create).not.toHaveBeenCalled();
+  });
+
+  describe("updateProfile", () => {
+    const req = { authUserId: "user-1" } as Parameters<
+      TenantsController["updateProfile"]
+    >[1];
+
+    it("should 200 and return updated tenant when name and timezone provided", async () => {
+      const result = await controller.updateProfile("t1", req, {
+        name: "Updated Site",
+        timezone: "Europe/London",
+      });
+      expect(service.updateProfile).toHaveBeenCalledWith("t1", "user-1", {
+        name: "Updated Site",
+        timezone: "Europe/London",
+      });
+      expect(result.timezone).toBe("Europe/London");
+      expect(result.name).toBe("Updated Site");
+    });
+
+    it("should 400 for invalid timezone", async () => {
+      await expect(
+        controller.updateProfile("t1", req, {
+          name: "OK Name",
+          timezone: "Invalid/Timezone",
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(service.updateProfile).not.toHaveBeenCalled();
+    });
+
+    it("should 400 when neither name nor timezone provided", async () => {
+      await expect(
+        controller.updateProfile("t1", req, {}),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(service.updateProfile).not.toHaveBeenCalled();
+    });
   });
 });
