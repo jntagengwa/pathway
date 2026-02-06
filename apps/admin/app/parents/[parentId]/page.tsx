@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Mail, User } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
+import { canAccessSafeguardingAdmin } from "../../../lib/access";
+import { useAdminAccess } from "../../../lib/use-admin-access";
 import { AdminParentDetail, fetchParentById } from "../../../lib/api-client";
 
-const statusTone: Record<AdminParentDetail["status"], "success" | "default"> = {
-  active: "success",
-  inactive: "default",
-};
+const statusTone: Record<AdminParentDetail["status"], "success" | "default"> =
+  {
+    active: "success",
+    inactive: "default",
+    archived: "default",
+  };
 
 export default function ParentDetailPage() {
   const params = useParams<{ parentId: string }>();
@@ -21,6 +25,7 @@ export default function ParentDetailPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -60,6 +65,11 @@ export default function ParentDetailPage() {
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          {!isLoadingAccess && canAccessSafeguardingAdmin(role) ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/safeguarding">View in Safeguarding</Link>
+            </Button>
+          ) : null}
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
@@ -114,7 +124,11 @@ export default function ParentDetailPage() {
                   {parent.fullName}
                 </h1>
                 <Badge variant={statusTone[parent.status]}>
-                  {parent.status === "active" ? "Active" : "Inactive"}
+                  {parent.status === "active"
+                    ? "Active"
+                    : parent.status === "archived"
+                      ? "Archived"
+                      : "Inactive"}
                 </Badge>
                 {parent.isPrimaryContact ? (
                   <Badge variant="accent">Primary contact</Badge>
@@ -141,6 +155,7 @@ export default function ParentDetailPage() {
             </div>
           </Card>
 
+          {/* Children displayed here are returned by the tenant-scoped API; links only render for those children. */}
           <Card title="Linked Children">
             {parent.children.length === 0 ? (
               <p className="text-sm text-text-muted">No linked children.</p>
@@ -174,6 +189,11 @@ export default function ParentDetailPage() {
             <p className="text-sm text-text-muted">
               Safeguarding view is available to authorised roles from the Safeguarding section. No safeguarding detail is shown here.
             </p>
+            {!isLoadingAccess && canAccessSafeguardingAdmin(role) ? (
+              <Button asChild variant="outline" size="sm" className="mt-3">
+                <Link href="/safeguarding">View in Safeguarding</Link>
+              </Button>
+            ) : null}
           </Card>
         </div>
       ) : null}

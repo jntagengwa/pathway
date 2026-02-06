@@ -9,6 +9,14 @@ import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../../billing/entitlements-enforcement.service";
 
 // Minimal shape used in tests (avoid importing Prisma types here)
+type LessonShape = {
+  id: string;
+  title: string;
+  description: string | null;
+  resourceFileName: string | null;
+  fileKey: string | null;
+};
+
 interface SessionShape {
   id: string;
   tenantId: string;
@@ -18,6 +26,7 @@ interface SessionShape {
   createdAt: Date;
   updatedAt: Date;
   groups: { id: string; name: string }[];
+  lessons: LessonShape[];
 }
 
 describe("SessionsController", () => {
@@ -34,6 +43,7 @@ describe("SessionsController", () => {
     createdAt: new Date("2024-12-31T00:00:00Z"),
     updatedAt: new Date("2024-12-31T00:00:00Z"),
     groups: [{ id: "g1", name: "Kids" }],
+    lessons: [],
   };
 
   const serviceMock: jest.Mocked<

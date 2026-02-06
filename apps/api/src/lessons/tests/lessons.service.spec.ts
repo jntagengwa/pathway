@@ -66,10 +66,13 @@ describe("LessonsService", () => {
         data: {
           tenantId,
           groupId: null,
+          sessionId: null,
           title: "A",
           description: null,
           fileKey: null,
           weekOf: baseDate,
+          resourceFileBytes: null,
+          resourceFileName: null,
         },
       });
       expect(res.id).toBe(lessonId);
@@ -94,11 +97,14 @@ describe("LessonsService", () => {
         where: { id: groupId },
         select: { id: true, tenantId: true },
       });
-      expect(lessonCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ groupId }),
+      expect(lessonCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          groupId,
+          sessionId: null,
+          resourceFileBytes: null,
+          resourceFileName: null,
         }),
-      );
+      });
       expect(lessonCreate).toHaveBeenCalled();
     });
 

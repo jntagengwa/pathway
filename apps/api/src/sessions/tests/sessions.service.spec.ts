@@ -14,6 +14,7 @@ type SessionRow = {
   createdAt: Date;
   updatedAt: Date;
   groups?: { id: string; name: string }[];
+  lessons?: { id: string; title: string; description: string | null; resourceFileName: string | null; fileKey: string | null }[];
 };
 
 describe("SessionsService", () => {
@@ -62,6 +63,7 @@ describe("SessionsService", () => {
     createdAt: now,
     updatedAt: now,
     groups: [{ id: ids.group, name: "Kids" }],
+    lessons: [],
   };
 
   beforeEach(() => {
@@ -134,7 +136,20 @@ describe("SessionsService", () => {
       expect(res.id).toBe(base.id);
       expect(sFindFirst).toHaveBeenCalledWith({
         where: { id: base.id, tenantId: ids.tenant },
-        include: { groups: { select: { id: true, name: true } } },
+        include: {
+          groups: { select: { id: true, name: true } },
+          lessons: {
+            take: 1,
+            orderBy: { updatedAt: "desc" },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              resourceFileName: true,
+              fileKey: true,
+            },
+          },
+        },
       });
     });
 

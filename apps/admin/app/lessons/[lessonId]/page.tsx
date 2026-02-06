@@ -3,10 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, Download, FileText } from "lucide-react";
 import { Badge, Button, Card } from "@pathway/ui";
 import {
   AdminLessonDetail,
+  downloadLessonResource,
   fetchLessonById,
 } from "../../../lib/api-client";
 
@@ -29,6 +30,7 @@ export default function LessonDetailPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const [downloadError, setDownloadError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -53,6 +55,15 @@ export default function LessonDetailPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const handleDownloadResource = async () => {
+    setDownloadError(null);
+    try {
+      await downloadLessonResource(lessonId);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "Download failed");
+    }
+  };
 
   const renderDescription = (text: string | null) => {
     if (!text) return <p className="text-sm text-text-muted">No description provided.</p>;
@@ -147,6 +158,19 @@ export default function LessonDetailPage() {
           </Card>
 
           <Card title="Resources">
+            {lesson.resourceFileName ? (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1"
+                  onClick={handleDownloadResource}
+                >
+                  <Download className="h-4 w-4" />
+                  Download {lesson.resourceFileName}
+                </Button>
+              </div>
+            ) : null}
             {lesson.resources.length === 0 ? (
               <p className="text-sm text-text-muted">
                 No resources attached to this lesson yet.
@@ -155,7 +179,7 @@ export default function LessonDetailPage() {
               <ul className="space-y-2 text-sm">
                 {lesson.resources.map((res) => (
                   <li key={res.id} className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-text-muted" />
+                    <FileText className="h-4 w-4 shrink-0 text-text-muted" />
                     <span>{res.label}</span>
                     {res.type ? (
                       <Badge variant="secondary" className="capitalize">
@@ -166,9 +190,11 @@ export default function LessonDetailPage() {
                 ))}
               </ul>
             )}
+            {downloadError ? (
+              <p className="mt-2 text-xs text-status-danger">{downloadError}</p>
+            ) : null}
             <p className="mt-3 text-xs text-text-muted">
-              {/* LESSONS: resources are shown by label only; do not expose raw S3 URLs or tokens here. */}
-              Resources are shown by label only; do not expose raw S3 URLs or tokens here.
+              Attached files can be downloaded above. Labels only; no raw URLs or tokens.
             </p>
           </Card>
         </div>

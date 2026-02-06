@@ -114,11 +114,22 @@ export default function ParentsPage() {
         id: "status",
         header: "Status",
         cell: (row) => (
-          <Badge variant={row.status === "active" ? "success" : "default"}>
-            {row.status === "active" ? "Active" : "Inactive"}
+          <Badge
+            variant={
+              row.status === "active"
+                ? "success"
+                : row.status === "archived"
+                  ? "default"
+                  : "default"
+            }
+          >
+            {row.status === "active"
+              ? "Active"
+              : row.status === "archived"
+                ? "Archived"
+                : "Inactive"}
           </Badge>
         ),
-        // TODO: map real status once backend exposes archived/deactivated flags.
         align: "center",
         width: "120px",
       },

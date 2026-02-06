@@ -8,10 +8,13 @@ import { ArrowLeft, CalendarClock, MapPin, Trash2 } from "lucide-react";
 import { Badge, Button, Card, Label, Select } from "@pathway/ui";
 import {
   AdminAssignmentRow,
+  AdminLessonDetail,
   AdminSessionDetail,
   createAssignment,
   deleteAssignment,
   fetchAssignmentsForOrg,
+  fetchAttendanceDetailBySessionId,
+  fetchLessonById,
   fetchMe,
   fetchSessionById,
   fetchStaffEligibilityForSession,
@@ -20,7 +23,7 @@ import {
   type StaffEligibilityRow,
 } from "../../../lib/api-client";
 import { useAdminAccess } from "../../../lib/use-admin-access";
-import { canAccessAdminSection } from "../../../lib/access";
+import { canAccessAdminSection, canAccessSafeguardingAdmin } from "../../../lib/access";
 
 const eligibilityReasonLabel: Record<
   NonNullable<StaffEligibilityRow["reason"]>,
@@ -109,6 +112,10 @@ export default function SessionDetailPage() {
   >([]);
   const [staffEligibilityLoading, setStaffEligibilityLoading] =
     React.useState(false);
+  const [lessonDetail, setLessonDetail] = React.useState<AdminLessonDetail | null>(null);
+  const [attendanceSummary, setAttendanceSummary] = React.useState<
+    { present: number; absent: number; late: number; unknown: number } | null
+  >(null);
 
   const refreshAssignments = React.useCallback(
     async (sessionMeta: AdminSessionDetail | null) => {
@@ -144,6 +151,8 @@ export default function SessionDetailPage() {
     setError(null);
     setNotFound(false);
     setAssignmentError(null);
+    setLessonDetail(null);
+    setAttendanceSummary(null);
     try {
       const result = await fetchSessionById(sessionId);
       setSession(result);
@@ -153,6 +162,20 @@ export default function SessionDetailPage() {
       } else {
         setAssignments(result.assignments ?? []);
         await refreshAssignments(result);
+        const hasBreakdown =
+          result.presentCount !== undefined &&
+          result.absentCount !== undefined &&
+          result.lateCount !== undefined;
+        if (result.lessonId && !result.lesson) {
+          fetchLessonById(result.lessonId)
+            .then(setLessonDetail)
+            .catch(() => setLessonDetail(null));
+        }
+        if (!hasBreakdown) {
+          fetchAttendanceDetailBySessionId(result.id)
+            .then((d) => setAttendanceSummary(d.summary))
+            .catch(() => setAttendanceSummary(null));
+        }
       }
     } catch (err) {
       setError(
@@ -225,10 +248,21 @@ export default function SessionDetailPage() {
 
   const time = formatTimeRange(session?.startsAt, session?.endsAt);
 
-  const attendanceBreakdown =
+  const hasSessionBreakdown =
     session?.presentCount !== undefined &&
     session?.absentCount !== undefined &&
     session?.lateCount !== undefined;
+  const attendanceBreakdown =
+    hasSessionBreakdown || attendanceSummary != null;
+  const displayPresent = hasSessionBreakdown
+    ? session!.presentCount!
+    : attendanceSummary?.present ?? 0;
+  const displayAbsent = hasSessionBreakdown
+    ? session!.absentCount!
+    : attendanceSummary?.absent ?? 0;
+  const displayLate = hasSessionBreakdown
+    ? session!.lateCount!
+    : attendanceSummary?.late ?? 0;
 
   const handleStatusChange = React.useCallback(
     async (assignmentId: string, status: AdminAssignmentRow["status"]) => {
@@ -353,9 +387,56 @@ export default function SessionDetailPage() {
                   </span>
                 </div>
               ) : null}
-              <div className="text-sm text-text-muted">
-                Lesson resources and description will appear when available.
-              </div>
+              {(() => {
+                const lesson = session.lesson ?? (lessonDetail ? {
+                  id: lessonDetail.id,
+                  title: lessonDetail.title,
+                  description: lessonDetail.description,
+                  resources: lessonDetail.resources?.length
+                    ? lessonDetail.resources.map((r) => ({ label: r.label, url: null, type: r.type }))
+                    : null,
+                } : null);
+                if (lesson?.description || (lesson?.resources && lesson.resources.length > 0)) {
+                  const safeUrl = (url: string | null | undefined) =>
+                    typeof url === "string" && (url.startsWith("https://") || url.startsWith("http://"));
+                  return (
+                    <div className="space-y-2 text-sm text-text-muted">
+                      {lesson.description ? (
+                        <p className="text-text-primary">{lesson.description}</p>
+                      ) : null}
+                      {lesson.resources && lesson.resources.length > 0 ? (
+                        <ul className="list-inside list-disc space-y-1">
+                          {lesson.resources.map((r, i) => {
+                            const label = r.label ?? "Resource";
+                            const url = r.url;
+                            return (
+                              <li key={i}>
+                                {url && safeUrl(url) ? (
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-accent-strong underline-offset-2 hover:underline"
+                                  >
+                                    {label}
+                                  </a>
+                                ) : (
+                                  label
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="text-sm text-text-muted">
+                    Lesson resources and description will appear when available.
+                  </div>
+                );
+              })()}
             </div>
           </Card>
 
@@ -367,9 +448,9 @@ export default function SessionDetailPage() {
               </div>
               {attendanceBreakdown ? (
                 <ul className="space-y-1 text-text-muted">
-                  <li>Present: {session.presentCount}</li>
-                  <li>Absent: {session.absentCount}</li>
-                  <li>Late: {session.lateCount}</li>
+                  <li>Present: {displayPresent}</li>
+                  <li>Absent: {displayAbsent}</li>
+                  <li>Late: {displayLate}</li>
                 </ul>
               ) : (
                 <p className="text-text-muted">
@@ -653,11 +734,44 @@ export default function SessionDetailPage() {
             )}
           </Card>
 
-          <Card title="Notes & Safeguarding">
-            <p className="text-sm text-text-muted">
-              Related notes and concerns will appear here when wired. Safeguarding RBAC applies.
-            </p>
-          </Card>
+          {!isLoadingAccess && canAccessSafeguardingAdmin(role) ? (
+            <Card title="Related notes & concerns">
+              {session.relatedSafeguarding?.notes?.length || session.relatedSafeguarding?.concerns?.length ? (
+                <div className="space-y-2 text-sm">
+                  {session.relatedSafeguarding.concerns?.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between gap-2">
+                      <span className="text-text-muted">
+                        Concern · {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"} {c.status ? `· ${c.status}` : ""}
+                      </span>
+                      <Link
+                        href={`/safeguarding/concerns/${c.id}`}
+                        className="text-accent-strong text-xs underline-offset-2 hover:underline"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  ))}
+                  {session.relatedSafeguarding.notes?.map((n) => (
+                    <div key={n.id} className="flex items-center justify-between gap-2">
+                      <span className="text-text-muted">
+                        Note · {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "—"} {n.status ? `· ${n.status}` : ""}
+                      </span>
+                      <Link
+                        href="/safeguarding"
+                        className="text-accent-strong text-xs underline-offset-2 hover:underline"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">
+                  Related notes and concerns will appear here when available. No safeguarding detail is shown on this page.
+                </p>
+              )}
+            </Card>
+          ) : null}
         </div>
       ) : null}
     </div>

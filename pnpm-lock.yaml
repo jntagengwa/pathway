@@ -145,6 +145,9 @@ importers:
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

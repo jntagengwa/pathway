@@ -104,7 +104,20 @@ export class SessionsService {
   async getById(id: string, tenantId: string) {
     const s = await prisma.session.findFirst({
       where: { id, tenantId },
-      include: { groups: { select: { id: true, name: true } } },
+      include: {
+        groups: { select: { id: true, name: true } },
+        lessons: {
+          take: 1,
+          orderBy: { updatedAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            resourceFileName: true,
+            fileKey: true,
+          },
+        },
+      },
     });
     if (!s) throw new NotFoundException("Session not found");
     return s;

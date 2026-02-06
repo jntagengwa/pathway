@@ -164,25 +164,119 @@ export default function StaffDetailPage() {
 
           <Card title="Groups & Assignments">
             {staff.groups && staff.groups.length > 0 ? (
-              <ul className="space-y-1 text-sm">
+              <div className="flex flex-wrap gap-2">
                 {staff.groups.map((g) => (
-                  <li key={g.id} className="text-text-primary">
+                  <Badge key={g.id ?? g.name} variant="secondary">
                     {g.name}
-                  </li>
+                  </Badge>
                 ))}
-              </ul>
+              </div>
             ) : (
               <p className="text-sm text-text-muted">No groups recorded.</p>
             )}
             {typeof staff.sessionsCount === "number" ? (
-              <p className="mt-2 text-xs text-text-muted">
+              <p className="mt-2 text-sm text-text-muted">
                 Active on {staff.sessionsCount} sessions recently.
               </p>
             ) : null}
-            <p className="mt-3 text-xs text-text-muted">
-              {/* Groups/assignments populated when API exposes links. */}
-              Groups and assignments will appear when the API exposes them.
-            </p>
+            {staff.assignmentsSummary &&
+            (typeof staff.assignmentsSummary.total === "number" ||
+              typeof staff.assignmentsSummary.confirmed === "number" ||
+              typeof staff.assignmentsSummary.pending === "number" ||
+              typeof staff.assignmentsSummary.declined === "number") ? (
+              <p className="mt-2 text-sm text-text-muted">
+                {[
+                  staff.assignmentsSummary.total != null &&
+                    `${staff.assignmentsSummary.total} total`,
+                  staff.assignmentsSummary.confirmed != null &&
+                    `${staff.assignmentsSummary.confirmed} confirmed`,
+                  staff.assignmentsSummary.pending != null &&
+                    `${staff.assignmentsSummary.pending} pending`,
+                  staff.assignmentsSummary.declined != null &&
+                    `${staff.assignmentsSummary.declined} declined`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            ) : staff.assignments && staff.assignments.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-sm">
+                {staff.assignments.slice(0, 5).map((a, i) => {
+                  const dateTime =
+                    a.startsAt &&
+                    (() => {
+                      const d = new Date(a.startsAt);
+                      return {
+                        date: d.toLocaleDateString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        }),
+                        time: d.toLocaleTimeString(undefined, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }),
+                      };
+                    })();
+                  return (
+                    <li
+                      key={a.sessionId ?? i}
+                      className="flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <span className="text-text-primary">
+                        {a.sessionTitle ?? "Session"} ·{" "}
+                        {dateTime
+                          ? `${dateTime.date} ${dateTime.time}`
+                          : "—"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        {a.role ? (
+                          <Badge variant="default">{a.role}</Badge>
+                        ) : null}
+                        {a.status ? (
+                          <Badge
+                            variant={
+                              a.status.toLowerCase() === "confirmed"
+                                ? "success"
+                                : a.status.toLowerCase() === "pending"
+                                  ? "warning"
+                                  : "default"
+                            }
+                          >
+                            {a.status}
+                          </Badge>
+                        ) : null}
+                        {a.sessionId ? (
+                          <Link
+                            href={`/sessions/${a.sessionId}`}
+                            className="text-accent-strong text-xs underline-offset-2 hover:underline"
+                          >
+                            View
+                          </Link>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            {(() => {
+              const hasSummary =
+                staff.assignmentsSummary &&
+                (typeof staff.assignmentsSummary.total === "number" ||
+                  typeof staff.assignmentsSummary.confirmed === "number" ||
+                  typeof staff.assignmentsSummary.pending === "number" ||
+                  typeof staff.assignmentsSummary.declined === "number");
+              const hasData =
+                (staff.groups?.length ?? 0) > 0 ||
+                typeof staff.sessionsCount === "number" ||
+                !!hasSummary ||
+                (staff.assignments?.length ?? 0) > 0;
+              return !hasData ? (
+                <p className="mt-3 text-xs text-text-muted">
+                  Groups and assignments will appear when the API exposes them.
+                </p>
+              ) : null;
+            })()}
           </Card>
         </div>
       ) : null}
