@@ -22,6 +22,19 @@ const isUsingMockApi = (): boolean => {
   return useMockApiExplicit;
 };
 
+/** Metadata-only item for related safeguarding (no body/free text). */
+export type AdminRelatedNoteMeta = {
+  id: string;
+  createdAt?: string;
+  status?: string;
+};
+/** Metadata-only item for related safeguarding (no body/free text). */
+export type AdminRelatedConcernMeta = {
+  id: string;
+  createdAt?: string;
+  status?: string;
+};
+
 export type AdminSessionRow = {
   id: string;
   title: string;
@@ -37,6 +50,19 @@ export type AdminSessionRow = {
   lateCount?: number;
   leadStaff?: string;
   supportStaff?: string[];
+  /** When API embeds lesson data on session. */
+  lesson?: {
+    id?: string;
+    title?: string;
+    description?: string | null;
+    resources?: Array<{ label?: string; url?: string | null; type?: string | null }> | null;
+  } | null;
+  lessonId?: string | null;
+  /** When API returns related notes/concerns for session (metadata only). */
+  relatedSafeguarding?: {
+    notes?: AdminRelatedNoteMeta[];
+    concerns?: AdminRelatedConcernMeta[];
+  } | null;
 };
 
 export type AdminAssignmentRow = {
@@ -812,6 +838,25 @@ type ApiSessionDetail = {
   lateCount?: number | null;
   leadStaff?: string | null;
   supportStaff?: string[] | null;
+  lessonId?: string | null;
+  lesson?: {
+    id?: string;
+    title?: string;
+    description?: string | null;
+    resources?: Array<{ label?: string; url?: string | null; type?: string | null }> | null;
+  } | null;
+  /** When API returns session with included lessons (e.g. GET /sessions/:id). */
+  lessons?: Array<{
+    id: string;
+    title?: string;
+    description?: string | null;
+    resourceFileName?: string | null;
+    fileKey?: string | null;
+  }> | null;
+  relatedSafeguarding?: {
+    notes?: Array<{ id: string; createdAt?: string; status?: string }>;
+    concerns?: Array<{ id: string; createdAt?: string; status?: string }>;
+  } | null;
 };
 
 const mapApiSessionDetailToAdmin = (
@@ -847,6 +892,32 @@ const mapApiSessionDetailToAdmin = (
   lateCount: typeof s.lateCount === "number" ? s.lateCount : undefined,
   leadStaff: s.leadStaff ?? undefined,
   supportStaff: s.supportStaff ?? undefined,
+  lessonId: s.lessonId ?? s.lessons?.[0]?.id ?? undefined,
+  lesson: (() => {
+    const src = s.lesson ?? s.lessons?.[0];
+    if (!src) return undefined;
+    const raw = src as {
+      id?: string;
+      title?: string;
+      description?: string | null;
+      resourceFileName?: string | null;
+      fileKey?: string | null;
+    };
+    const label =
+      raw.resourceFileName ??
+      (typeof raw.fileKey === "string" ? raw.fileKey.split("/").pop() ?? "Resource" : "Resource");
+    const resources =
+      raw.resourceFileName || raw.fileKey
+        ? [{ label, url: null as string | null, type: null as string | null }]
+        : null;
+    return {
+      id: raw.id,
+      title: raw.title,
+      description: raw.description ?? null,
+      resources,
+    };
+  })(),
+  relatedSafeguarding: s.relatedSafeguarding ?? undefined,
 });
 
 export async function fetchSessionById(
