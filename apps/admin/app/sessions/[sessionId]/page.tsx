@@ -173,7 +173,7 @@ export default function SessionDetailPage() {
         }
         if (!hasBreakdown) {
           fetchAttendanceDetailBySessionId(result.id)
-            .then((d) => setAttendanceSummary(d.summary))
+            .then((d) => setAttendanceSummary(d?.summary ?? null))
             .catch(() => setAttendanceSummary(null));
         }
       }
