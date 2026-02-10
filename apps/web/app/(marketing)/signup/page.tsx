@@ -1,0 +1,576 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  fetchPublicSignupConfig,
+  submitPublicSignup,
+  type PublicSignupConfig,
+  type PublicSignupSubmitPayload,
+} from "../../../lib/public-signup-client";
+
+type ChildEntry = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  preferredName: string;
+  allergies: string;
+  additionalNeedsNotes: string;
+  photoConsent: boolean;
+  /** Base64-encoded photo (when photoConsent); stored as bytes in DB. */
+  photoBase64: string;
+  photoContentType: string;
+  pickupPermissions: string;
+};
+
+type EmergencyEntry = {
+  id: string;
+  name: string;
+  phone: string;
+  relationship: string;
+};
+
+const defaultChild = (): ChildEntry => ({
+  id: crypto.randomUUID(),
+  firstName: "",
+  lastName: "",
+  preferredName: "",
+  allergies: "",
+  additionalNeedsNotes: "",
+  photoConsent: false,
+  photoBase64: "",
+  photoContentType: "",
+  pickupPermissions: "",
+});
+
+const defaultEmergency = (): EmergencyEntry => ({
+  id: crypto.randomUUID(),
+  name: "",
+  phone: "",
+  relationship: "",
+});
+
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams?.get("token") ?? "";
+
+  const [config, setConfig] = useState<PublicSignupConfig | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+
+  const [parentName, setParentName] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [parentRelationship, setParentRelationship] = useState("");
+
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyEntry[]>([
+    defaultEmergency(),
+  ]);
+  const [children, setChildren] = useState<ChildEntry[]>([defaultChild()]);
+
+  const [dataProcessingConsent, setDataProcessingConsent] = useState(false);
+  const [firstAidConsent, setFirstAidConsent] = useState(false);
+
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!token.trim()) {
+      setConfigLoading(false);
+      setConfigError("Signup link is missing. Please use the link from your organisation.");
+      return;
+    }
+    let cancelled = false;
+    fetchPublicSignupConfig(token)
+      .then((c) => {
+        if (!cancelled) setConfig(c);
+      })
+      .catch((err) => {
+        if (!cancelled) setConfigError(err instanceof Error ? err.message : "Invalid or expired link");
+      })
+      .finally(() => {
+        if (!cancelled) setConfigLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const addChild = () => setChildren((prev) => [...prev, defaultChild()]);
+  const removeChild = (id: string) => {
+    if (children.length <= 1) return;
+    setChildren((prev) => prev.filter((c) => c.id !== id));
+  };
+  const updateChild = (id: string, updates: Partial<ChildEntry>) => {
+    setChildren((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    );
+  };
+
+  const addEmergency = () => setEmergencyContacts((prev) => [...prev, defaultEmergency()]);
+  const removeEmergency = (id: string) => {
+    if (emergencyContacts.length <= 1) return;
+    setEmergencyContacts((prev) => prev.filter((e) => e.id !== id));
+  };
+  const updateEmergency = (id: string, updates: Partial<EmergencyEntry>) => {
+    setEmergencyContacts((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitStatus("idle");
+    setSubmitError("");
+
+    const ecValid = emergencyContacts.filter((e) => e.name.trim() && e.phone.trim());
+    if (ecValid.length === 0) {
+      setSubmitStatus("error");
+      setSubmitError("At least one emergency contact with name and phone is required.");
+      return;
+    }
+
+    const childrenValid = children.filter(
+      (c) => c.firstName.trim() && c.lastName.trim(),
+    );
+    if (childrenValid.length === 0) {
+      setSubmitStatus("error");
+      setSubmitError("At least one child with first and last name is required.");
+      return;
+    }
+
+    const anyPhotoWithoutConsent = children.some(
+      (c) => c.photoBase64 && !c.photoConsent,
+    );
+    if (anyPhotoWithoutConsent) {
+      setSubmitStatus("error");
+      setSubmitError("Photo can only be added when photo consent is given for that child.");
+      return;
+    }
+
+    if (!dataProcessingConsent) {
+      setSubmitStatus("error");
+      setSubmitError("You must agree to data processing to continue.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload: PublicSignupSubmitPayload = {
+        token,
+        parent: {
+          fullName: parentName.trim(),
+          email: parentEmail.trim().toLowerCase(),
+          phone: parentPhone.trim() || undefined,
+          relationshipToChild: parentRelationship.trim() || undefined,
+        },
+        emergencyContacts: ecValid.map((e) => ({
+          name: e.name.trim(),
+          phone: e.phone.trim(),
+          relationship: e.relationship.trim() || undefined,
+        })),
+        children: childrenValid.map((c) => ({
+          firstName: c.firstName.trim(),
+          lastName: c.lastName.trim(),
+          preferredName: c.preferredName.trim() || undefined,
+          allergies: c.allergies.trim() || undefined,
+          additionalNeedsNotes: c.additionalNeedsNotes.trim() || undefined,
+          photoConsent: c.photoConsent,
+          photoBase64: c.photoConsent && c.photoBase64 ? c.photoBase64 : undefined,
+          photoContentType: c.photoConsent && c.photoContentType ? c.photoContentType : undefined,
+          pickupPermissions: c.pickupPermissions.trim() || undefined,
+        })),
+        consents: {
+          dataProcessingConsent: true,
+          firstAidConsent: firstAidConsent || undefined,
+        },
+      };
+      await submitPublicSignup(payload);
+      setSubmitStatus("success");
+    } catch (err) {
+      setSubmitStatus("error");
+      setSubmitError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (configLoading) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <p className="text-pw-text-muted">Loading…</p>
+      </div>
+    );
+  }
+
+  if (configError || !config) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16">
+        <div className="rounded-xl border border-pw-border bg-white p-6 text-center">
+          <h1 className="text-xl font-semibold text-pw-text">Invalid or expired link</h1>
+          <p className="mt-2 text-pw-text-muted">
+            {configError ?? "This signup link is missing or no longer valid."}
+          </p>
+          <p className="mt-4 text-sm text-pw-text-muted">
+            Please request a new link from your organisation or{" "}
+            <Link href="/" className="text-pw-accent-strong underline">
+              go to homepage
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitStatus === "success") {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16">
+        <div className="rounded-xl border border-pw-border bg-white p-8 text-center">
+          <h1 className="text-2xl font-semibold text-pw-text">Registration complete</h1>
+          <p className="mt-4 text-pw-text-muted">
+            Thank you for registering with {config.siteName}. Check your email to sign in and
+            access your account.
+          </p>
+          <p className="mt-2 text-sm text-pw-text-muted">
+            If you don&apos;t see the email, check your spam folder.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-12">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-pw-text">Family registration</h1>
+        <p className="mt-2 text-pw-text-muted">
+          {config.orgName} · {config.siteName}
+        </p>
+        <p className="mt-4 text-sm text-pw-text-muted">
+          We only use your information to manage your family&apos;s place and keep children safe.
+          See our{" "}
+          <Link href="/privacy" className="text-pw-accent-strong underline">
+            privacy policy
+          </Link>
+          .
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+        {/* Parent/Guardian */}
+        <section className="rounded-xl border border-pw-border bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-pw-text">Parent / Guardian</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-pw-text">Full name *</label>
+              <input
+                type="text"
+                required
+                value={parentName}
+                onChange={(e) => setParentName(e.target.value)}
+                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pw-text">Email *</label>
+              <input
+                type="email"
+                required
+                value={parentEmail}
+                onChange={(e) => setParentEmail(e.target.value)}
+                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pw-text">Phone</label>
+              <input
+                type="tel"
+                value={parentPhone}
+                onChange={(e) => setParentPhone(e.target.value)}
+                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-pw-text">Relationship to child(ren)</label>
+              <input
+                type="text"
+                value={parentRelationship}
+                onChange={(e) => setParentRelationship(e.target.value)}
+                placeholder="e.g. Parent, Guardian"
+                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Emergency contacts */}
+        <section className="rounded-xl border border-pw-border bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-pw-text">Emergency contacts *</h2>
+          <p className="mb-4 text-sm text-pw-text-muted">At least one required</p>
+          {emergencyContacts.map((ec) => (
+            <div key={ec.id} className="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-pw-border p-4">
+              <div className="min-w-0 flex-1">
+                <label className="block text-sm font-medium text-pw-text">Name</label>
+                <input
+                  type="text"
+                  value={ec.name}
+                  onChange={(e) => updateEmergency(ec.id, { name: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <label className="block text-sm font-medium text-pw-text">Phone</label>
+                <input
+                  type="tel"
+                  value={ec.phone}
+                  onChange={(e) => updateEmergency(ec.id, { phone: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <label className="block text-sm font-medium text-pw-text">Relationship</label>
+                <input
+                  type="text"
+                  value={ec.relationship}
+                  onChange={(e) => updateEmergency(ec.id, { relationship: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                />
+              </div>
+              {emergencyContacts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeEmergency(ec.id)}
+                  className="rounded-md border border-pw-border px-3 py-2 text-sm text-pw-text-muted hover:bg-muted"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addEmergency}
+            className="rounded-md border border-pw-border bg-white px-4 py-2 text-sm text-pw-text hover:bg-muted"
+          >
+            Add another contact
+          </button>
+        </section>
+
+        {/* Children */}
+        <section className="rounded-xl border border-pw-border bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-pw-text">Children *</h2>
+          <p className="mb-4 text-sm text-pw-text-muted">At least one child required</p>
+          {children.map((child) => (
+            <div
+              key={child.id}
+              className="mb-6 rounded-lg border border-pw-border p-4"
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-pw-text">First name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={child.firstName}
+                    onChange={(e) => updateChild(child.id, { firstName: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-pw-text">Last name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={child.lastName}
+                    onChange={(e) => updateChild(child.id, { lastName: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">Preferred name</label>
+                  <input
+                    type="text"
+                    value={child.preferredName}
+                    onChange={(e) => updateChild(child.id, { preferredName: e.target.value })}
+                    placeholder="If different from first name"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">
+                    Allergies or key medical needs
+                  </label>
+                  <input
+                    type="text"
+                    value={child.allergies}
+                    onChange={(e) => updateChild(child.id, { allergies: e.target.value })}
+                    placeholder="e.g. none, or list allergies / conditions we should know"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">
+                    Additional needs (short note)
+                  </label>
+                  <input
+                    type="text"
+                    value={child.additionalNeedsNotes}
+                    onChange={(e) => updateChild(child.id, { additionalNeedsNotes: e.target.value })}
+                    placeholder="Optional"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={child.photoConsent}
+                      onChange={(e) => updateChild(child.id, { photoConsent: e.target.checked })}
+                      className="rounded border-pw-border"
+                    />
+                    <span className="text-sm font-medium text-pw-text">
+                      I consent to photos of this child being used by the organisation *
+                    </span>
+                  </label>
+                </div>
+                {child.photoConsent && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-pw-text">Photo (optional)</label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="mt-1 block w-full text-sm text-pw-text-muted file:mr-4 file:rounded file:border-0 file:bg-pw-accent-subtle file:px-4 file:py-2 file:text-pw-text"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) {
+                          updateChild(child.id, { photoBase64: "", photoContentType: "" });
+                          return;
+                        }
+                        if (file.size > 5 * 1024 * 1024) {
+                          setSubmitError("Photo must be 5MB or smaller.");
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const data = reader.result as string;
+                          if (data.startsWith("data:")) {
+                            updateChild(child.id, {
+                              photoBase64: data,
+                              photoContentType: file.type || "image/jpeg",
+                            });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <p className="mt-1 text-xs text-pw-text-muted">
+                      JPEG, PNG or WebP. Max 5MB. Stored securely by the organisation.
+                    </p>
+                  </div>
+                )}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">
+                    Who can collect this child (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={child.pickupPermissions}
+                    onChange={(e) => updateChild(child.id, { pickupPermissions: e.target.value })}
+                    placeholder="Names of people allowed to pick up"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+              </div>
+              {children.length > 1 && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => removeChild(child.id)}
+                    className="rounded-md border border-pw-border px-3 py-2 text-sm text-pw-text-muted hover:bg-muted"
+                  >
+                    Remove child
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addChild}
+            className="rounded-md border border-pw-border bg-white px-4 py-2 text-sm text-pw-text hover:bg-muted"
+          >
+            Add another child
+          </button>
+        </section>
+
+        {/* Consents */}
+        <section className="rounded-xl border border-pw-border bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-pw-text">Consents</h2>
+          <div className="space-y-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                required
+                checked={dataProcessingConsent}
+                onChange={(e) => setDataProcessingConsent(e.target.checked)}
+                className="mt-1 rounded border-pw-border"
+              />
+              <span className="text-sm text-pw-text">
+                I agree to my and my child(ren)&apos;s data being processed by {config.siteName} and
+                Nexsteps in line with the{" "}
+                <Link href="/privacy" className="text-pw-accent-strong underline">
+                  privacy policy
+                </Link>{" "}
+                *
+              </span>
+            </label>
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={firstAidConsent}
+                onChange={(e) => setFirstAidConsent(e.target.checked)}
+                className="mt-1 rounded border-pw-border"
+              />
+              <span className="text-sm text-pw-text">
+                I consent to first aid being administered to my child(ren) when necessary
+              </span>
+            </label>
+          </div>
+        </section>
+
+        {submitStatus === "error" && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {submitError}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-lg bg-pw-accent-primary px-6 py-3 font-medium text-pw-accent-foreground hover:bg-pw-accent-strong disabled:opacity-60"
+          >
+            {isSubmitting ? "Submitting…" : "Submit registration"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-2xl px-4 py-16 text-center text-pw-text-muted">
+          Loading…
+        </div>
+      }
+    >
+      <SignupContent />
+    </Suspense>
+  );
+}

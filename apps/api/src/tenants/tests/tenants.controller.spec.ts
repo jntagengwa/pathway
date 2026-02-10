@@ -1,9 +1,10 @@
 import { CreateTenantDto } from "../dto/create-tenant.dto";
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { TenantsController } from "../tenants.controller";
 import { TenantsService } from "../tenants.service";
 import { AuthUserGuard } from "../../auth/auth-user.guard";
+import { prisma } from "@pathway/db";
 
 jest.mock("@pathway/db", () => ({
   prisma: {
@@ -29,6 +30,12 @@ describe("TenantsController", () => {
     createdAt: new Date(),
   };
 
+  const mockPublicSignupLinkResult = {
+    tenantId: "t1",
+    signupUrl: "https://nexsteps.dev/signup?token=abc",
+    tokenExpiresAt: null,
+    isStable: true,
+  };
   const mockService = {
     list: jest.fn().mockResolvedValue([mockTenant]),
     getBySlug: jest.fn().mockResolvedValue(mockTenant),
@@ -39,6 +46,8 @@ describe("TenantsController", () => {
       slug: "test-tenant",
       timezone: "Europe/London",
     }),
+    getOrCreatePublicSignupLink: jest.fn().mockResolvedValue(mockPublicSignupLinkResult),
+    rotatePublicSignupLink: jest.fn().mockResolvedValue(mockPublicSignupLinkResult),
   };
 
   beforeEach(async () => {
@@ -140,6 +149,60 @@ describe("TenantsController", () => {
         controller.updateProfile("t1", req, {}),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(service.updateProfile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getCurrentPublicSignupLink", () => {
+    const req = { authUserId: "user-1" } as Parameters<
+      TenantsController["getCurrentPublicSignupLink"]
+    >[2];
+
+    it("returns signup link for current site when user is site or org admin", async () => {
+      const result = await controller.getCurrentPublicSignupLink(
+        "t1",
+        "org-1",
+        req,
+      );
+      expect(service.getOrCreatePublicSignupLink).toHaveBeenCalledWith(
+        "t1",
+        "org-1",
+        "user-1",
+      );
+      expect(result.signupUrl).toContain("signup?token=");
+      expect(result.tenantId).toBe("t1");
+      expect(result.isStable).toBe(true);
+    });
+
+    it("returns 403 for non-admin roles", async () => {
+      (prisma.siteMembership.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.orgMembership.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.userOrgRole.findFirst as jest.Mock).mockResolvedValue(null);
+      await expect(
+        controller.getCurrentPublicSignupLink("t1", "org-1", req),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(service.getOrCreatePublicSignupLink).not.toHaveBeenCalled();
+      // Restore so later tests still have admin access
+      (prisma.siteMembership.findFirst as jest.Mock).mockResolvedValue({ role: "SITE_ADMIN" });
+    });
+  });
+
+  describe("rotateCurrentPublicSignupLink", () => {
+    const req = { authUserId: "user-1" } as Parameters<
+      TenantsController["rotateCurrentPublicSignupLink"]
+    >[2];
+
+    it("calls service rotate and returns new signup link", async () => {
+      const result = await controller.rotateCurrentPublicSignupLink(
+        "t1",
+        "org-1",
+        req,
+      );
+      expect(service.rotatePublicSignupLink).toHaveBeenCalledWith(
+        "t1",
+        "org-1",
+        "user-1",
+      );
+      expect(result.signupUrl).toContain("signup?token=");
     });
   });
 });

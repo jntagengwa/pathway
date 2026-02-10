@@ -600,6 +600,65 @@ export async function setActiveSite(siteId: string): Promise<ActiveSiteState> {
   return (await response.json()) as ActiveSiteState;
 }
 
+export type AdminPublicSignupLink = {
+  tenantId: string;
+  signupUrl: string;
+  tokenExpiresAt: string | null;
+  isStable: boolean;
+};
+
+/**
+ * Get or create the stable public signup link for the current site. Returns full signup URL for QR.
+ */
+export async function fetchPublicSignupLinkForCurrentSite(): Promise<AdminPublicSignupLink> {
+  if (isUsingMockApi()) {
+    throw new Error("Parent signup QR requires the real API; disable mock API to use this feature.");
+  }
+  const res = await fetch(`${API_BASE_URL}/tenants/current/public-signup-link`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to manage the parent signup link for this site."
+        : res.status === 400
+          ? "Active site context required. Select a site first."
+          : `Failed to load signup link: ${res.status}${body ? ` ${body}` : ""}`,
+    );
+  }
+  return (await res.json()) as AdminPublicSignupLink;
+}
+
+/**
+ * Rotate (revoke current and create new) the public signup link for the current site.
+ */
+export async function rotatePublicSignupLinkForCurrentSite(): Promise<AdminPublicSignupLink> {
+  if (isUsingMockApi()) {
+    throw new Error("Parent signup QR requires the real API; disable mock API to use this feature.");
+  }
+  const res = await fetch(`${API_BASE_URL}/tenants/current/public-signup-link/rotate`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to manage the parent signup link for this site."
+        : res.status === 400
+          ? "Active site context required. Select a site first."
+          : `Failed to rotate signup link: ${res.status}${body ? ` ${body}` : ""}`,
+    );
+  }
+  return (await res.json()) as AdminPublicSignupLink;
+}
+
 const getDefaultTenantId = () =>
   process.env.NEXT_PUBLIC_DEV_TENANT_ID ||
   process.env.NEXT_PUBLIC_TENANT_ID ||

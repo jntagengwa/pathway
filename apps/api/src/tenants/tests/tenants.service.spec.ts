@@ -12,6 +12,12 @@ jest.mock("@pathway/db", () => ({
     org: {
       findUnique: jest.fn(),
     },
+    publicSignupLink: {
+      findFirst: jest.fn(),
+      updateMany: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -21,6 +27,10 @@ const findMany = prisma.tenant.findMany as unknown as jest.Mock;
 const findUnique = prisma.tenant.findUnique as unknown as jest.Mock;
 const create = prisma.tenant.create as unknown as jest.Mock;
 const orgFindUnique = prisma.org.findUnique as unknown as jest.Mock;
+const linkFindFirst = prisma.publicSignupLink.findFirst as unknown as jest.Mock;
+const linkUpdateMany = prisma.publicSignupLink.updateMany as unknown as jest.Mock;
+const linkUpdate = prisma.publicSignupLink.update as unknown as jest.Mock;
+const linkCreate = prisma.publicSignupLink.create as unknown as jest.Mock;
 
 describe("TenantsService", () => {
   let svc: TenantsService;
@@ -197,6 +207,104 @@ describe("TenantsService", () => {
       await expect(
         svc.create({ name: "Race", slug: "race-church", orgId: ORG_ID }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe("getOrCreatePublicSignupLink", () => {
+    const TENANT_ID = "tenant-signup-1";
+
+    it("returns existing active link for tenant when tokenForDisplay is set", async () => {
+      linkFindFirst.mockResolvedValue({
+        id: "link-1",
+        tokenForDisplay: "existing-token-abc",
+        expiresAt: null,
+      });
+      const result = await svc.getOrCreatePublicSignupLink(
+        TENANT_ID,
+        ORG_ID,
+        "user-1",
+      );
+      expect(linkFindFirst).toHaveBeenCalledWith({
+        where: {
+          tenantId: TENANT_ID,
+          revokedAt: null,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
+        },
+        select: { id: true, tokenForDisplay: true, expiresAt: true },
+      });
+      expect(result.tenantId).toBe(TENANT_ID);
+      expect(result.signupUrl).toContain("existing-token-abc");
+      expect(result.isStable).toBe(true);
+      expect(result.tokenExpiresAt).toBeNull();
+      expect(linkCreate).not.toHaveBeenCalled();
+    });
+
+    it("creates new link if none exists", async () => {
+      linkFindFirst.mockResolvedValue(null);
+      linkCreate.mockResolvedValue({});
+      const result = await svc.getOrCreatePublicSignupLink(
+        TENANT_ID,
+        ORG_ID,
+        null,
+      );
+      expect(linkFindFirst).toHaveBeenCalled();
+      expect(linkCreate).toHaveBeenCalledWith({
+        data: {
+          orgId: ORG_ID,
+          tenantId: TENANT_ID,
+          tokenHash: expect.any(String),
+          tokenForDisplay: expect.any(String),
+          expiresAt: null,
+          createdByUserId: null,
+        },
+      });
+      expect(result.tenantId).toBe(TENANT_ID);
+      expect(result.signupUrl).toMatch(/\?token=/);
+      expect(result.isStable).toBe(true);
+    });
+
+    it("does not return revoked/expired link; creates new after revoking legacy", async () => {
+      linkFindFirst.mockResolvedValue({
+        id: "legacy-link",
+        tokenForDisplay: null,
+        expiresAt: null,
+      });
+      linkUpdate.mockResolvedValue({});
+      linkCreate.mockResolvedValue({});
+      const result = await svc.getOrCreatePublicSignupLink(
+        TENANT_ID,
+        ORG_ID,
+        "user-1",
+      );
+      expect(linkUpdate).toHaveBeenCalledWith({
+        where: { id: "legacy-link" },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(linkCreate).toHaveBeenCalled();
+      expect(result.tenantId).toBe(TENANT_ID);
+      expect(result.signupUrl).toMatch(/\?token=/);
+    });
+  });
+
+  describe("rotatePublicSignupLink", () => {
+    const TENANT_ID = "tenant-rotate-1";
+
+    it("revokes existing links and creates new one", async () => {
+      linkUpdateMany.mockResolvedValue({ count: 1 });
+      linkFindFirst.mockResolvedValue(null);
+      linkCreate.mockResolvedValue({});
+      const result = await svc.rotatePublicSignupLink(
+        TENANT_ID,
+        ORG_ID,
+        "user-1",
+      );
+      expect(linkUpdateMany).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(linkCreate).toHaveBeenCalled();
+      expect(result.tenantId).toBe(TENANT_ID);
+      expect(result.signupUrl).toMatch(/\?token=/);
     });
   });
 });

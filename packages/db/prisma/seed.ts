@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { PrismaClient, Role, OrgRole } from "@prisma/client";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -148,8 +149,34 @@ async function main() {
       },
       allergies: "none",
       disabilities: [],
+      photoConsent: false,
     },
   });
+
+  // 5b) Public signup link for demo tenant (invite-only parent signup)
+  // Token for testing: use this in URL /signup?token=<PUBLIC_SIGNUP_DEMO_TOKEN>
+  const PUBLIC_SIGNUP_DEMO_TOKEN =
+    "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456";
+  const signupTokenHash = createHash("sha256")
+    .update(PUBLIC_SIGNUP_DEMO_TOKEN)
+    .digest("hex");
+  await prisma.publicSignupLink.upsert({
+    where: {
+      tenantId_tokenHash: { tenantId: tenant.id, tokenHash: signupTokenHash },
+    },
+    update: {},
+    create: {
+      orgId: org.id,
+      tenantId: tenant.id,
+      tokenHash: signupTokenHash,
+      createdByUserId: admin.id,
+      expiresAt: null,
+      revokedAt: null,
+    },
+  });
+  console.log(
+    "  Demo public signup URL: /signup?token=" + PUBLIC_SIGNUP_DEMO_TOKEN,
+  );
 
   // 6) Attendance (simple demo record)
   await prisma.attendance.create({

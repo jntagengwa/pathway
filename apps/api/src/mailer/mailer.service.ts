@@ -18,6 +18,15 @@ export type SendShiftAssignmentParams = {
   orgName?: string;
 };
 
+/** Params for parent signup complete – "Complete your account" / sign-in link. */
+export type SendParentSignupCompleteParams = {
+  to: string;
+  parentName: string;
+  siteName: string;
+  orgName: string;
+  loginUrl: string;
+};
+
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
@@ -352,6 +361,147 @@ Click the link below to accept your invitation and get started:
 ${inviteUrl}
 
 If you didn't expect this invitation, you can safely ignore this email.
+    `.trim();
+  }
+
+  /**
+   * Send "Complete your account" email after parent signup (invite-only flow).
+   * Contains link to app login so parent can sign in with Auth0.
+   */
+  async sendParentSignupCompleteEmail(
+    params: SendParentSignupCompleteParams,
+  ): Promise<void> {
+    const { to, parentName, siteName, orgName, loginUrl } = params;
+
+    this.logger.log(
+      `[📧 MAILER] Sending parent signup complete email to ${to}`,
+    );
+
+    const subject = `Complete your ${siteName} account – sign in to Nexsteps`;
+    const html = this.buildParentSignupCompleteHtml({
+      parentName,
+      siteName,
+      orgName,
+      loginUrl,
+    });
+    const text = this.buildParentSignupCompleteText({
+      parentName,
+      siteName,
+      orgName,
+      loginUrl,
+    });
+
+    if (!this.isEnabled || !this.resend) {
+      this.logger.log(
+        `[📧 MAILER] MOCK MODE - Would send parent signup complete to ${to}\nSubject: ${subject}\nLink: ${loginUrl}`,
+      );
+      return;
+    }
+
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromAddress,
+        to,
+        subject,
+        html,
+        text,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `[📧 MAILER] Parent signup complete email error:`,
+          result.error,
+        );
+        throw new Error(
+          `Resend API error: ${JSON.stringify(result.error)}`,
+        );
+      }
+
+      this.logger.log(
+        `[📧 MAILER] Parent signup complete email sent to ${to}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[📧 MAILER] Exception sending parent signup complete to ${to}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to send parent signup complete email: ${String(error)}`,
+      );
+    }
+  }
+
+  private buildParentSignupCompleteHtml(params: {
+    parentName: string;
+    siteName: string;
+    orgName: string;
+    loginUrl: string;
+  }): string {
+    const { parentName, siteName, orgName, loginUrl } = params;
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete your account</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">Nexsteps</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #1a1a1a;">
+                Hi ${parentName},
+              </h2>
+              <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: #525252;">
+                You've completed registration for ${siteName}. Use the link below to sign in to your account.
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin: 0 0 24px;">
+                <tr>
+                  <td style="border-radius: 6px; background-color: #0066cc;">
+                    <a href="${loginUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none;">Sign in</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #737373;">
+                If you didn't register with ${orgName}, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `.trim();
+  }
+
+  private buildParentSignupCompleteText(params: {
+    parentName: string;
+    siteName: string;
+    orgName: string;
+    loginUrl: string;
+  }): string {
+    const { parentName, siteName, orgName, loginUrl } = params;
+    return `
+Nexsteps
+
+Hi ${parentName},
+
+You've completed registration for ${siteName}. Sign in here:
+
+${loginUrl}
+
+If you didn't register with ${orgName}, you can safely ignore this email.
     `.trim();
   }
 }

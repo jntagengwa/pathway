@@ -33,12 +33,19 @@
 }
 
 body {
-  @apply bg-shell text-text-primary;
   font-family: var(--font-body);
+  /* Use theme variables directly so styling applies even if Tailwind content misses files */
+  background-color: rgb(var(--pw-bg-shell));
+  color: rgb(var(--pw-text-primary));
 }
 
 a {
-  @apply no-underline;
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  color: rgb(var(--pw-accent-strong));
 }
 
 :focus-visible {

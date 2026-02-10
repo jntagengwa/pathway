@@ -8,10 +8,14 @@ import {
   AdminAnnouncementRow,
   AdminSessionRow,
   fetchOpenConcerns,
+  fetchPublicSignupLinkForCurrentSite,
   fetchRecentAnnouncements,
   fetchSessions,
+  rotatePublicSignupLinkForCurrentSite,
   setApiClientToken,
+  type AdminPublicSignupLink,
 } from "../lib/api-client";
+import { QrCodeCard } from "../components/qr/QrCodeCard";
 
 type StatusTone = "default" | "accent" | "warning" | "success";
 
@@ -90,6 +94,10 @@ export default function DashboardPage() {
     number | null
   >(null);
   const [isLoadingConcerns, setIsLoadingConcerns] = React.useState(false);
+  const [signupLink, setSignupLink] = React.useState<AdminPublicSignupLink | null>(null);
+  const [signupLinkError, setSignupLinkError] = React.useState<string | null>(null);
+  const [isLoadingSignupLink, setIsLoadingSignupLink] = React.useState(false);
+  const [qrModalOpen, setQrModalOpen] = React.useState(false);
 
   const loadSessions = React.useCallback(async () => {
     setIsLoadingSessions(true);
@@ -132,6 +140,34 @@ export default function DashboardPage() {
       setIsLoadingConcerns(false);
     }
   }, []);
+
+  const loadSignupLink = React.useCallback(async () => {
+    setIsLoadingSignupLink(true);
+    setSignupLinkError(null);
+    try {
+      const link = await fetchPublicSignupLinkForCurrentSite();
+      setSignupLink(link);
+      setQrModalOpen(true);
+    } catch (err) {
+      setSignupLinkError(err instanceof Error ? err.message : "Failed to load signup link");
+    } finally {
+      setIsLoadingSignupLink(false);
+    }
+  }, []);
+
+  const handleRotateSignupLink = React.useCallback(async () => {
+    if (!signupLink) return;
+    setIsLoadingSignupLink(true);
+    setSignupLinkError(null);
+    try {
+      const link = await rotatePublicSignupLinkForCurrentSite();
+      setSignupLink(link);
+    } catch (err) {
+      setSignupLinkError(err instanceof Error ? err.message : "Failed to regenerate link");
+    } finally {
+      setIsLoadingSignupLink(false);
+    }
+  }, [signupLink]);
 
   React.useEffect(() => {
     if (sessionStatus !== "authenticated" || !session) return;
@@ -361,6 +397,44 @@ export default function DashboardPage() {
           </div>
         </Card>
 
+        <Card title="Parent signup QR">
+          <div className="mb-3 flex flex-col gap-3">
+            <p className="text-sm text-text-muted">
+              Generate a site-specific QR code parents can scan to register.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                onClick={loadSignupLink}
+                disabled={isLoadingSignupLink}
+                aria-busy={isLoadingSignupLink}
+              >
+                {isLoadingSignupLink ? "Loading…" : "Generate QR"}
+              </Button>
+              {signupLink && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleRotateSignupLink}
+                  disabled={isLoadingSignupLink}
+                >
+                  Regenerate link
+                </Button>
+              )}
+            </div>
+            {signupLinkError && (
+              <div className="rounded-md border border-status-danger/20 bg-status-danger/5 p-3 text-sm text-status-danger">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{signupLinkError}</span>
+                  <Button size="sm" variant="secondary" onClick={loadSignupLink}>
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
         <Card title="Recent Announcements">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-sm text-text-muted">
@@ -416,6 +490,38 @@ export default function DashboardPage() {
           )}
         </Card>
       </div>
+
+      {qrModalOpen && signupLink && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qr-modal-title"
+        >
+          <div className="w-full max-w-md rounded-lg border border-border-subtle bg-surface p-6 shadow-xl">
+            <h2 id="qr-modal-title" className="text-lg font-semibold text-text-primary font-heading mb-2">
+              Parent signup QR
+            </h2>
+            <p className="text-sm text-text-muted mb-4">
+              Parents can scan this QR code to open the signup form for this site.
+            </p>
+            <QrCodeCard
+              title=""
+              value={signupLink.signupUrl}
+              size={224}
+              embedded
+            />
+            <div className="mt-4 flex justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => setQrModalOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

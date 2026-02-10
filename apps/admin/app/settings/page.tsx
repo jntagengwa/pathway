@@ -24,6 +24,7 @@ import { canAccessAdminSection, canAccessBilling, canAccessSafeguardingAdmin } f
 import type { AdminRoleInfo } from "../../lib/access";
 import { canPerform } from "../../lib/permissions";
 import { NoAccessCard } from "../../components/no-access-card";
+import { QrCodeCard } from "../../components/qr/QrCodeCard";
 import { getSafeDisplayName } from "../../lib/names";
 
 function getRoleLabel(role: AdminRoleInfo): string {
@@ -60,6 +61,8 @@ export default function SettingsPage() {
   const [deactivateConfirmOpen, setDeactivateConfirmOpen] = React.useState(false);
   const [deactivateLoading, setDeactivateLoading] = React.useState(false);
   const [deactivateError, setDeactivateError] = React.useState<string | null>(null);
+
+  const [signupUrl, setSignupUrl] = React.useState("");
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -434,6 +437,36 @@ export default function SettingsPage() {
               Not configured in-app yet.
             </p>
           )}
+        </Card>
+
+        {/* Parent signup QR */}
+        <Card
+          title="Parent signup QR"
+          description="Generate a QR code for parents to register for this site. This QR is site-specific."
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              Paste the signup URL below to generate a QR code. Parents can scan it to complete registration.
+            </p>
+            {/* TODO: replace with signed invite token from API (site-scoped, expiring). */}
+            <div className="space-y-2">
+              <Label htmlFor="signup-url">Signup URL</Label>
+              <Input
+                id="signup-url"
+                value={signupUrl}
+                onChange={(e) => setSignupUrl(e.target.value)}
+                placeholder="https://example.com/signup?token=..."
+              />
+            </div>
+            {signupUrl.trim() && (
+              <QrCodeCard
+                title="Parent signup"
+                value={signupUrl.trim()}
+                size={192}
+                embedded
+              />
+            )}
+          </div>
         </Card>
 
         {/* D) Team & Access */}

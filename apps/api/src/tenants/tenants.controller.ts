@@ -13,6 +13,7 @@ import {
   Inject,
 } from "@nestjs/common";
 import type { Request } from "express";
+import { CurrentOrg, CurrentTenant } from "@pathway/auth";
 import { TenantsService } from "./tenants.service";
 import { createTenantDto } from "./dto/create-tenant.dto";
 import { updateTenantDto } from "./dto/update-tenant.dto";
@@ -31,6 +32,44 @@ export class TenantsController {
   @Get()
   async list() {
     return this.svc.list();
+  }
+
+  /**
+   * Get or create stable public signup link for the current site (tenant).
+   * Admin-only: SITE_ADMIN for this site or ORG_ADMIN for site's org.
+   */
+  @Get("current/public-signup-link")
+  @UseGuards(AuthUserGuard)
+  async getCurrentPublicSignupLink(
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.authUserId ?? null;
+    if (!tenantId || !orgId) {
+      throw new BadRequestException("Active site context required");
+    }
+    await this.assertSiteOrOrgAdmin(req.authUserId, tenantId, orgId);
+    return this.svc.getOrCreatePublicSignupLink(tenantId, orgId, userId);
+  }
+
+  /**
+   * Rotate (revoke current and create new) public signup link for the current site.
+   * Admin-only: SITE_ADMIN for this site or ORG_ADMIN for site's org.
+   */
+  @Post("current/public-signup-link/rotate")
+  @UseGuards(AuthUserGuard)
+  async rotateCurrentPublicSignupLink(
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    if (!tenantId || !orgId) {
+      throw new BadRequestException("Active site context required");
+    }
+    await this.assertSiteOrOrgAdmin(req.authUserId, tenantId, orgId);
+    const userId = req.authUserId ?? null;
+    return this.svc.rotatePublicSignupLink(tenantId, orgId, userId);
   }
 
   @Get(":slug")
@@ -97,5 +136,35 @@ export class TenantsController {
     }
 
     return this.svc.updateProfile(tenantId, userId, result.data);
+  }
+
+  private async assertSiteOrOrgAdmin(
+    userId: string | undefined,
+    tenantId: string,
+    orgId: string,
+  ): Promise<void> {
+    if (!userId) {
+      throw new UnauthorizedException("User ID not found in request");
+    }
+    const [siteMembership, orgMembership, userOrgRole] = await Promise.all([
+      prisma.siteMembership.findFirst({
+        where: { userId, tenantId, role: SiteRole.SITE_ADMIN },
+      }),
+      prisma.orgMembership.findFirst({
+        where: { userId, orgId, role: OrgRole.ORG_ADMIN },
+      }),
+      prisma.userOrgRole.findFirst({
+        where: { userId, orgId, role: OrgRole.ORG_ADMIN },
+      }),
+    ]);
+    const canManage =
+      siteMembership !== null ||
+      orgMembership !== null ||
+      userOrgRole !== null;
+    if (!canManage) {
+      throw new ForbiddenException(
+        "You must be a site admin for this site or an org admin to manage the parent signup link",
+      );
+    }
   }
 }

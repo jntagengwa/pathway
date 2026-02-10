@@ -66,6 +66,9 @@ export async function resetDatabase() {
         "UserTenantRole",
         "UserOrgRole",
         "User",
+        "EmergencyContact",
+        "ParentSignupConsent",
+        "PublicSignupLink",
         "Tenant",
         "Org"
       RESTART IDENTITY CASCADE
@@ -96,6 +99,9 @@ export async function resetDatabase() {
         "UserTenantRole",
         "UserOrgRole",
         "User",
+        "EmergencyContact",
+        "ParentSignupConsent",
+        "PublicSignupLink",
         "Tenant",
         "Org"
       RESTART IDENTITY CASCADE
