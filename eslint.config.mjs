@@ -1,6 +1,29 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
+// Node + Jest globals for workers (CLI scripts and tests)
+const nodeGlobals = {
+  process: "readable",
+  console: "readable",
+  __dirname: "readable",
+  __filename: "readable",
+  module: "readable",
+  require: "readable",
+  Buffer: "readable",
+  global: "readable",
+};
+const jestGlobals = {
+  describe: "readonly",
+  it: "readonly",
+  test: "readonly",
+  expect: "readonly",
+  beforeEach: "readonly",
+  afterEach: "readonly",
+  beforeAll: "readonly",
+  afterAll: "readonly",
+  jest: "readonly",
+};
+
 export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -21,6 +44,13 @@ export default tseslint.config(
     },
     rules: {
       // add repo-wide rules here later
+    },
+  },
+  // Workers: Node + Jest globals so process/console and describe/expect etc. are defined
+  {
+    files: ["apps/workers/**/*.{ts,tsx,js}"],
+    languageOptions: {
+      globals: { ...nodeGlobals, ...jestGlobals },
     },
   },
 );

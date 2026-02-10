@@ -117,12 +117,13 @@ model Org {
   billingEvents    BillingEvent[]
   userOrgRoles     UserOrgRole[]
   orgMemberships   OrgMembership[]
-  auditEvents      AuditEvent[]
-  staffActivities  StaffActivity[]
-  pendingOrders    PendingOrder[]
-  invites          Invite[]
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  auditEvents       AuditEvent[]
+  staffActivities   StaffActivity[]
+  pendingOrders     PendingOrder[]
+  invites           Invite[]
+  publicSignupLinks PublicSignupLink[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 }
 
 // NOTE: Tenant == Site (true isolation boundary / RLS). Admin UI “Site selector”
@@ -153,6 +154,9 @@ model Tenant {
   lastActiveUsers        User[]                  @relation("UserLastActiveTenant")
   staffUnavailableDates  StaffUnavailableDate[]
   staffPreferredGroups   StaffPreferredGroup[]
+  publicSignupLinks      PublicSignupLink[]
+  emergencyContacts      EmergencyContact[]
+  parentSignupConsents   ParentSignupConsent[]
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
 
@@ -221,9 +225,12 @@ model User {
   orgRoles         UserOrgRole[]
   staffActivities      StaffActivity[]
   identities           UserIdentity[]
-  invitesCreated       Invite[]              @relation("InviteCreatedBy")
-  staffUnavailableDates StaffUnavailableDate[]
-  staffPreferredGroups  StaffPreferredGroup[]
+  invitesCreated          Invite[]                  @relation("InviteCreatedBy")
+  publicSignupLinksCreated PublicSignupLink[]       @relation("PublicSignupLinkCreatedBy")
+  staffUnavailableDates   StaffUnavailableDate[]
+  staffPreferredGroups    StaffPreferredGroup[]
+  emergencyContacts       EmergencyContact[]
+  parentSignupConsents    ParentSignupConsent[]
 }
 
 // Auth identity linking external providers (e.g., Auth0) to internal users.
@@ -310,24 +317,90 @@ model Invite {
   @@index([email])
 }
 
+// Invite-only public parent signup link (site-specific; token in QR link).
+// tokenForDisplay: stored only for admin re-display of the same QR; never logged; verification uses tokenHash only.
+model PublicSignupLink {
+  id              String    @id @default(uuid())
+  orgId           String
+  tenantId        String
+  tokenHash       String
+  tokenForDisplay String?   // For returning same signup URL to admin; never log or expose outside admin response
+  createdByUserId String?
+  createdBy       User?     @relation("PublicSignupLinkCreatedBy", fields: [createdByUserId], references: [id])
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  lastUsedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  org    Org    @relation(fields: [orgId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, tokenHash])
+  @@index([tenantId, revokedAt, expiresAt])
+  @@index([orgId])
+}
+
+// Emergency contact for a parent (guardian) in a tenant.
+model EmergencyContact {
+  id          String   @id @default(uuid())
+  userId      String
+  tenantId    String
+  name        String
+  phone       String
+  relationship String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+}
+
+// Consent record for parent signup (timestamps + consenting adult identity).
+model ParentSignupConsent {
+  id                        String    @id @default(uuid())
+  userId                    String
+  tenantId                  String
+  dataProcessingConsentAt   DateTime
+  firstAidConsentAt        DateTime?
+  consentingAdultName       String
+  consentingAdultRelationship String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+}
+
 model Child {
-  id           String       @id @default(uuid())
-  firstName    String
-  lastName     String
-  allergies    String       @default("unknown")
-  photoKey     String?
-  notes        String?
-  tenantId     String
-  tenant       Tenant       @relation(fields: [tenantId], references: [id])
-  guardians    User[]       @relation("ParentChildren")
-  groupId      String?
-  group        Group?       @relation(fields: [groupId], references: [id])
-  disabilities String[]     @default([])
-  concerns     Concern[]
-  attendance   Attendance[]
-  childNotes   ChildNote[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                  String       @id @default(uuid())
+  firstName           String
+  lastName            String
+  preferredName       String?
+  allergies           String       @default("unknown")
+  additionalNeedsNotes String?
+  photoConsent        Boolean      @default(false)
+  photoKey            String?
+  photoBytes          Bytes?       // Inline storage until S3; serve via signed URL later
+  photoContentType    String?      // e.g. image/jpeg
+  notes               String?
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id])
+  guardians           User[]       @relation("ParentChildren")
+  groupId             String?
+  group               Group?       @relation(fields: [groupId], references: [id])
+  disabilities        String[]     @default([])
+  concerns            Concern[]
+  attendance          Attendance[]
+  childNotes          ChildNote[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   @@index([tenantId])
 }

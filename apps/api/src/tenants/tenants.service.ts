@@ -3,9 +3,33 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
+import { createHash, randomBytes } from "crypto";
 import { prisma } from "@pathway/db";
 import { createTenantDto, type CreateTenantDto } from "./dto/create-tenant.dto";
 import type { UpdateTenantDto } from "./dto/update-tenant.dto";
+
+const PUBLIC_SIGNUP_PATH = "/signup";
+const TOKEN_BYTES = 32;
+
+export type PublicSignupLinkResult = {
+  tenantId: string;
+  signupUrl: string;
+  tokenExpiresAt: string | null;
+  isStable: boolean;
+};
+
+function getWebBaseUrl(): string {
+  return (
+    process.env.PUBLIC_WEB_BASE_URL ??
+    process.env.NEXSTEPS_WEB_BASE_URL ??
+    "https://nexsteps.dev"
+  );
+}
+
+function buildSignupUrl(token: string): string {
+  const base = getWebBaseUrl().replace(/\/$/, "");
+  return `${base}${PUBLIC_SIGNUP_PATH}?token=${encodeURIComponent(token)}`;
+}
 
 // Narrow unknown errors that may come from Prisma without using `any`
 function isPrismaError(err: unknown): err is { code: string } {
@@ -149,5 +173,81 @@ export class TenantsService {
       }
       throw e;
     }
+  }
+
+  /**
+   * Get or create a stable public signup link for the given tenant (site).
+   * Returns the same signup URL for the site until the link is rotated.
+   * Caller must ensure user has SITE_ADMIN for this tenant or ORG_ADMIN for tenant's org.
+   */
+  async getOrCreatePublicSignupLink(
+    tenantId: string,
+    orgId: string,
+    createdByUserId: string | null,
+  ): Promise<PublicSignupLinkResult> {
+    const now = new Date();
+    const existing = await prisma.publicSignupLink.findFirst({
+      where: {
+        tenantId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      select: { id: true, tokenForDisplay: true, expiresAt: true },
+    });
+
+    if (existing?.tokenForDisplay) {
+      return {
+        tenantId,
+        signupUrl: buildSignupUrl(existing.tokenForDisplay),
+        tokenExpiresAt: existing.expiresAt?.toISOString() ?? null,
+        isStable: true,
+      };
+    }
+
+    if (existing) {
+      // Link exists but tokenForDisplay was not set (legacy row); rotate to get a new one with tokenForDisplay
+      await prisma.publicSignupLink.update({
+        where: { id: existing.id },
+        data: { revokedAt: now },
+      });
+    }
+
+    const token = randomBytes(TOKEN_BYTES).toString("base64url");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+
+    await prisma.publicSignupLink.create({
+      data: {
+        orgId,
+        tenantId,
+        tokenHash,
+        tokenForDisplay: token,
+        expiresAt: null,
+        createdByUserId,
+      },
+    });
+
+    return {
+      tenantId,
+      signupUrl: buildSignupUrl(token),
+      tokenExpiresAt: null,
+      isStable: true,
+    };
+  }
+
+  /**
+   * Revoke the current public signup link for the tenant and create a new one.
+   * Caller must ensure user has SITE_ADMIN for this tenant or ORG_ADMIN for tenant's org.
+   */
+  async rotatePublicSignupLink(
+    tenantId: string,
+    orgId: string,
+    createdByUserId: string | null,
+  ): Promise<PublicSignupLinkResult> {
+    const now = new Date();
+    await prisma.publicSignupLink.updateMany({
+      where: { tenantId, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    return this.getOrCreatePublicSignupLink(tenantId, orgId, createdByUserId);
   }
 }
