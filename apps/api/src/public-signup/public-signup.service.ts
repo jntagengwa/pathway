@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { createHash, randomBytes } from "crypto";
+import { createHash } from "crypto";
 import { prisma, Role } from "@pathway/db";
 import { Inject } from "@nestjs/common";
 import { MailerService } from "../mailer/mailer.service";
@@ -119,10 +119,9 @@ export class PublicSignupService {
         },
       });
 
-      const tempPassword = randomBytes(32).toString("hex");
       const auth0UserId = await this.auth0Management.createUser({
         email,
-        password: tempPassword,
+        password: dto.parent.password,
         name: safeName ?? fullName,
         emailVerified: false,
       });
@@ -187,6 +186,15 @@ export class PublicSignupService {
           preferredName: c.preferredName?.trim() || null,
           allergies,
           additionalNeedsNotes: c.additionalNeedsNotes?.trim() || null,
+          schoolName: c.schoolName?.trim() || null,
+          yearGroup: c.yearGroup?.trim() || null,
+          gpName: c.gpName?.trim() || null,
+          gpPhone: c.gpPhone?.trim() || null,
+          specialNeedsType: c.specialNeedsType?.trim() || null,
+          specialNeedsOther:
+            c.specialNeedsType === "other" && c.specialNeedsOther?.trim()
+              ? c.specialNeedsOther.trim()
+              : null,
           photoConsent: c.photoConsent,
           photoKey: null,
           photoBytes: photoBytes ?? undefined,

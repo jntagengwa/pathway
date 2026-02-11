@@ -17,6 +17,7 @@ export type PublicSignupSubmitPayload = {
   parent: {
     fullName: string;
     email: string;
+    password: string;
     phone?: string;
     relationshipToChild?: string;
   };
@@ -32,6 +33,12 @@ export type PublicSignupSubmitPayload = {
     groupId?: string;
     allergies?: string;
     additionalNeedsNotes?: string;
+    schoolName?: string;
+    yearGroup?: string;
+    gpName?: string;
+    gpPhone?: string;
+    specialNeedsType?: string;
+    specialNeedsOther?: string;
     photoConsent: boolean;
     /** Base64-encoded image; stored as bytes in DB until S3. */
     photoBase64?: string;

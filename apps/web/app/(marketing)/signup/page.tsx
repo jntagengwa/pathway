@@ -17,12 +17,21 @@ type ChildEntry = {
   preferredName: string;
   allergies: string;
   additionalNeedsNotes: string;
+  schoolName: string;
+  yearGroup: string;
+  gpName: string;
+  gpPhone: string;
+  specialNeedsType: string; // none | sen_support | ehcp | other
+  specialNeedsOther: string;
   photoConsent: boolean;
   /** Base64-encoded photo (when photoConsent); stored as bytes in DB. */
   photoBase64: string;
   photoContentType: string;
   pickupPermissions: string;
 };
+
+const GP_PHONE_REGEX = /^[\d\s+.() -]{10,25}$/;
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
 
 type EmergencyEntry = {
   id: string;
@@ -38,6 +47,12 @@ const defaultChild = (): ChildEntry => ({
   preferredName: "",
   allergies: "",
   additionalNeedsNotes: "",
+  schoolName: "",
+  yearGroup: "",
+  gpName: "",
+  gpPhone: "",
+  specialNeedsType: "none",
+  specialNeedsOther: "",
   photoConsent: false,
   photoBase64: "",
   photoContentType: "",
@@ -61,6 +76,8 @@ function SignupContent() {
 
   const [parentName, setParentName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
+  const [parentPasswordConfirm, setParentPasswordConfirm] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [parentRelationship, setParentRelationship] = useState("");
 
@@ -150,9 +167,34 @@ function SignupContent() {
       return;
     }
 
+    const invalidGpPhone = childrenValid.find(
+      (c) => c.gpPhone.trim() && !GP_PHONE_REGEX.test(c.gpPhone.trim()),
+    );
+    if (invalidGpPhone) {
+      setSubmitStatus("error");
+      setSubmitError("Please enter a valid GP phone number (10-25 characters).");
+      return;
+    }
+
     if (!dataProcessingConsent) {
       setSubmitStatus("error");
       setSubmitError("You must agree to data processing to continue.");
+      return;
+    }
+
+    if (parentPassword.length < 8) {
+      setSubmitStatus("error");
+      setSubmitError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!PASSWORD_REGEX.test(parentPassword)) {
+      setSubmitStatus("error");
+      setSubmitError("Password must include at least one letter and one number.");
+      return;
+    }
+    if (parentPassword !== parentPasswordConfirm) {
+      setSubmitStatus("error");
+      setSubmitError("Passwords do not match.");
       return;
     }
 
@@ -163,6 +205,7 @@ function SignupContent() {
         parent: {
           fullName: parentName.trim(),
           email: parentEmail.trim().toLowerCase(),
+          password: parentPassword,
           phone: parentPhone.trim() || undefined,
           relationshipToChild: parentRelationship.trim() || undefined,
         },
@@ -177,6 +220,15 @@ function SignupContent() {
           preferredName: c.preferredName.trim() || undefined,
           allergies: c.allergies.trim() || undefined,
           additionalNeedsNotes: c.additionalNeedsNotes.trim() || undefined,
+          schoolName: c.schoolName.trim() || undefined,
+          yearGroup: c.yearGroup.trim() || undefined,
+          gpName: c.gpName.trim() || undefined,
+          gpPhone: c.gpPhone.trim() || undefined,
+          specialNeedsType: c.specialNeedsType !== "none" ? c.specialNeedsType : undefined,
+          specialNeedsOther:
+            c.specialNeedsType === "other" && c.specialNeedsOther.trim()
+              ? c.specialNeedsOther.trim()
+              : undefined,
           photoConsent: c.photoConsent,
           photoBase64: c.photoConsent && c.photoBase64 ? c.photoBase64 : undefined,
           photoContentType: c.photoConsent && c.photoContentType ? c.photoContentType : undefined,
@@ -231,11 +283,11 @@ function SignupContent() {
         <div className="rounded-xl border border-pw-border bg-white p-8 text-center">
           <h1 className="text-2xl font-semibold text-pw-text">Registration complete</h1>
           <p className="mt-4 text-pw-text-muted">
-            Thank you for registering with {config.siteName}. Check your email to sign in and
-            access your account.
+            Thank you for registering with {config.siteName}. You can now sign in with your email
+            and password to access your account.
           </p>
           <p className="mt-2 text-sm text-pw-text-muted">
-            If you don&apos;t see the email, check your spam folder.
+            We&apos;ve also sent a confirmation email. Check your spam folder if you don&apos;t see it.
           </p>
         </div>
       </div>
@@ -285,6 +337,31 @@ function SignupContent() {
               />
             </div>
             <div>
+              <label className="block text-sm font-medium text-pw-text">Password *</label>
+              <input
+                type="password"
+                required
+                value={parentPassword}
+                onChange={(e) => setParentPassword(e.target.value)}
+                placeholder="At least 8 characters with a letter and number"
+                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+              />
+              <p className="mt-1 text-xs text-pw-text-muted">
+                You&apos;ll use this to sign in after registration.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pw-text">Confirm password *</label>
+              <input
+                type="password"
+                required
+                value={parentPasswordConfirm}
+                onChange={(e) => setParentPasswordConfirm(e.target.value)}
+                placeholder="Re-enter your password"
+                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+              />
+            </div>
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-pw-text">Phone</label>
               <input
                 type="tel"
@@ -411,15 +488,102 @@ function SignupContent() {
                     className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
                   />
                 </div>
+
+                <div className="sm:col-span-2">
+                  <h3 className="mb-3 text-base font-medium text-pw-text">
+                    Educational &amp; Medical Information
+                  </h3>
+                  <p className="mb-3 text-sm text-pw-text-muted">
+                    This helps us support your child appropriately. All information is confidential.
+                  </p>
+                </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-pw-text">
-                    Additional needs (short note)
+                    School / Nursery name
                   </label>
                   <input
                     type="text"
+                    value={child.schoolName}
+                    onChange={(e) => updateChild(child.id, { schoolName: e.target.value })}
+                    placeholder="e.g. Oak Primary School"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-pw-text">Year group</label>
+                  <input
+                    type="text"
+                    value={child.yearGroup}
+                    onChange={(e) => updateChild(child.id, { yearGroup: e.target.value })}
+                    placeholder="e.g. Reception, Year 3"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-pw-text">GP name</label>
+                  <input
+                    type="text"
+                    value={child.gpName}
+                    onChange={(e) => updateChild(child.id, { gpName: e.target.value })}
+                    placeholder="Doctor or practice name"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">
+                    GP phone number
+                  </label>
+                  <input
+                    type="tel"
+                    value={child.gpPhone}
+                    onChange={(e) => updateChild(child.id, { gpPhone: e.target.value })}
+                    placeholder="e.g. 020 7123 4567"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">
+                    Special needs
+                  </label>
+                  <select
+                    value={child.specialNeedsType}
+                    onChange={(e) =>
+                      updateChild(child.id, {
+                        specialNeedsType: e.target.value,
+                        specialNeedsOther: e.target.value !== "other" ? "" : child.specialNeedsOther,
+                      })
+                    }
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  >
+                    <option value="none">None</option>
+                    <option value="sen_support">SEN Support</option>
+                    <option value="ehcp">EHCP</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                {child.specialNeedsType === "other" && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-pw-text">
+                      Please specify
+                    </label>
+                    <input
+                      type="text"
+                      value={child.specialNeedsOther}
+                      onChange={(e) => updateChild(child.id, { specialNeedsOther: e.target.value })}
+                      placeholder="Brief description"
+                      className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                    />
+                  </div>
+                )}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-pw-text">
+                    Additional needs (optional)
+                  </label>
+                  <textarea
                     value={child.additionalNeedsNotes}
                     onChange={(e) => updateChild(child.id, { additionalNeedsNotes: e.target.value })}
-                    placeholder="Optional"
+                    placeholder="Any other information we should know to support your child"
+                    rows={3}
                     className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
                   />
                 </div>
