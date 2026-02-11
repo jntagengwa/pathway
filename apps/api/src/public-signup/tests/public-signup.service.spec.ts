@@ -99,6 +99,7 @@ describe("PublicSignupService", () => {
       parent: {
         fullName: "Jane Doe",
         email: "jane@example.com",
+        password: "SecurePass1",
       },
       emergencyContacts: [
         { name: "Emergency Contact", phone: "07700900123" },

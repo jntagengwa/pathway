@@ -385,6 +385,13 @@ model Child {
   preferredName       String?
   allergies           String       @default("unknown")
   additionalNeedsNotes String?
+  // Safeguarding-relevant info from public signup
+  schoolName          String?
+  yearGroup           String?
+  gpName              String?
+  gpPhone             String?
+  specialNeedsType    String?      // e.g. none, sen_support, ehcp, other
+  specialNeedsOther   String?     // Free text when specialNeedsType is "other"
   photoConsent        Boolean      @default(false)
   photoKey            String?
   photoBytes          Bytes?       // Inline storage until S3; serve via signed URL later

@@ -2,15 +2,23 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
+
+const GP_PHONE_PATTERN = /^[\d\s+.() -]{10,25}$/;
+const SPECIAL_NEEDS_TYPES = ["none", "sen_support", "ehcp", "other"] as const;
+/** At least 8 chars, one letter and one number (Auth0-compatible). */
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
 
 export class ParentGuardianDto {
   @IsString()
@@ -20,6 +28,14 @@ export class ParentGuardianDto {
 
   @IsEmail()
   email!: string;
+
+  @IsString()
+  @MinLength(8, { message: "Password must be at least 8 characters" })
+  @MaxLength(128)
+  @Matches(PASSWORD_PATTERN, {
+    message: "Password must include at least one letter and one number",
+  })
+  password!: string;
 
   @IsOptional()
   @IsString()
@@ -79,6 +95,40 @@ export class ChildSignupDto {
   @IsString()
   @MaxLength(500)
   additionalNeedsNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  schoolName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  yearGroup?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  gpName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(25)
+  @ValidateIf((o) => o.gpPhone != null && o.gpPhone !== "")
+  @Matches(GP_PHONE_PATTERN, {
+    message: "Please enter a valid phone number (10-25 characters)",
+  })
+  gpPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(SPECIAL_NEEDS_TYPES)
+  specialNeedsType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  specialNeedsOther?: string;
 
   @IsBoolean()
   photoConsent!: boolean;
