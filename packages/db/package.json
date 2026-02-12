@@ -21,6 +21,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:reset": "prisma migrate reset --force --skip-generate --skip-seed",
     "seed": "tsx prisma/seed.ts",
+    "seed:victorious-kids": "tsx prisma/seed-victorious-kids.ts",
     "postinstall": "prisma generate",
     "lint": "eslint \"src/**/*.{ts,tsx,js}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -p tsconfig.json --noEmit"

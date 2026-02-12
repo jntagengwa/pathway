@@ -14,12 +14,16 @@ import {
   deleteAssignment,
   fetchAssignmentsForOrg,
   fetchAttendanceDetailBySessionId,
+  fetchAuthDebugContext,
   fetchLessonById,
   fetchMe,
   fetchSessionById,
+  fetchSessionStaffAttendance,
   fetchStaffEligibilityForSession,
   updateAssignment,
   updateAssignmentStatus,
+  upsertSessionStaffAttendance,
+  type StaffAttendanceRosterItem,
   type StaffEligibilityRow,
 } from "../../../lib/api-client";
 import { useAdminAccess } from "../../../lib/use-admin-access";
@@ -116,6 +120,14 @@ export default function SessionDetailPage() {
   const [attendanceSummary, setAttendanceSummary] = React.useState<
     { present: number; absent: number; late: number; unknown: number } | null
   >(null);
+  const [staffAttendanceRoster, setStaffAttendanceRoster] = React.useState<
+    StaffAttendanceRosterItem[] | null
+  >(null);
+  const [staffAttendanceError, setStaffAttendanceError] = React.useState<string | null>(null);
+  const [staffAttendanceSaving, setStaffAttendanceSaving] = React.useState<string | null>(null);
+  const [authDebugContext, setAuthDebugContext] = React.useState<Awaited<ReturnType<typeof fetchAuthDebugContext>> | null>(null);
+
+  const isAdmin = canAccessAdminSection(role);
 
   const refreshAssignments = React.useCallback(
     async (sessionMeta: AdminSessionDetail | null) => {
@@ -153,6 +165,7 @@ export default function SessionDetailPage() {
     setAssignmentError(null);
     setLessonDetail(null);
     setAttendanceSummary(null);
+    setStaffAttendanceError(null);
     try {
       const result = await fetchSessionById(sessionId);
       setSession(result);
@@ -176,6 +189,13 @@ export default function SessionDetailPage() {
             .then((d) => setAttendanceSummary(d?.summary ?? null))
             .catch(() => setAttendanceSummary(null));
         }
+        if (isAdmin) {
+          fetchSessionStaffAttendance(result.id)
+            .then(setStaffAttendanceRoster)
+            .catch(() => setStaffAttendanceRoster([]));
+        } else {
+          setStaffAttendanceRoster(null);
+        }
       }
     } catch (err) {
       setError(
@@ -183,10 +203,11 @@ export default function SessionDetailPage() {
       );
       setSession(null);
       setAssignments([]);
+      setStaffAttendanceRoster(null);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId, refreshAssignments]);
+  }, [sessionId, refreshAssignments, isAdmin]);
 
   React.useEffect(() => {
     if (sessionStatus === "authenticated") {
@@ -205,8 +226,6 @@ export default function SessionDetailPage() {
       .then((r) => setCurrentUserId(r.userId ?? null))
       .catch(() => setCurrentUserId(null));
   }, [sessionStatus, authSession?.user]);
-
-  const isAdmin = canAccessAdminSection(role);
 
   React.useEffect(() => {
     if (!session?.startsAt || !session?.endsAt) {
@@ -461,7 +480,7 @@ export default function SessionDetailPage() {
           </Card>
 
           <Card
-            className="md:col-span-2"
+            className="md:col-span-3"
             title="Scheduled staff"
             description={isAdmin ? "Schedule staff onto this session and keep statuses up to date." : "Staff assigned to this session."}
           >
@@ -733,6 +752,121 @@ export default function SessionDetailPage() {
             </div>
             )}
           </Card>
+
+          {isAdmin && (
+            <Card
+              className="md:col-span-2"
+              title="Staff attendance"
+              description="Mark whether each staff member was present for this session."
+            >
+              {staffAttendanceError ? (
+                <div className="mb-4 space-y-2 rounded-md bg-status-danger/5 px-3 py-2 text-sm text-status-danger">
+                  <div>{staffAttendanceError}</div>
+                  {staffAttendanceError?.includes("403") ? (
+                    <div className="space-y-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const ctx = await fetchAuthDebugContext();
+                            setAuthDebugContext(ctx);
+                          } catch {
+                            setAuthDebugContext(null);
+                          }
+                        }}
+                      >
+                        Debug auth context
+                      </Button>
+                      {authDebugContext ? (
+                        <pre className="max-h-64 overflow-auto rounded border border-border-subtle bg-surface p-2 text-xs text-text-primary">
+                          {JSON.stringify(authDebugContext, null, 2)}
+                        </pre>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              {staffAttendanceRoster === null ? (
+                <div className="space-y-3">
+                  <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+                  <div className="h-16 w-full animate-pulse rounded bg-muted" />
+                </div>
+              ) : staffAttendanceRoster.length === 0 ? (
+                <p className="text-sm text-text-muted">
+                  No staff assigned to this session. Add staff above first.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {staffAttendanceRoster.map((staff) => (
+                    <div
+                      key={staff.staffUserId}
+                      className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-alt p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <span className="font-semibold text-text-primary">
+                          {staff.displayName}
+                        </span>
+                        <span className="ml-2 text-sm text-text-muted">
+                          {staff.roleLabel}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(["PRESENT", "ABSENT", "UNKNOWN"] as const).map(
+                          (status) => (
+                            <Button
+                              key={status}
+                              size="sm"
+                              variant={
+                                staff.attendanceStatus === status
+                                  ? "primary"
+                                  : "outline"
+                              }
+                              className="h-8 min-w-0 px-2 text-xs capitalize"
+                              disabled={
+                                staffAttendanceSaving === staff.staffUserId
+                              }
+                              onClick={async () => {
+                                if (!session) return;
+                                setStaffAttendanceSaving(staff.staffUserId);
+                                setStaffAttendanceError(null);
+                                try {
+                                  const updated =
+                                    await upsertSessionStaffAttendance(
+                                      session.id,
+                                      {
+                                        staffUserId: staff.staffUserId,
+                                        status,
+                                      },
+                                    );
+                                  setStaffAttendanceRoster(updated);
+                                } catch (err) {
+                                  setStaffAttendanceError(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Failed to update presence",
+                                  );
+                                } finally {
+                                  setStaffAttendanceSaving(null);
+                                }
+                              }}
+                            >
+                              {status === "PRESENT"
+                                ? "Present"
+                                : status === "ABSENT"
+                                  ? "Not present"
+                                  : "Unknown"}
+                            </Button>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
 
           {!isLoadingAccess && canAccessSafeguardingAdmin(role) ? (
             <Card title="Related notes & concerns">

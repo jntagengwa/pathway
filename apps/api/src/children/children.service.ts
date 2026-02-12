@@ -19,6 +19,12 @@ const childSelect = {
   groupId: true,
   createdAt: true,
   updatedAt: true,
+  preferredName: true,
+  photoConsent: true,
+  yearGroup: true,
+  group: {
+    select: { id: true, name: true },
+  },
 } as const;
 
 @Injectable()

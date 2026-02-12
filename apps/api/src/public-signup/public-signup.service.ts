@@ -178,12 +178,18 @@ export class PublicSignupService {
         photoContentType = decoded.contentType;
       }
 
+      const dateOfBirth =
+        c.dateOfBirth?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(c.dateOfBirth.trim())
+          ? new Date(c.dateOfBirth.trim())
+          : null;
+
       const child = await prisma.child.create({
         data: {
           tenantId: link.tenantId,
           firstName: c.firstName.trim(),
           lastName: c.lastName.trim(),
           preferredName: c.preferredName?.trim() || null,
+          dateOfBirth,
           allergies,
           additionalNeedsNotes: c.additionalNeedsNotes?.trim() || null,
           schoolName: c.schoolName?.trim() || null,

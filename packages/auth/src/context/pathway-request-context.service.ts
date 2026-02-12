@@ -67,6 +67,11 @@ export class PathwayRequestContext {
     return this.getContext()?.permissions ?? [];
   }
 
+  /** Raw site role (SITE_ADMIN | STAFF | VIEWER) for the current tenant. */
+  get siteRole(): string | null | undefined {
+    return this.getContext()?.siteRole ?? null;
+  }
+
   /**
    * TODO(Epic1-Task1.2):
    *  - Inject this service into Prisma middleware so we never run a query

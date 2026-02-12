@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   title: "Nexsteps Admin",
   description: "Nexsteps admin console for schools and youth organisations.",
   icons: {
-    icon: "/icon.png",
-    shortcut: "/icon.png",
+    icon: "/NSLogo.svg",
+    shortcut: "/NSLogo.svg",
   },
 };
 

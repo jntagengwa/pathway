@@ -92,13 +92,40 @@ export class SessionsService {
     }
     if (andClauses.length) where.AND = andClauses;
 
-    return prisma.session.findMany({
+    const sessions = await prisma.session.findMany({
       where,
       orderBy: { startsAt: "asc" },
       include: {
         groups: { select: { id: true, name: true } },
       },
     });
+
+    const sessionIds = sessions.map((s) => s.id);
+    const [attendanceCounts, childCounts] = await Promise.all([
+      prisma.attendance.groupBy({
+        by: ["sessionId"],
+        where: { sessionId: { in: sessionIds } },
+        _count: { id: true },
+      }),
+      Promise.all(
+        sessions.map(async (s) => {
+          const groupIds = s.groups.map((g) => g.id);
+          if (groupIds.length === 0) return 0;
+          return prisma.child.count({
+            where: { tenantId: filters.tenantId, groupId: { in: groupIds } },
+          });
+        }),
+      ),
+    ]);
+    const markedBySession = new Map(
+      attendanceCounts.map((c) => [c.sessionId, c._count.id]),
+    );
+
+    return sessions.map((s, i) => ({
+      ...s,
+      attendanceMarked: markedBySession.get(s.id) ?? 0,
+      attendanceTotal: childCounts[i] ?? 0,
+    }));
   }
 
   async getById(id: string, tenantId: string) {
@@ -120,7 +147,25 @@ export class SessionsService {
       },
     });
     if (!s) throw new NotFoundException("Session not found");
-    return s;
+
+    const [attendanceCount, totalChildCount] = await Promise.all([
+      prisma.attendance.count({
+        where: { sessionId: id },
+      }),
+      (async () => {
+        const groupIds = s.groups.map((g) => g.id);
+        if (groupIds.length === 0) return 0;
+        return prisma.child.count({
+          where: { tenantId, groupId: { in: groupIds } },
+        });
+      })(),
+    ]);
+
+    return {
+      ...s,
+      attendanceMarked: attendanceCount,
+      attendanceTotal: totalChildCount,
+    };
   }
 
   async create(input: CreateSessionDto, tenantId: string) {

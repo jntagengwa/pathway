@@ -35,6 +35,9 @@ export interface TenantContext {
   externalId?: string; // Allows MIS integrations to sync by remote ID later.
 }
 
+/** Raw SiteRole from schema (SITE_ADMIN | STAFF | VIEWER) for the current tenant. */
+export type SiteRoleName = "SITE_ADMIN" | "STAFF" | "VIEWER";
+
 export interface AuthContext {
   user: UserIdentity;
   org: OrgContext;
@@ -42,6 +45,8 @@ export interface AuthContext {
   roles: RoleSet;
   permissions: string[];
   rawClaims: Record<string, unknown>;
+  /** Raw site role for current tenant; used to distinguish VIEWER (read-only) from STAFF. */
+  siteRole?: SiteRoleName | null;
   issuedAt?: number;
   expiresAt?: number;
 }

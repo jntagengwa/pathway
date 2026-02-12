@@ -8,13 +8,18 @@ import {
   Body,
   Query,
   BadRequestException,
+  UnauthorizedException,
   UseGuards,
   Inject,
+  Req,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { SessionsService, SessionListFilters } from "./sessions.service";
+import { StaffAttendanceService } from "./staff-attendance.service";
 import { CreateSessionDto } from "./dto/create-session.dto";
 import { UpdateSessionDto } from "./dto/update-session.dto";
 import { bulkCreateSessionsSchema } from "./dto/bulk-create-sessions.dto";
+import { upsertStaffAttendanceDto } from "./dto/upsert-staff-attendance.dto";
 import { CurrentTenant, CurrentOrg } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { EntitlementsEnforcementService } from "../billing/entitlements-enforcement.service";
@@ -40,6 +45,7 @@ function parseDateOrThrow(label: string, value?: string): Date | undefined {
 export class SessionsController {
   constructor(
     @Inject(SessionsService) private readonly svc: SessionsService,
+    @Inject(StaffAttendanceService) private readonly staffAttendanceSvc: StaffAttendanceService,
     @Inject(EntitlementsEnforcementService) private readonly enforcement: EntitlementsEnforcementService,
   ) {}
 
@@ -133,5 +139,31 @@ export class SessionsController {
     @CurrentTenant("tenantId") tenantId: string,
   ) {
     return this.svc.delete(id, tenantId);
+  }
+
+  @Get(":id/staff-attendance")
+  @UseGuards(AuthUserGuard)
+  async getStaffAttendance(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
+    return this.staffAttendanceSvc.getRoster(id, tenantId);
+  }
+
+  @Patch(":id/staff-attendance")
+  @UseGuards(AuthUserGuard)
+  async patchStaffAttendance(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Req() req: Request & { authUserId?: string },
+    @CurrentTenant("tenantId") tenantId: string,
+  ) {
+    const parsed = upsertStaffAttendanceDto.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.format());
+    }
+    const userId = req.authUserId;
+    if (!userId) throw new UnauthorizedException("User context required");
+    return this.staffAttendanceSvc.upsert(id, tenantId, userId, parsed.data);
   }
 }

@@ -30,6 +30,7 @@ import { MailerModule } from "./mailer/mailer.module";
 import { LeadsModule } from "./leads/leads.module";
 import { StaffModule } from "./staff/staff.module";
 import { PublicSignupModule } from "./public-signup/public-signup.module";
+import { ExportsModule } from "./exports/exports.module";
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { PublicSignupModule } from "./public-signup/public-signup.module";
     LeadsModule,
     StaffModule,
     PublicSignupModule,
+    ExportsModule,
   ],
 })
 export class AppModule {}

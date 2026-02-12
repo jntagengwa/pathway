@@ -28,6 +28,7 @@ const userInclude = {
       },
       orgMemberships: { include: { org: true } },
       orgRoles: { include: { org: true } },
+      roles: { include: { tenant: { include: { org: true } } } }, // Legacy UserTenantRole
     },
   },
 } as const;
@@ -109,6 +110,8 @@ export class AuthUserGuard implements CanActivate {
     let orgId = "";
     let orgSlug = "";
 
+    let siteRole: "SITE_ADMIN" | "STAFF" | "VIEWER" | null = null;
+
     // If we have an active tenant, validate and populate context
     if (activeTenantId) {
       const membership = user.siteMemberships.find(
@@ -119,6 +122,7 @@ export class AuthUserGuard implements CanActivate {
         tenantId = membership.tenantId;
         orgId = membership.tenant.orgId;
         orgSlug = membership.tenant.org.slug;
+        siteRole = membership.role;
 
         // Sync cookie with DB if they differ
         if (!cookieTenantId || cookieTenantId !== activeTenantId) {
@@ -135,6 +139,45 @@ export class AuthUserGuard implements CanActivate {
             maxAge: 30 * 24 * 60 * 60 * 1000,
           });
         }
+      } else {
+        // Org admin may have implicit access via OrgMembership without SiteMembership.
+        // Resolve tenant from DB to get orgId and set context.
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: activeTenantId },
+          include: { org: true },
+        });
+        if (tenant) {
+          const hasOrgAccess =
+            user.orgMemberships.some(
+              (m) => m.orgId === tenant.orgId && m.role === "ORG_ADMIN",
+            ) ||
+            user.orgRoles.some(
+              (r) => r.orgId === tenant.orgId && r.role === "ORG_ADMIN",
+            );
+          if (hasOrgAccess) {
+            tenantId = tenant.id;
+            orgId = tenant.orgId;
+            orgSlug = tenant.org?.slug ?? "";
+            siteRole = "SITE_ADMIN"; // Org admins have admin-level access to sites in their org
+          } else {
+            // Legacy UserTenantRole: user may have Role (ADMIN, TEACHER, etc.) but no SiteMembership.
+            const legacyRole = user.roles?.find(
+              (r) => r.tenantId === activeTenantId,
+            );
+            if (legacyRole) {
+              tenantId = tenant.id;
+              orgId = tenant.orgId;
+              orgSlug = tenant.org?.slug ?? "";
+              if (legacyRole.role === "ADMIN") siteRole = "SITE_ADMIN";
+              else if (
+                legacyRole.role === "COORDINATOR" ||
+                legacyRole.role === "TEACHER"
+              )
+                siteRole = "STAFF";
+              else if (legacyRole.role === "PARENT") siteRole = "VIEWER";
+            }
+          }
+        }
       }
     }
 
@@ -144,6 +187,7 @@ export class AuthUserGuard implements CanActivate {
       tenantId = first.tenantId;
       orgId = first.tenant.orgId;
       orgSlug = first.tenant.org.slug ?? "";
+      if (!siteRole) siteRole = first.role;
     }
 
     // Fallback 2: if still no org (e.g. user has org role but no site membership), use first org membership
@@ -185,6 +229,14 @@ export class AuthUserGuard implements CanActivate {
       if (sm.role === "VIEWER") tenantRoles.add("tenant:staff"); // VIEWER can also act as STAFF for read access
     });
 
+    // Legacy UserTenantRole (Role enum: ADMIN, COORDINATOR, TEACHER, PARENT)
+    user.roles?.forEach((r) => {
+      if (tenantId && r.tenantId !== tenantId) return;
+      if (r.role === "ADMIN") tenantRoles.add("tenant:admin");
+      if (r.role === "COORDINATOR" || r.role === "TEACHER")
+        tenantRoles.add("tenant:staff");
+    });
+
     // Set up PathwayRequestContext for RLS interceptor and downstream services
     const pathwayContext = {
       user: {
@@ -206,6 +258,7 @@ export class AuthUserGuard implements CanActivate {
       roles: { org: Array.from(orgRoles), tenant: Array.from(tenantRoles) },
       permissions: [],
       rawClaims: claims as Record<string, unknown>,
+      siteRole,
     };
 
     (req as Record<string, unknown>).__pathwayContext = pathwayContext;

@@ -15,6 +15,8 @@ enum Role {
   COORDINATOR
   TEACHER
   PARENT
+  LEAD
+  SUPPORT
 }
 
 enum AssignmentStatus {
@@ -99,6 +101,12 @@ enum LeadKind {
   READINESS
 }
 
+enum StaffAttendanceStatus {
+  PRESENT
+  ABSENT
+  UNKNOWN
+}
+
 // --- Models ---
 
 // NEW: Org (Suite) — business/billing owner; may contain multiple Tenants (sites)
@@ -155,6 +163,7 @@ model Tenant {
   lastActiveUsers        User[]                  @relation("UserLastActiveTenant")
   staffUnavailableDates  StaffUnavailableDate[]
   staffPreferredGroups   StaffPreferredGroup[]
+  sessionStaffAttendance SessionStaffAttendance[]
   publicSignupLinks      PublicSignupLink[]
   emergencyContacts      EmergencyContact[]
   parentSignupConsents   ParentSignupConsent[]
@@ -232,6 +241,8 @@ model User {
   staffPreferredGroups    StaffPreferredGroup[]
   emergencyContacts       EmergencyContact[]
   parentSignupConsents    ParentSignupConsent[]
+  staffAttendanceAsStaff  SessionStaffAttendance[] @relation("StaffAttendanceForUser")
+  staffAttendanceMarkedBy SessionStaffAttendance[] @relation("StaffAttendanceMarkedBy")
 }
 
 // Auth identity linking external providers (e.g., Auth0) to internal users.
@@ -384,6 +395,7 @@ model Child {
   firstName           String
   lastName            String
   preferredName       String?
+  dateOfBirth         DateTime?
   allergies           String       @default("unknown")
   additionalNeedsNotes String?
   // Safeguarding-relevant info from public signup
@@ -465,18 +477,19 @@ model Concern {
 }
 
 model Session {
-  id          String       @id @default(uuid())
-  tenantId    String
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  groups      Group[]      // many-to-many: session can be for multiple classes
-  startsAt    DateTime
-  endsAt      DateTime
-  title       String?
-  assignments Assignment[]
-  attendances Attendance[]
-  lessons     Lesson[]     // lessons linked to this session
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                    String                   @id @default(uuid())
+  tenantId              String
+  tenant                Tenant                   @relation(fields: [tenantId], references: [id])
+  groups                Group[]                  // many-to-many: session can be for multiple classes
+  startsAt              DateTime
+  endsAt                DateTime
+  title                 String?
+  assignments           Assignment[]
+  attendances           Attendance[]
+  lessons               Lesson[]                 // lessons linked to this session
+  sessionStaffAttendance SessionStaffAttendance[]
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
 
   @@index([tenantId])
   @@index([startsAt])
@@ -496,6 +509,27 @@ model Assignment {
 
   @@unique([sessionId, userId, role])
   @@index([userId])
+}
+
+model SessionStaffAttendance {
+  id             String                @id @default(uuid())
+  tenantId       String
+  tenant         Tenant                @relation(fields: [tenantId], references: [id])
+  sessionId      String
+  session        Session               @relation(fields: [sessionId], references: [id])
+  staffUserId    String
+  staffUser      User                  @relation("StaffAttendanceForUser", fields: [staffUserId], references: [id])
+  status         StaffAttendanceStatus @default(UNKNOWN)
+  markedByUserId String?
+  markedByUser   User?                 @relation("StaffAttendanceMarkedBy", fields: [markedByUserId], references: [id])
+  markedAt       DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([tenantId, sessionId, staffUserId])
+  @@index([tenantId])
+  @@index([sessionId])
+  @@index([staffUserId])
 }
 
 model VolunteerPreference {

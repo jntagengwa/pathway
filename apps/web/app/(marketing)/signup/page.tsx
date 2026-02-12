@@ -15,6 +15,7 @@ type ChildEntry = {
   firstName: string;
   lastName: string;
   preferredName: string;
+  dateOfBirth: string; // YYYY-MM-DD
   allergies: string;
   additionalNeedsNotes: string;
   schoolName: string;
@@ -45,6 +46,7 @@ const defaultChild = (): ChildEntry => ({
   firstName: "",
   lastName: "",
   preferredName: "",
+  dateOfBirth: "",
   allergies: "",
   additionalNeedsNotes: "",
   schoolName: "",
@@ -150,11 +152,13 @@ function SignupContent() {
     }
 
     const childrenValid = children.filter(
-      (c) => c.firstName.trim() && c.lastName.trim(),
+      (c) => c.firstName.trim() && c.lastName.trim() && c.dateOfBirth.trim(),
     );
     if (childrenValid.length === 0) {
       setSubmitStatus("error");
-      setSubmitError("At least one child with first and last name is required.");
+      setSubmitError(
+        "At least one child with first name, last name, and date of birth is required.",
+      );
       return;
     }
 
@@ -218,6 +222,7 @@ function SignupContent() {
           firstName: c.firstName.trim(),
           lastName: c.lastName.trim(),
           preferredName: c.preferredName.trim() || undefined,
+          dateOfBirth: c.dateOfBirth.trim() || undefined,
           allergies: c.allergies.trim() || undefined,
           additionalNeedsNotes: c.additionalNeedsNotes.trim() || undefined,
           schoolName: c.schoolName.trim() || undefined,
@@ -473,6 +478,16 @@ function SignupContent() {
                     value={child.preferredName}
                     onChange={(e) => updateChild(child.id, { preferredName: e.target.value })}
                     placeholder="If different from first name"
+                    className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-pw-text">Date of birth *</label>
+                  <input
+                    type="date"
+                    required
+                    value={child.dateOfBirth}
+                    onChange={(e) => updateChild(child.id, { dateOfBirth: e.target.value })}
                     className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
                   />
                 </div>
