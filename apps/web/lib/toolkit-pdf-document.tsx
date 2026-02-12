@@ -382,7 +382,7 @@ function AttendanceTableAndSummaryPage({ orgName }: ToolkitPdfProps) {
               style={[
                 styles.tableCell,
                 { width: c.width },
-                i === ATTENDANCE_COLS.length - 1 && styles.tableCellLast,
+                ...(i === ATTENDANCE_COLS.length - 1 ? [styles.tableCellLast] : []),
               ]}
             >
               {c.label}
@@ -397,7 +397,7 @@ function AttendanceTableAndSummaryPage({ orgName }: ToolkitPdfProps) {
                 style={[
                   styles.tableCell,
                   { width: c.width },
-                  ci === ATTENDANCE_COLS.length - 1 && styles.tableCellLast,
+                  ...(ci === ATTENDANCE_COLS.length - 1 ? [styles.tableCellLast] : []),
                 ]}
               />
             ))}
