@@ -1,0 +1,129 @@
+{
+  "version": "2",
+  "disclaimers": [
+    "Confidential: store securely. Do not email completed safeguarding forms.",
+    "These forms may contain sensitive personal information. Store securely, restrict access, and follow your safeguarding and data protection policies."
+  ],
+  "templates": [
+    {
+      "templateId": "attendance-register",
+      "title": "Attendance Register",
+      "version": "2",
+      "fields": [
+        { "key": "date", "label": "Date", "type": "date", "required": true, "helperText": null, "validation": "date", "piiLevel": "none", "renderHint": "date" },
+        { "key": "orgGroupSite", "label": "Organisation / Group / Site", "type": "text", "required": false, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "sessionName", "label": "Session name", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "location", "label": "Location", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "startTime", "label": "Start time", "type": "time", "required": true, "helperText": null, "validation": "time", "piiLevel": "none", "renderHint": "time" },
+        { "key": "endTime", "label": "End time", "type": "time", "required": true, "helperText": null, "validation": "time", "piiLevel": "none", "renderHint": "time" },
+        { "key": "leadStaff", "label": "Lead staff", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "additionalStaff", "label": "Additional staff/volunteers", "type": "text", "required": false, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "totalExpected", "label": "Total expected", "type": "number", "required": false, "helperText": null, "validation": "positiveInt", "piiLevel": "none", "renderHint": "number" },
+        { "key": "totalAttended", "label": "Total attended", "type": "number", "required": false, "helperText": null, "validation": "positiveInt", "piiLevel": "none", "renderHint": "number" },
+        { "key": "firstAidIncidents", "label": "First aid incidents? (Yes/No)", "type": "boolean", "required": false, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "checkbox" },
+        { "key": "safeguardingConcernsRaised", "label": "Safeguarding concerns raised? (Yes/No)", "type": "boolean", "required": false, "helperText": "If yes, complete form and store securely.", "validation": null, "piiLevel": "none", "renderHint": "checkbox" },
+        { "key": "leaderSignature", "label": "Leader signature", "type": "signature", "required": false, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "signature" }
+      ],
+      "tableColumns": [
+        { "key": "childName", "label": "Child name", "widthPercent": 26, "minWidth": 80 },
+        { "key": "yearGroupDob", "label": "Year group / DOB", "widthPercent": 10, "minWidth": 40 },
+        { "key": "parentCarerContact", "label": "Parent/carer contact", "widthPercent": 16, "minWidth": 60 },
+        { "key": "checkIn", "label": "Check-in", "widthPercent": 10, "minWidth": 40 },
+        { "key": "checkOut", "label": "Check-out", "widthPercent": 10, "minWidth": 40 },
+        { "key": "collectedBy", "label": "Collected by", "widthPercent": 18, "minWidth": 60 }
+      ],
+      "tableRowHeight": 20,
+      "exampleFilledRow": { "childName": "Child A", "yearGroupDob": "Y3", "parentCarerContact": "On file", "checkIn": "09:00", "checkOut": "15:30", "collectedBy": "Parent" }
+    },
+    {
+      "templateId": "incident-concern-report",
+      "title": "Incident / Concern Report",
+      "version": "2",
+      "fields": [
+        { "key": "incidentDateTime", "label": "Date & time of incident/concern", "type": "datetime", "required": true, "helperText": null, "validation": "datetime", "piiLevel": "none", "renderHint": "datetime" },
+        { "key": "reportCreatedDateTime", "label": "Report created date/time", "type": "datetime", "required": true, "helperText": null, "validation": "datetime", "piiLevel": "none", "renderHint": "datetime" },
+        { "key": "location", "label": "Location", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "reportedByName", "label": "Reported by (name)", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "reportedByRole", "label": "Role", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "reportedByContact", "label": "Contact", "type": "text", "required": false, "helperText": null, "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "childNameId", "label": "Child/young person (name/ID)", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "childGroup", "label": "Group/class", "type": "text", "required": false, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "whatHappened", "label": "What happened (facts only)", "type": "textarea", "required": true, "helperText": "Describe what you saw/heard. Avoid opinions.", "validation": null, "piiLevel": "sensitive", "renderHint": "linedBox" },
+        { "key": "firstAidGiven", "label": "First aid given (Yes/No)", "type": "boolean", "required": false, "helperText": "By whom", "validation": null, "piiLevel": "none", "renderHint": "checkbox" },
+        { "key": "parentInformed", "label": "Parent/guardian informed (Yes/No)", "type": "boolean", "required": false, "helperText": "When/how", "validation": null, "piiLevel": "none", "renderHint": "checkbox" },
+        { "key": "emergencyServicesContacted", "label": "Emergency services contacted (Yes/No)", "type": "boolean", "required": false, "helperText": "Ref number", "validation": null, "piiLevel": "none", "renderHint": "checkbox" },
+        { "key": "escalatedToDsl", "label": "Escalated to DSL? (Yes/No)", "type": "boolean", "required": false, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "checkbox" },
+        { "key": "followUpDate", "label": "Follow-up date", "type": "date", "required": false, "helperText": "Required if monitor/referral", "validation": "date", "piiLevel": "none", "renderHint": "date" },
+        { "key": "caseReferenceId", "label": "Case reference ID", "type": "text", "required": false, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" }
+      ],
+      "typeCheckboxes": ["Injury/accident", "Behaviour incident", "Disclosure", "Safeguarding concern (non-disclosure)", "Online safety concern", "Bullying / peer-on-peer", "Missing child / collection issue", "Other"]
+    },
+    {
+      "templateId": "parent-guardian-consent",
+      "title": "Parent/Guardian Consent",
+      "version": "2",
+      "fields": [
+        { "key": "childName", "label": "Child name", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "childDobYearGroup", "label": "DOB / Year group", "type": "text", "required": false, "helperText": null, "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "emergencyContactName", "label": "Emergency contact name", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "emergencyContactNumber", "label": "Emergency contact number", "type": "tel", "required": true, "helperText": null, "validation": "phone", "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "medicalNotes", "label": "Medical notes", "type": "textarea", "required": false, "helperText": "Critical info only", "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "parentName", "label": "Parent/guardian name", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "relationship", "label": "Relationship", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "phone", "label": "Phone", "type": "tel", "required": true, "helperText": null, "validation": "phone", "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "email", "label": "Email", "type": "email", "required": false, "helperText": null, "validation": "email", "piiLevel": "sensitive", "renderHint": "text" },
+        { "key": "photographyConsent", "label": "Photography & video", "type": "choice", "required": false, "helperText": "Tick one", "validation": null, "piiLevel": "low", "renderHint": "radio", "options": ["Internal use only", "Public marketing (website/social)", "No photos/videos"] },
+        { "key": "tripsTransport", "label": "Trips & transport", "type": "multichoice", "required": false, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "checkbox", "options": ["Local walking trips", "Coach or minibus", "Public transport"] },
+        { "key": "communications", "label": "Communications", "type": "multichoice", "required": false, "helperText": "Include privacy note", "validation": null, "piiLevel": "sensitive", "renderHint": "checkbox", "options": ["Email", "SMS", "WhatsApp (optional)"] },
+        { "key": "specialInstructions", "label": "Special instructions", "type": "textarea", "required": false, "helperText": "Allergies, conditions, collection notes (critical only)", "validation": null, "piiLevel": "sensitive", "renderHint": "linedBox" },
+        { "key": "signature", "label": "Signature", "type": "signature", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "signature" }
+      ]
+    },
+    {
+      "templateId": "volunteer-onboarding-checklist",
+      "title": "Volunteer Onboarding Checklist",
+      "version": "2",
+      "fields": [
+        { "key": "volunteerName", "label": "Volunteer name", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "role", "label": "Role", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "startDate", "label": "Start date", "type": "date", "required": true, "helperText": null, "validation": "date", "piiLevel": "none", "renderHint": "date" },
+        { "key": "leadContact", "label": "Lead contact", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" }
+      ],
+      "checklistSections": [
+        { "key": "preStart", "title": "Pre-start", "items": ["Application received", "Role description provided", "References received (if applicable)", "DBS status checked (store DBS info separately)"], "renderHint": "checkbox+date+initials" },
+        { "key": "safeguardingReadiness", "title": "Safeguarding readiness", "items": ["Safeguarding policy read", "Code of conduct signed", "Reporting / escalation path explained", "Boundaries briefed"], "renderHint": "checkbox+date+initials" },
+        { "key": "operationalReadiness", "title": "Operational readiness", "items": ["Attendance process trained", "Collection & handover rules trained", "Incident/concern form trained", "Emergency procedures trained"], "renderHint": "checkbox+date+initials" },
+        { "key": "systemsAccess", "title": "Systems & access", "items": ["Added to rota", "Added to comms channel", "Site access instructions given", "Completed induction"], "renderHint": "checkbox+date+initials" }
+      ]
+    },
+    {
+      "templateId": "weekly-safeguarding-check",
+      "title": "Weekly Safeguarding Check",
+      "version": "2",
+      "fields": [
+        { "key": "weekCommencingDate", "label": "Week commencing date", "type": "date", "required": true, "helperText": null, "validation": "date", "piiLevel": "none", "renderHint": "date" },
+        { "key": "siteGroup", "label": "Site/group", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "text" },
+        { "key": "completedBy", "label": "Completed by (name/role)", "type": "text", "required": true, "helperText": null, "validation": null, "piiLevel": "low", "renderHint": "text" },
+        { "key": "dslNotified", "label": "DSL notified of issues? (Yes/No)", "type": "boolean", "required": false, "helperText": null, "validation": null, "piiLevel": "none", "renderHint": "checkbox" }
+      ],
+      "weeklyChecklist": [
+        "Attendance records completed and stored",
+        "Any incident/concern forms filed this week",
+        "Follow-ups scheduled and tracked",
+        "Rota coverage meets minimum supervision ratio",
+        "New volunteers onboarded correctly",
+        "Any parental complaints received (logged)",
+        "Any unresolved safeguarding items from previous week listed",
+        "Data handling check (no completed forms sent by email)"
+      ],
+      "actionLogColumns": [
+        { "key": "issueFound", "label": "Issue found", "widthPercent": 40, "minWidth": 100 },
+        { "key": "owner", "label": "Owner", "widthPercent": 20, "minWidth": 50 },
+        { "key": "dueDate", "label": "Due date", "widthPercent": 15, "minWidth": 50 },
+        { "key": "status", "label": "Status", "widthPercent": 10, "minWidth": 40 },
+        { "key": "notes", "label": "Notes", "widthPercent": 15, "minWidth": 50 }
+      ],
+      "statusOptions": ["Open", "In progress", "Done"]
+    }
+  ]
+}

@@ -9,10 +9,13 @@
     "start": "next start",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc -v",
-    "test": "echo web-test"
+    "test": "pnpm exec jest && pnpm exec tsx scripts/test-toolkit-pdf.ts",
+    "test:unit": "pnpm exec jest",
+    "test:pdf": "tsx scripts/test-toolkit-pdf.ts"
   },
   "dependencies": {
     "@pathway/pricing": "workspace:*",
+    "@react-pdf/renderer": "^4.3.2",
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.0",
     "gray-matter": "^4.0.3",
@@ -23,10 +26,13 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.12",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
+    "jest": "^29.7.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.13"
+    "tailwindcss": "^3.4.13",
+    "ts-jest": "^29.2.5"
   }
 }

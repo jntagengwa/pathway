@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "LeadKind" ADD VALUE 'READINESS';

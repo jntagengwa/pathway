@@ -12,10 +12,16 @@ import {
   createDemoLeadDto,
   createToolkitLeadDto,
   createTrialLeadDto,
+  createReadinessLeadDto,
   type CreateDemoLeadDto,
   type CreateToolkitLeadDto,
   type CreateTrialLeadDto,
+  type CreateReadinessLeadDto,
 } from "./dto/create-lead.dto";
+import {
+  redeemToolkitTokenDto,
+  type RedeemToolkitTokenDto,
+} from "./dto/redeem-toolkit-token.dto";
 
 @Controller("leads")
 export class LeadsController {
@@ -41,8 +47,20 @@ export class LeadsController {
       throw new BadRequestException(parsed.error.errors);
     }
 
-    const lead = await this.leadsService.createToolkitLead(parsed.data);
-    return { success: true, id: lead.id };
+    await this.leadsService.createToolkitLead(parsed.data);
+    return { success: true, message: "Check your email for the download link." };
+  }
+
+  @Post("toolkit/redeem-token")
+  @HttpCode(HttpStatus.OK)
+  async redeemToolkitToken(@Body() dto: RedeemToolkitTokenDto) {
+    const parsed = redeemToolkitTokenDto.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.errors);
+    }
+
+    const result = await this.leadsService.redeemToolkitToken(parsed.data.token);
+    return result;
   }
 
   @Post("trial")
@@ -54,6 +72,18 @@ export class LeadsController {
     }
 
     const lead = await this.leadsService.createTrialLead(parsed.data);
+    return { success: true, id: lead.id };
+  }
+
+  @Post("readiness")
+  @HttpCode(HttpStatus.OK)
+  async createReadinessLead(@Body() dto: CreateReadinessLeadDto) {
+    const parsed = createReadinessLeadDto.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.errors);
+    }
+
+    const lead = await this.leadsService.createReadinessLead(parsed.data);
     return { success: true, id: lead.id };
   }
 }
