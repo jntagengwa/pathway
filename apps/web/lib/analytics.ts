@@ -21,7 +21,13 @@ export type AnalyticsEvent =
       sector: "schools" | "clubs" | "churches" | "charities";
       utm?: AnalyticsUtm;
     }
-  | { type: "app_login_click"; location: string; sector?: string | null };
+  | { type: "app_login_click"; location: string; sector?: string | null }
+  | { type: "readiness_start"; utm?: AnalyticsUtm }
+  | { type: "readiness_step_view"; step: number; total: number; utm?: AnalyticsUtm }
+  | { type: "readiness_complete"; score: number; band: string; utm?: AnalyticsUtm }
+  | { type: "readiness_result_view"; score: number; band: string; utm?: AnalyticsUtm }
+  | { type: "readiness_cta_click"; location: string; destination: string; utm?: AnalyticsUtm }
+  | { type: "readiness_lead_submit"; utm?: AnalyticsUtm };
 
 /**
  * Track an analytics event.

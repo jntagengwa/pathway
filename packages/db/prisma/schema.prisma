@@ -96,6 +96,7 @@ enum LeadKind {
   DEMO
   TOOLKIT
   TRIAL
+  READINESS
 }
 
 // --- Models ---
@@ -759,21 +760,37 @@ model StaffActivity {
 }
 
 model Lead {
-  id            String    @id @default(uuid())
-  kind          LeadKind
-  email         String
-  name          String?
-  organisation  String?
-  role          String?
-  sector        String?
-  message       String?   @db.Text
-  utmSource     String?
-  utmMedium     String?
-  utmCampaign   String?
-  metadataJson  Json?
-  createdAt     DateTime  @default(now())
+  id             String    @id @default(uuid())
+  kind           LeadKind
+  email          String
+  name           String?
+  organisation   String?
+  role           String?
+  sector         String?
+  message        String?   @db.Text
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  metadataJson   Json?
+  downloadedAt   DateTime?
+  createdAt      DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  downloadTokens DownloadToken[]
 
   @@index([email, kind, createdAt])
   @@index([kind, createdAt])
+}
+
+model DownloadToken {
+  id        String    @id @default(uuid())
+  leadId    String
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([tokenHash])
+  @@index([tokenHash])
+  @@index([leadId])
 }

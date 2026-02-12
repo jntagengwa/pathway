@@ -8,6 +8,14 @@ type SendInviteEmailParams = {
   invitedByName?: string;
 };
 
+/** Params for toolkit download link email. */
+export type SendToolkitLinkParams = {
+  to: string;
+  name?: string;
+  orgName?: string;
+  downloadUrl: string;
+};
+
 /** Params for shift-assignment notification (staff asked to accept a class shift). */
 export type SendShiftAssignmentParams = {
   to: string;
@@ -48,6 +56,122 @@ export class MailerService {
         "RESEND_API_KEY not set - email sending disabled (emails will be logged only)",
       );
     }
+  }
+
+  /**
+   * Send toolkit download link email.
+   * In dev without RESEND_API_KEY, logs the download URL to console.
+   */
+  async sendToolkitLink(params: SendToolkitLinkParams): Promise<void> {
+    const { to, name, orgName, downloadUrl } = params;
+
+    this.logger.log(`[📧 MAILER] Sending toolkit link to ${to}`);
+    const subject = "Your Nexsteps Attendance + Safeguarding Toolkit";
+    const html = this.buildToolkitLinkHtml({ name, orgName, downloadUrl });
+    const text = this.buildToolkitLinkText({ name, orgName, downloadUrl });
+
+    if (!this.isEnabled || !this.resend) {
+      this.logger.log(
+        `[📧 MAILER] MOCK MODE - Would send toolkit link to ${to}\nSubject: ${subject}\nDownload URL: ${downloadUrl}`,
+      );
+      return;
+    }
+
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromAddress,
+        to,
+        subject,
+        html,
+        text,
+      });
+
+      if (result.error) {
+        this.logger.error(`[📧 MAILER] Toolkit link error:`, result.error);
+        throw new Error(`Resend API error: ${JSON.stringify(result.error)}`);
+      }
+
+      this.logger.log(`[📧 MAILER] Toolkit link sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`[📧 MAILER] Exception sending toolkit link to ${to}:`, error);
+      throw new Error(`Failed to send toolkit link: ${String(error)}`);
+    }
+  }
+
+  private buildToolkitLinkHtml(params: {
+    name?: string;
+    orgName?: string;
+    downloadUrl: string;
+  }): string {
+    const { name, orgName, downloadUrl } = params;
+    const greeting = name ? `Hi ${name},` : "Hi,";
+    const orgLine = orgName ? ` for ${orgName}` : "";
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Toolkit</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">Nexsteps</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #1a1a1a;">${greeting}</h2>
+              <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: #525252;">
+                Here's your download link${orgLine} for the Attendance + Safeguarding Toolkit. The link expires in 48 hours.
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin: 0 0 24px;">
+                <tr>
+                  <td style="border-radius: 6px; background-color: #0066cc;">
+                    <a href="${downloadUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none;">Download Toolkit</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #737373;">
+                If you didn't request this, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `.trim();
+  }
+
+  private buildToolkitLinkText(params: {
+    name?: string;
+    orgName?: string;
+    downloadUrl: string;
+  }): string {
+    const { name, orgName, downloadUrl } = params;
+    const greeting = name ? `Hi ${name},` : "Hi,";
+    const orgLine = orgName ? ` for ${orgName}` : "";
+
+    return `
+Nexsteps
+
+${greeting}
+
+Here's your download link${orgLine} for the Attendance + Safeguarding Toolkit. The link expires in 48 hours.
+
+Download: ${downloadUrl}
+
+If you didn't request this, you can safely ignore this email.
+    `.trim();
   }
 
   /**

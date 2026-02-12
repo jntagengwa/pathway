@@ -46,6 +46,8 @@ export default function HeaderNav() {
 
   const navLinks = [
     { label: "Product", href: "/" },
+    { label: "Readiness Score", href: "/readiness-score" },
+    { label: "Toolkit", href: "/toolkit" },
     { label: "Pricing", href: "/pricing" },
     { label: "Resources", href: "/resources" },
   ];
