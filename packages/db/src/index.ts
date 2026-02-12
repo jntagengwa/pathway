@@ -121,6 +121,7 @@ export {
   PendingOrderStatus,
   OrgRole,
   SiteRole,
+  StaffAttendanceStatus,
 } from "@prisma/client";
 export { Prisma };
 

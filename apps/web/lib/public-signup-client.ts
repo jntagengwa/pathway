@@ -30,6 +30,7 @@ export type PublicSignupSubmitPayload = {
     firstName: string;
     lastName: string;
     preferredName?: string;
+    dateOfBirth?: string;
     groupId?: string;
     allergies?: string;
     additionalNeedsNotes?: string;

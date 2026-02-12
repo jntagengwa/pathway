@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Optional,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { PathwayRequestContext } from "@pathway/auth";
@@ -23,7 +24,7 @@ const SELECT = {
 @Injectable()
 export class AttendanceService {
   constructor(
-    private readonly av30ActivityService: Av30ActivityService,
+    @Optional() private readonly av30ActivityService: Av30ActivityService | undefined,
     private readonly requestContext: PathwayRequestContext,
   ) {}
 
@@ -228,15 +229,17 @@ export class AttendanceService {
       }
     }
 
-    await this.av30ActivityService
-      .recordActivityForCurrentUser(
-        this.requestContext,
-        Av30ActivityType.ATTENDANCE_RECORDED,
-        now,
-      )
-      .catch((err) => {
-        console.error("Failed to record AV30 activity for attendance", err);
-      });
+    if (this.av30ActivityService) {
+      await this.av30ActivityService
+        .recordActivityForCurrentUser(
+          this.requestContext,
+          Av30ActivityType.ATTENDANCE_RECORDED,
+          now,
+        )
+        .catch((err) => {
+          console.error("Failed to record AV30 activity for attendance", err);
+        });
+    }
 
     return this.getSessionAttendanceDetail(sessionId, tenantId);
   }
@@ -305,16 +308,18 @@ export class AttendanceService {
     });
 
     // Record AV30 activity: staff user recorded attendance
-    await this.av30ActivityService
-      .recordActivityForCurrentUser(
-        this.requestContext,
-        Av30ActivityType.ATTENDANCE_RECORDED,
-        input.timestamp ?? new Date(),
-      )
-      .catch((err) => {
-        // Log but don't fail the attendance creation if AV30 recording fails
-        console.error("Failed to record AV30 activity for attendance", err);
-      });
+    if (this.av30ActivityService) {
+      await this.av30ActivityService
+        .recordActivityForCurrentUser(
+          this.requestContext,
+          Av30ActivityType.ATTENDANCE_RECORDED,
+          input.timestamp ?? new Date(),
+        )
+        .catch((err) => {
+          // Log but don't fail the attendance creation if AV30 recording fails
+          console.error("Failed to record AV30 activity for attendance", err);
+        });
+    }
 
     return created;
   }
@@ -380,19 +385,21 @@ export class AttendanceService {
     });
 
     // Record AV30 activity: staff user updated attendance
-    await this.av30ActivityService
-      .recordActivityForCurrentUser(
-        this.requestContext,
-        Av30ActivityType.ATTENDANCE_RECORDED,
-        input.timestamp ?? updated.timestamp,
-      )
-      .catch((err) => {
-        // Log but don't fail the attendance update if AV30 recording fails
-        console.error(
-          "Failed to record AV30 activity for attendance update",
-          err,
-        );
-      });
+    if (this.av30ActivityService) {
+      await this.av30ActivityService
+        .recordActivityForCurrentUser(
+          this.requestContext,
+          Av30ActivityType.ATTENDANCE_RECORDED,
+          input.timestamp ?? updated.timestamp,
+        )
+        .catch((err) => {
+          // Log but don't fail the attendance update if AV30 recording fails
+          console.error(
+            "Failed to record AV30 activity for attendance update",
+            err,
+          );
+        });
+    }
 
     return updated;
   }

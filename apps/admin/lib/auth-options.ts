@@ -1,5 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import Auth0Provider from "next-auth/providers/auth0";
+import https from "node:https";
+import http from "node:http";
 
 const apiBaseUrl =
   process.env.ADMIN_INTERNAL_API_URL ??
@@ -9,10 +11,15 @@ const apiBaseUrl =
 
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET;
 
-// If the API is served over HTTPS with a self-signed cert (e.g. api.localhost), Node's
-// server-side fetch can fail with UNABLE_TO_VERIFY_LEAF_SIGNATURE. For local dev only,
-// set NODE_TLS_REJECT_UNAUTHORIZED=0 when starting the admin app, or use HTTP for the
-// API (e.g. NEXT_PUBLIC_API_URL=http://localhost:3001 and ADMIN_INTERNAL_API_URL=http://localhost:3001).
+// For local dev: Node's fetch rejects self-signed certs (api.localhost). Use an agent
+// that skips TLS verification when calling localhost HTTPS.
+const isLocalhostHttps =
+  apiBaseUrl.startsWith("https://") &&
+  (apiBaseUrl.includes("localhost") || apiBaseUrl.includes("127.0.0.1"));
+const insecureAgent =
+  process.env.NODE_ENV !== "production" && isLocalhostHttps
+    ? new https.Agent({ rejectUnauthorized: false })
+    : undefined;
 
 /**
  * Check if a string looks like an email address.
@@ -45,38 +52,67 @@ async function upsertIdentityToApi(payload: {
   }
 
   try {
-    console.log(`[🔐 AUTH] Calling ${apiBaseUrl}/internal/auth/identity/upsert...`);
-    const response = await fetch(`${apiBaseUrl}/internal/auth/identity/upsert`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-pathway-internal-secret": INTERNAL_AUTH_SECRET,
-      },
-      body: JSON.stringify(payload),
-    });
+    const url = new URL(`${apiBaseUrl}/internal/auth/identity/upsert`);
+    const body = JSON.stringify(payload);
+    console.log(`[🔐 AUTH] Calling ${url.toString()}...`);
 
-    console.log(`[🔐 AUTH] API response status: ${response.status}`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `❌ [AUTH] Identity upsert FAILED - Status: ${response.status}, Body: ${errorText}`,
-      );
-      return {};
-    }
-
-    const result = (await response.json()) as {
+    const result = await new Promise<{
       userId?: string;
       email?: string | null;
       displayName?: string | null;
-    };
-
-    console.log("✅ [AUTH] Identity upsert SUCCESS:");
-    console.log({
-      userId: result.userId,
-      email: result.email,
-      displayName: result.displayName,
+    }>((resolve, reject) => {
+      const isHttps = url.protocol === "https:";
+      const protocol = isHttps ? https : http;
+      const req = protocol.request(
+        url,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(body),
+            "x-pathway-internal-secret": INTERNAL_AUTH_SECRET ?? "",
+          },
+          ...(isHttps && insecureAgent ? { agent: insecureAgent } : {}),
+        },
+        (res) => {
+          console.log(`[🔐 AUTH] API response status: ${res.statusCode}`);
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString();
+            if (res.statusCode && res.statusCode >= 400) {
+              console.error(
+                `❌ [AUTH] Identity upsert FAILED - Status: ${res.statusCode}, Body: ${text}`,
+              );
+              resolve({});
+              return;
+            }
+            try {
+              const parsed = JSON.parse(text) as {
+                userId?: string;
+                email?: string | null;
+                displayName?: string | null;
+              };
+              resolve(parsed);
+            } catch {
+              resolve({});
+            }
+          });
+        },
+      );
+      req.on("error", reject);
+      req.write(body);
+      req.end();
     });
+
+    if (result.userId || result.email || result.displayName) {
+      console.log("✅ [AUTH] Identity upsert SUCCESS:");
+      console.log({
+        userId: result.userId,
+        email: result.email,
+        displayName: result.displayName,
+      });
+    }
 
     return result;
   } catch (error) {
@@ -95,6 +131,68 @@ async function upsertIdentityToApi(payload: {
       console.error("❌ [AUTH] Identity upsert exception:", error);
     }
     return {};
+  }
+}
+
+export type UserRolesFromApi = {
+  userId: string;
+  currentOrgIsMasterOrg?: boolean;
+  orgRoles: Array<{ orgId: string; role: string }>;
+  siteRoles: Array<{ tenantId: string; role: string }>;
+  orgMemberships: Array<{ orgId: string; orgName: string; role: string }>;
+  siteMemberships: Array<{
+    tenantId: string;
+    tenantName: string;
+    orgId: string;
+    role: string;
+  }>;
+};
+
+async function fetchRolesFromApi(accessToken: string): Promise<UserRolesFromApi | null> {
+  try {
+    const url = new URL(`${apiBaseUrl}/auth/active-site/roles`);
+
+    const result = await new Promise<UserRolesFromApi | null>((resolve, reject) => {
+      const isHttps = url.protocol === "https:";
+      const protocol = isHttps ? https : http;
+      const req = protocol.request(
+        url,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          ...(isHttps && insecureAgent ? { agent: insecureAgent } : {}),
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString();
+            if (res.statusCode && res.statusCode >= 400) {
+              console.warn(
+                `[🔐 AUTH] Roles fetch failed: ${res.statusCode} - ${text.slice(0, 200)}`,
+              );
+              resolve(null);
+              return;
+            }
+            try {
+              resolve(JSON.parse(text) as UserRolesFromApi);
+            } catch {
+              resolve(null);
+            }
+          });
+        },
+      );
+      req.on("error", (err) => {
+        console.warn("[🔐 AUTH] Roles fetch error:", err);
+        resolve(null);
+      });
+      req.end();
+    });
+
+    return result ?? null;
+  } catch (err) {
+    console.warn("[🔐 AUTH] Roles fetch exception:", err);
+    return null;
   }
 }
 
@@ -127,6 +225,14 @@ export const authOptions: NextAuthOptions = {
           email: (profile as any)?.email ?? (token as any).email,
           name: (profile as any)?.name,
           hasAccount: !!account,
+          userId: (token as any).userId,
+          displayName: (token as any).displayName,
+          rolesInToken: (token as any).roles
+            ? {
+                orgRoles: (token as any).roles.orgRoles?.length ?? 0,
+                siteRoles: (token as any).roles.siteRoles?.length ?? 0,
+              }
+            : undefined,
         });
 
         // On first login, persist tokens into the JWT
@@ -165,6 +271,21 @@ export const authOptions: NextAuthOptions = {
           if (identity.displayName) {
             (token as any).displayName = identity.displayName;
           }
+
+          // Fetch roles from API and store in token for session
+          const accessToken = account?.access_token;
+          if (accessToken) {
+            const roles = await fetchRolesFromApi(accessToken);
+            if (roles) {
+              (token as any).roles = roles;
+              console.log("[🔐 AUTH] Roles fetched:", {
+                orgRoles: roles.orgRoles.length,
+                siteRoles: roles.siteRoles.length,
+                orgMemberships: roles.orgMemberships.length,
+                siteMemberships: roles.siteMemberships.length,
+              });
+            }
+          }
         }
 
         return token;
@@ -184,6 +305,9 @@ export const authOptions: NextAuthOptions = {
         }
         if ((token as any).displayName) {
           session.user!.name = (token as any).displayName;
+        }
+        if ((token as any).roles) {
+          (session as any).roles = (token as any).roles;
         }
         return session;
       } catch (err) {

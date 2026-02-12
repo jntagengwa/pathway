@@ -15,6 +15,12 @@ import { AuthUserGuard } from "./auth-user.guard";
 interface AuthenticatedRequest extends Request {
   authUserId?: string;
   authCookies?: Record<string, string>;
+  __pathwayContext?: {
+    tenant?: { tenantId?: string; orgId?: string };
+    org?: { orgId?: string };
+    siteRole?: string | null;
+    roles?: { org?: string[]; tenant?: string[] };
+  };
 }
 
 const ACTIVE_SITE_COOKIE = "pw_active_site_id";
@@ -162,6 +168,59 @@ export class ActiveSiteController {
     });
 
     return result;
+  }
+
+  /**
+   * Returns the resolved auth context for the current request.
+   * Use for debugging: shows what the AuthUserGuard resolved (siteRole, tenantId, etc.)
+   * and whether cookies were received.
+   */
+  @UseGuards(AuthUserGuard)
+  @Get("debug-context")
+  async getDebugContext(@Req() req: AuthenticatedRequest) {
+    const userId = req.authUserId;
+    if (!userId) {
+      throw new UnauthorizedException("Missing authenticated user");
+    }
+    const ctx = req.__pathwayContext;
+    const cookieSiteId = req.cookies?.pw_active_site_id;
+    const cookieOrgId = req.cookies?.pw_active_org_id;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveTenantId: true },
+    });
+    const siteMemberships = await prisma.siteMembership.findMany({
+      where: { userId },
+      select: { tenantId: true, role: true },
+    });
+    const orgMemberships = await prisma.orgMembership.findMany({
+      where: { userId },
+      select: { orgId: true, role: true },
+    });
+    return {
+      resolvedContext: ctx
+        ? {
+            tenantId: ctx.tenant?.tenantId ?? null,
+            orgId: ctx.org?.orgId ?? ctx.tenant?.orgId ?? null,
+            siteRole: ctx.siteRole ?? null,
+            rolesOrg: ctx.roles?.org ?? [],
+            rolesTenant: ctx.roles?.tenant ?? [],
+          }
+        : null,
+      cookies: {
+        pw_active_site_id: cookieSiteId ?? "(not set)",
+        pw_active_org_id: cookieOrgId ?? "(not set)",
+      },
+      userLastActiveTenantId: user?.lastActiveTenantId ?? null,
+      dbSiteMemberships: siteMemberships.map((m) => ({
+        tenantId: m.tenantId,
+        role: m.role,
+      })),
+      dbOrgMemberships: orgMemberships.map((m) => ({
+        orgId: m.orgId,
+        role: m.role,
+      })),
+    };
   }
 
   @UseGuards(AuthUserGuard)

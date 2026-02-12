@@ -55,6 +55,7 @@ describe("AttendanceService", () => {
     firstName: "Test",
     lastName: "Child",
     preferredName: null,
+    dateOfBirth: null,
     allergies: "none",
     additionalNeedsNotes: null,
     schoolName: null,

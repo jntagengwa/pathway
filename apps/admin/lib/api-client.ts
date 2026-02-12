@@ -581,6 +581,34 @@ export async function fetchUserRoles(): Promise<UserRolesResponse> {
   return (await response.json()) as UserRolesResponse;
 }
 
+/**
+ * Debug endpoint: returns resolved auth context (siteRole, tenantId, cookies, DB memberships).
+ * Use when debugging staff attendance 403 or role resolution issues.
+ */
+export async function fetchAuthDebugContext(): Promise<{
+  resolvedContext: {
+    tenantId: string | null;
+    orgId: string | null;
+    siteRole: string | null;
+    rolesOrg: string[];
+    rolesTenant: string[];
+  } | null;
+  cookies: { pw_active_site_id: string; pw_active_org_id: string };
+  userLastActiveTenantId: string | null;
+  dbSiteMemberships: Array<{ tenantId: string; role: string }>;
+  dbOrgMemberships: Array<{ orgId: string; role: string }>;
+}> {
+  const response = await fetch(`${API_BASE_URL}/auth/active-site/debug-context`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch debug context: ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function setActiveSite(siteId: string): Promise<ActiveSiteState> {
   if (!siteId) {
     throw new Error("siteId is required");
@@ -1065,6 +1093,108 @@ export async function fetchSessionById(
   }
 }
 
+/** Staff attendance roster item from GET /sessions/:id/staff-attendance */
+export type StaffAttendanceRosterItem = {
+  staffUserId: string;
+  displayName: string;
+  roleLabel: string;
+  assigned: boolean;
+  attendanceStatus: "PRESENT" | "ABSENT" | "UNKNOWN";
+};
+
+export async function fetchSessionStaffAttendance(
+  sessionId: string,
+): Promise<StaffAttendanceRosterItem[]> {
+  if (isUsingMockApi()) {
+    return [];
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}/staff-attendance`,
+    { headers: buildAuthHeaders(), credentials: "include", cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch staff attendance: ${res.status} ${body || res.statusText}`,
+    );
+  }
+  return (await res.json()) as StaffAttendanceRosterItem[];
+}
+
+export async function upsertSessionStaffAttendance(
+  sessionId: string,
+  payload: { staffUserId: string; status: "PRESENT" | "ABSENT" | "UNKNOWN" },
+): Promise<StaffAttendanceRosterItem[]> {
+  if (isUsingMockApi()) {
+    throw new Error(
+      "Cannot upsert staff attendance: API base URL is not set. Set NEXT_PUBLIC_API_URL.",
+    );
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}/staff-attendance`,
+    {
+      method: "PATCH",
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update staff attendance: ${res.status} ${body || res.statusText}`,
+    );
+  }
+  return (await res.json()) as StaffAttendanceRosterItem[];
+}
+
+export type ExportAttendanceParams = {
+  scope: "site" | "child" | "staff";
+  id?: string;
+  from: string;
+  to: string;
+  type?: "children" | "staff" | "all";
+};
+
+/** Triggers a CSV download for attendance export. Uses fetch + blob. */
+export async function exportAttendanceCsv(params: ExportAttendanceParams): Promise<void> {
+  if (isUsingMockApi()) {
+    throw new Error(
+      "Cannot export attendance: API base URL is not set. Set NEXT_PUBLIC_API_URL.",
+    );
+  }
+  const { scope, id, from, to, type } = params;
+  let url: string;
+  if (scope === "site") {
+    url = `${API_BASE_URL}/exports/attendance/site?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${type ? `&type=${encodeURIComponent(type)}` : ""}`;
+  } else if (scope === "child" && id) {
+    url = `${API_BASE_URL}/exports/attendance/child/${encodeURIComponent(id)}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  } else if (scope === "staff" && id) {
+    url = `${API_BASE_URL}/exports/attendance/staff/${encodeURIComponent(id)}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  } else {
+    throw new Error("Export requires id for child or staff scope");
+  }
+  const res = await fetch(url, {
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to export attendance: ${res.status} ${body || res.statusText}`);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="([^"]+)"/);
+  const filename = match?.[1] ?? "nexsteps-attendance-export.csv";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchSessions(): Promise<AdminSessionRow[]> {
   const useMock = isUsingMockApi();
@@ -1534,9 +1664,9 @@ export async function createAssignment(
 ): Promise<AdminAssignmentRow> {
   const roleForApi =
     input.role === "Lead"
-      ? "TEACHER"
+      ? "LEAD"
       : input.role === "Support"
-        ? "TEACHER"
+        ? "SUPPORT"
         : input.role;
   const payload = {
     sessionId: input.sessionId,
@@ -1598,10 +1728,18 @@ export async function updateAssignment(
           : rawStatus.toUpperCase()
     : undefined;
 
+  const roleForApi = input.role
+    ? input.role === "Lead"
+      ? "LEAD"
+      : input.role === "Support"
+        ? "SUPPORT"
+        : input.role
+    : undefined;
+
   const payload = {
     ...(input.sessionId ? { sessionId: input.sessionId } : {}),
     ...(input.staffId ? { userId: input.staffId } : {}),
-    ...(input.role ? { role: input.role } : {}),
+    ...(roleForApi ? { role: roleForApi } : {}),
     ...(normalizedStatus ? { status: normalizedStatus } : {}),
   };
 
@@ -1818,15 +1956,18 @@ type ApiChild = {
   disabilities: string[] | null;
   additionalNeeds?: string[] | null;
   groupId: string | null;
+  group?: { id: string; name: string } | null;
   tenantId: string;
   createdAt: string;
   updatedAt: string;
   preferredName?: string | null;
+  yearGroup?: string | null;
   ageGroup?: string | null;
   ageGroupLabel?: string | null;
   primaryGroup?: string | null;
   primaryGroupLabel?: string | null;
   hasPhotoConsent?: boolean | null;
+  photoConsent?: boolean | null;
   status?: string | null;
 };
 
@@ -1836,9 +1977,14 @@ const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
   id: c.id,
   fullName: `${c.firstName} ${c.lastName}`.trim(),
   preferredName: c.preferredName ?? null,
-  ageGroup: c.ageGroupLabel ?? c.ageGroup ?? "-",
-  primaryGroup: c.primaryGroupLabel ?? c.primaryGroup ?? c.groupId ?? "-",
-  hasPhotoConsent: Boolean(c.hasPhotoConsent),
+  ageGroup: c.ageGroupLabel ?? c.ageGroup ?? c.yearGroup ?? "-",
+  primaryGroup:
+    c.group?.name ??
+    c.primaryGroupLabel ??
+    c.primaryGroup ??
+    c.groupId ??
+    "-",
+  hasPhotoConsent: Boolean(c.hasPhotoConsent ?? c.photoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:
     (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
@@ -1850,8 +1996,13 @@ const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
   id: c.id,
   fullName: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "Child",
   preferredName: c.preferredName ?? null,
-  ageGroupLabel: c.ageGroupLabel ?? c.ageGroup ?? null,
-  primaryGroupLabel: c.primaryGroupLabel ?? c.primaryGroup ?? c.groupId ?? null,
+  ageGroupLabel: c.ageGroupLabel ?? c.ageGroup ?? c.yearGroup ?? null,
+  primaryGroupLabel:
+    c.group?.name ??
+    c.primaryGroupLabel ??
+    c.primaryGroup ??
+    c.groupId ??
+    null,
   hasPhotoConsent: Boolean(c.hasPhotoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:

@@ -44,6 +44,10 @@ describe("SessionsService", () => {
     (args: Prisma.GroupFindManyArgs) => Promise<{ id: string }[]>
   >;
 
+  const aGroupBy = jest.fn();
+  const aCount = jest.fn();
+  const cCount = jest.fn();
+
   const svc = new SessionsService();
 
   const now = new Date("2025-09-13T12:00:00Z");
@@ -106,6 +110,10 @@ describe("SessionsService", () => {
       .mockImplementation(
         gFindMany as unknown as typeof realPrisma.group.findMany,
       );
+
+    jest.spyOn(realPrisma.attendance, "groupBy").mockImplementation(aGroupBy);
+    jest.spyOn(realPrisma.attendance, "count").mockImplementation(aCount);
+    jest.spyOn(realPrisma.child, "count").mockImplementation(cCount);
   });
 
   afterEach(() => {
@@ -113,12 +121,18 @@ describe("SessionsService", () => {
   });
 
   describe("list", () => {
-    it("returns sessions (optionally filtered)", async () => {
+    it("returns sessions (optionally filtered) with attendance counts", async () => {
       sFindMany.mockResolvedValue([base]);
+      aGroupBy.mockResolvedValue([]);
+      cCount.mockResolvedValue(0);
 
       const resAll = await svc.list({ tenantId: ids.tenant });
       expect(Array.isArray(resAll)).toBe(true);
       expect(resAll[0].id).toBe(base.id);
+      expect(resAll[0]).toMatchObject({
+        attendanceMarked: 0,
+        attendanceTotal: 0,
+      });
       expect(sFindMany).toHaveBeenLastCalledWith({
         where: { tenantId: ids.tenant },
         orderBy: { startsAt: "asc" },
@@ -130,10 +144,18 @@ describe("SessionsService", () => {
   });
 
   describe("getById", () => {
-    it("returns a session when found", async () => {
+    it("returns a session when found with attendance counts", async () => {
       sFindFirst.mockResolvedValue(base);
+      aCount.mockResolvedValue(3);
+      cCount.mockResolvedValue(12);
       const res = await svc.getById(base.id, ids.tenant);
       expect(res.id).toBe(base.id);
+      expect(res.attendanceMarked).toBe(3);
+      expect(res.attendanceTotal).toBe(12);
+      expect(aCount).toHaveBeenCalledWith({ where: { sessionId: base.id } });
+      expect(cCount).toHaveBeenCalledWith({
+        where: { tenantId: ids.tenant, groupId: { in: [ids.group] } },
+      });
       expect(sFindFirst).toHaveBeenCalledWith({
         where: { id: base.id, tenantId: ids.tenant },
         include: {

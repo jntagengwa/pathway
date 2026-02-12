@@ -3,11 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, BadgeCheck, User, Users } from "lucide-react";
-import { Badge, Button, Card } from "@pathway/ui";
-import { canAccessSafeguardingAdmin } from "../../../lib/access";
+import { ArrowLeft, BadgeCheck, Download, User, Users } from "lucide-react";
+import { Badge, Button, Card, Input, Label } from "@pathway/ui";
+import { canAccessAdminSection, canAccessSafeguardingAdmin } from "../../../lib/access";
 import { useAdminAccess } from "../../../lib/use-admin-access";
-import { AdminChildDetail, fetchChildById } from "../../../lib/api-client";
+import {
+  AdminChildDetail,
+  exportAttendanceCsv,
+  fetchChildById,
+} from "../../../lib/api-client";
 
 const statusTone: Record<AdminChildDetail["status"], "success" | "default"> = {
   active: "success",
@@ -23,7 +27,17 @@ export default function ChildDetailPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportFrom, setExportFrom] = React.useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [exportTo, setExportTo] = React.useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
   const { role, isLoading: isLoadingAccess } = useAdminAccess();
+  const isAdmin = canAccessAdminSection(role);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -202,6 +216,61 @@ export default function ChildDetailPage() {
               <div>Age group: {child.ageGroupLabel ?? "Not set"}</div>
             </div>
           </Card>
+
+          {isAdmin && (
+            <Card
+              title="Export attendance record"
+              description="Download this child's attendance for a date range."
+              className="min-w-0"
+            >
+              <div className="flex min-w-0 flex-col flex-wrap gap-3 sm:flex-row sm:items-end sm:gap-4">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Label htmlFor="child-export-from">From</Label>
+                  <div className="max-w-[10rem] overflow-hidden">
+                    <Input
+                      id="child-export-from"
+                      type="date"
+                      value={exportFrom}
+                      onChange={(e) => setExportFrom(e.target.value)}
+                      className="w-full min-w-0"
+                    />
+                  </div>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Label htmlFor="child-export-to">To</Label>
+                  <div className="max-w-[10rem] overflow-hidden">
+                    <Input
+                      id="child-export-to"
+                      type="date"
+                      value={exportTo}
+                      onChange={(e) => setExportTo(e.target.value)}
+                      className="w-full min-w-0"
+                    />
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={exporting}
+                  onClick={async () => {
+                    setExporting(true);
+                    try {
+                      await exportAttendanceCsv({
+                        scope: "child",
+                        id: childId,
+                        from: exportFrom,
+                        to: exportTo,
+                      });
+                    } finally {
+                      setExporting(false);
+                    }
+                  }}
+                >
+                  <Download className="mr-1 h-4 w-4" />
+                  {exporting ? "Exporting…" : "Export CSV"}
+                </Button>
+              </div>
+            </Card>
+          )}
 
           <Card title="Safeguarding">
             <p className="text-sm text-text-muted">

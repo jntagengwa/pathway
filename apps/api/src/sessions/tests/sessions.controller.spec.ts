@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { SessionsController } from "../sessions.controller";
 import { SessionsService } from "../sessions.service";
+import { StaffAttendanceService } from "../staff-attendance.service";
 import { CreateSessionDto } from "../dto/create-session.dto";
 import { UpdateSessionDto } from "../dto/update-session.dto";
 import { PathwayAuthGuard } from "@pathway/auth";
@@ -27,6 +28,8 @@ interface SessionShape {
   updatedAt: Date;
   groups: { id: string; name: string }[];
   lessons: LessonShape[];
+  attendanceMarked: number;
+  attendanceTotal: number;
 }
 
 describe("SessionsController", () => {
@@ -44,22 +47,39 @@ describe("SessionsController", () => {
     updatedAt: new Date("2024-12-31T00:00:00Z"),
     groups: [{ id: "g1", name: "Kids" }],
     lessons: [],
+    attendanceMarked: 0,
+    attendanceTotal: 0,
   };
 
-  const serviceMock: jest.Mocked<
-    Pick<SessionsService, "list" | "getById" | "create" | "update">
+  const staffUserId = "22222222-2222-2222-2222-222222222222";
+  const staffAttendanceRoster = [
+    {
+      staffUserId,
+      displayName: "Staff One",
+      roleLabel: "Lead",
+      assigned: true,
+      attendanceStatus: "PRESENT" as const,
+    },
+  ];
+
+  const staffAttendanceMock: jest.Mocked<
+    Pick<StaffAttendanceService, "getRoster" | "upsert">
   > = {
-    list: jest.fn<
-      Promise<SessionShape[]>,
-      [{ tenantId: string; groupId?: string }]
-    >(),
+    getRoster: jest.fn().mockResolvedValue(staffAttendanceRoster),
+    upsert: jest.fn().mockResolvedValue(staffAttendanceRoster),
+  };
+
+  const serviceMock = {
+    list: jest.fn<Promise<SessionShape[]>, [SessionListFilters]>(),
     getById: jest.fn<Promise<SessionShape>, [string, string]>(),
     create: jest.fn<Promise<SessionShape>, [CreateSessionDto, string]>(),
     update: jest.fn<
       Promise<SessionShape>,
       [string, UpdateSessionDto, string]
     >(),
-  };
+  } as jest.Mocked<Pick<SessionsService, "list" | "getById" | "create" | "update">>;
+
+  type SessionListFilters = Parameters<SessionsService["list"]>[0];
 
   const enforcementMock: jest.Mocked<
     Pick<
@@ -80,11 +100,14 @@ describe("SessionsController", () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    staffAttendanceMock.getRoster.mockResolvedValue(staffAttendanceRoster);
+    staffAttendanceMock.upsert.mockResolvedValue(staffAttendanceRoster);
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SessionsController],
       providers: [
         { provide: SessionsService, useValue: serviceMock },
+        { provide: StaffAttendanceService, useValue: staffAttendanceMock },
         {
           provide: EntitlementsEnforcementService,
           useValue: enforcementMock,
@@ -198,5 +221,37 @@ describe("SessionsController", () => {
       controller.update("sess-1", bad, tenantId),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(serviceMock.update).not.toHaveBeenCalled();
+  });
+
+  it("getStaffAttendance should return roster", async () => {
+    const res = await controller.getStaffAttendance(
+      baseSession.id,
+      tenantId,
+    );
+    expect(res).toEqual(staffAttendanceRoster);
+    expect(staffAttendanceMock.getRoster).toHaveBeenCalledWith(
+      baseSession.id,
+      tenantId,
+    );
+  });
+
+  it("patchStaffAttendance should require auth and call upsert", async () => {
+    const markerUserId = "33333333-3333-3333-3333-333333333333";
+    const req = { authUserId: markerUserId } as Parameters<
+      typeof controller.patchStaffAttendance
+    >[2];
+    const res = await controller.patchStaffAttendance(
+      baseSession.id,
+      { staffUserId: "22222222-2222-2222-2222-222222222222", status: "PRESENT" },
+      req,
+      tenantId,
+    );
+    expect(res).toEqual(staffAttendanceRoster);
+    expect(staffAttendanceMock.upsert).toHaveBeenCalledWith(
+      baseSession.id,
+      tenantId,
+      markerUserId,
+      { staffUserId: "22222222-2222-2222-2222-222222222222", status: "PRESENT" },
+    );
   });
 });

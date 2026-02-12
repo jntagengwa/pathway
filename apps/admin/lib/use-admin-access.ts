@@ -84,13 +84,19 @@ export function useAdminAccess(): UseAdminAccessResult {
     };
   }, [sessionStatus, session]);
 
+  // Use API response when available; fall back to roles from session (set at login)
+  const rolesSource = rolesResponse ?? (session as { roles?: UserRolesResponse })?.roles;
+
   const role = useMemo(
-    () => getAdminRoleInfoFromApiResponse(rolesResponse),
-    [rolesResponse],
+    () => getAdminRoleInfoFromApiResponse(rolesSource),
+    [rolesSource],
   );
 
-  const currentOrgIsMasterOrg = rolesResponse?.currentOrgIsMasterOrg ?? false;
-  const isLoading = sessionStatus === "loading" || isLoadingRoles;
+  const currentOrgIsMasterOrg = rolesSource?.currentOrgIsMasterOrg ?? false;
+  // Consider loaded when we have roles from session or API
+  const hasRoles = !!rolesSource;
+  const isLoading =
+    sessionStatus === "loading" || (isLoadingRoles && !hasRoles);
 
   return {
     role,

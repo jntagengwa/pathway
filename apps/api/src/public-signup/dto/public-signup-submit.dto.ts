@@ -81,6 +81,16 @@ export class ChildSignupDto {
   @MaxLength(100)
   preferredName?: string;
 
+  /** ISO date string YYYY-MM-DD */
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  @ValidateIf((o) => o.dateOfBirth != null && o.dateOfBirth !== "")
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "Date of birth must be in YYYY-MM-DD format",
+  })
+  dateOfBirth?: string;
+
   @IsOptional()
   @IsUUID()
   groupId?: string;

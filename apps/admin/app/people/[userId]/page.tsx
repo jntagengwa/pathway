@@ -3,10 +3,13 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Mail } from "lucide-react";
-import { Badge, Button, Card } from "@pathway/ui";
+import { ArrowLeft, Download, Mail } from "lucide-react";
+import { Badge, Button, Card, Input, Label } from "@pathway/ui";
+import { canAccessAdminSection } from "../../../lib/access";
+import { useAdminAccess } from "../../../lib/use-admin-access";
 import {
   AdminStaffDetail,
+  exportAttendanceCsv,
   fetchStaffById,
 } from "../../../lib/api-client";
 
@@ -25,6 +28,17 @@ export default function StaffDetailPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportFrom, setExportFrom] = React.useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [exportTo, setExportTo] = React.useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const { role, isLoading: isLoadingAccess } = useAdminAccess();
+  const isAdmin = canAccessAdminSection(role);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -143,6 +157,56 @@ export default function StaffDetailPage() {
               </div>
             </div>
           </Card>
+
+          {isAdmin && (
+            <Card
+              title="Export schedule & presence"
+              description="Download this staff member's assignments and presence for a date range."
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="staff-export-from">From</Label>
+                  <Input
+                    id="staff-export-from"
+                    type="date"
+                    value={exportFrom}
+                    onChange={(e) => setExportFrom(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="staff-export-to">To</Label>
+                  <Input
+                    id="staff-export-to"
+                    type="date"
+                    value={exportTo}
+                    onChange={(e) => setExportTo(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  disabled={exporting}
+                  onClick={async () => {
+                    setExporting(true);
+                    try {
+                      await exportAttendanceCsv({
+                        scope: "staff",
+                        id: userId,
+                        from: exportFrom,
+                        to: exportTo,
+                      });
+                    } finally {
+                      setExporting(false);
+                    }
+                  }}
+                >
+                  <Download className="mr-1 h-4 w-4" />
+                  {exporting ? "Exporting…" : "Export CSV"}
+                </Button>
+              </div>
+            </Card>
+          )}
 
           <Card title="Roles">
             <div className="flex flex-wrap gap-2 text-sm">
