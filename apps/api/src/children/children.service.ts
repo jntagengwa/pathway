@@ -25,6 +25,9 @@ const childSelect = {
   group: {
     select: { id: true, name: true },
   },
+  guardians: {
+    select: { id: true },
+  },
 } as const;
 
 @Injectable()
@@ -44,6 +47,34 @@ export class ChildrenService {
     });
     if (!child) throw new NotFoundException("Child not found");
     return child;
+  }
+
+  /**
+   * Returns photo bytes when child has photoConsent and (photoBytes or photoKey).
+   * Returns null when no photo available (no consent, or no bytes/key).
+   */
+  async getPhoto(
+    id: string,
+    tenantId: string,
+  ): Promise<{ buffer: Buffer; contentType: string } | null> {
+    const child = await prisma.child.findFirst({
+      where: { id, tenantId },
+      select: {
+        photoConsent: true,
+        photoBytes: true,
+        photoContentType: true,
+        photoKey: true,
+      },
+    });
+    if (!child || !child.photoConsent) return null;
+    if (child.photoBytes && child.photoBytes.length > 0) {
+      const buffer = child.photoBytes instanceof Buffer ? child.photoBytes : Buffer.from(child.photoBytes);
+      const contentType = child.photoContentType ?? "image/jpeg";
+      return { buffer, contentType };
+    }
+    // TODO: when S3/photoKey is used, fetch and return signed URL or stream
+    if (child.photoKey) return null;
+    return null;
   }
 
   /**
@@ -160,7 +191,13 @@ export class ChildrenService {
       data: {
         ...(input.firstName ? { firstName: input.firstName.trim() } : {}),
         ...(input.lastName ? { lastName: input.lastName.trim() } : {}),
+        ...(input.preferredName !== undefined
+          ? { preferredName: input.preferredName }
+          : {}),
         ...(input.photoKey !== undefined ? { photoKey: input.photoKey } : {}),
+        ...(input.photoConsent !== undefined
+          ? { photoConsent: input.photoConsent }
+          : {}),
         ...(input.allergies !== undefined
           ? { allergies: input.allergies }
           : {}),

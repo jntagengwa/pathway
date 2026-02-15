@@ -118,8 +118,12 @@ export class InvitesService {
     // Create user in DB and Auth0 if they don't exist
     await this.ensureUserExistsForInvite(normalizedEmail, dto.name?.trim() || null);
 
-    // Send invite email
-    const baseUrl = process.env.ADMIN_URL || "https://localhost:3000";
+    // Send invite email (admin app URL; app subdomain in prod and local Caddy)
+    const baseUrl =
+      process.env.ADMIN_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://app.nexsteps.dev"
+        : "https://app.localhost:3000");
     const inviteUrl = `${baseUrl}/accept-invite?token=${rawToken}`;
     const invitedByName =
       invite.createdBy.displayName || invite.createdBy.name || "A team member";
@@ -298,8 +302,12 @@ export class InvitesService {
       },
     });
 
-    // Resend invite email
-    const baseUrl = process.env.ADMIN_URL || "https://localhost:3000";
+    // Resend invite email (admin app URL; app subdomain in prod and local Caddy)
+    const baseUrl =
+      process.env.ADMIN_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://app.nexsteps.dev"
+        : "https://app.localhost:3000");
     const inviteUrl = `${baseUrl}/accept-invite?token=${rawToken}`;
     const invitedByName =
       updated.createdBy.displayName || updated.createdBy.name || "A team member";

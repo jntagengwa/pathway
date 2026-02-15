@@ -6,6 +6,8 @@ import Link from "next/link";
 import {
   fetchPublicSignupConfig,
   submitPublicSignup,
+  submitExistingUserSignup,
+  signupPreflight,
   type PublicSignupConfig,
   type PublicSignupSubmitPayload,
 } from "../../../lib/public-signup-client";
@@ -94,6 +96,9 @@ function SignupContent() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preflightMode, setPreflightMode] = useState<
+    "idle" | "checking" | "EXISTING_USER" | "NEW_USER"
+  >("idle");
 
   useEffect(() => {
     if (!token.trim()) {
@@ -126,6 +131,21 @@ function SignupContent() {
     setChildren((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     );
+  };
+
+  const runPreflight = async () => {
+    const email = parentEmail.trim().toLowerCase();
+    if (!email || !email.includes("@") || !token.trim()) return;
+    setPreflightMode("checking");
+    try {
+      const result = await signupPreflight(token, email);
+      setPreflightMode(result.mode);
+      if (result.mode === "EXISTING_USER" && result.displayName) {
+        setParentName(result.displayName);
+      }
+    } catch {
+      setPreflightMode("idle");
+    }
   };
 
   const addEmergency = () => setEmergencyContacts((prev) => [...prev, defaultEmergency()]);
@@ -186,17 +206,44 @@ function SignupContent() {
       return;
     }
 
-    if (parentPassword.length < 8) {
+    if (preflightMode === "idle" || preflightMode === "checking") {
+      setPreflightMode("checking");
+      try {
+        const result = await signupPreflight(token, parentEmail.trim().toLowerCase());
+        setPreflightMode(result.mode);
+        if (result.mode === "EXISTING_USER") {
+          setSubmitStatus("error");
+          setSubmitError("");
+          return;
+        }
+      } catch {
+        setPreflightMode("idle");
+        setSubmitStatus("error");
+        setSubmitError("Could not verify email. Please try again.");
+        return;
+      }
+    }
+
+    const isExistingUser = preflightMode === "EXISTING_USER";
+
+    // New users: enforce password rules. Existing users: only verify non-empty (they already have a password).
+    if (!isExistingUser) {
+      if (parentPassword.length < 8) {
+        setSubmitStatus("error");
+        setSubmitError("Password must be at least 8 characters.");
+        return;
+      }
+      if (!PASSWORD_REGEX.test(parentPassword)) {
+        setSubmitStatus("error");
+        setSubmitError("Password must include at least one letter and one number.");
+        return;
+      }
+    } else if (!parentPassword.trim()) {
       setSubmitStatus("error");
-      setSubmitError("Password must be at least 8 characters.");
+      setSubmitError("Please enter your password.");
       return;
     }
-    if (!PASSWORD_REGEX.test(parentPassword)) {
-      setSubmitStatus("error");
-      setSubmitError("Password must include at least one letter and one number.");
-      return;
-    }
-    if (parentPassword !== parentPasswordConfirm) {
+    if (!isExistingUser && parentPassword !== parentPasswordConfirm) {
       setSubmitStatus("error");
       setSubmitError("Passwords do not match.");
       return;
@@ -244,7 +291,11 @@ function SignupContent() {
           firstAidConsent: firstAidConsent || undefined,
         },
       };
-      await submitPublicSignup(payload);
+      if (isExistingUser) {
+        await submitExistingUserSignup(payload);
+      } else {
+        await submitPublicSignup(payload);
+      }
       setSubmitStatus("success");
     } catch (err) {
       setSubmitStatus("error");
@@ -337,35 +388,56 @@ function SignupContent() {
                 type="email"
                 required
                 value={parentEmail}
-                onChange={(e) => setParentEmail(e.target.value)}
+                onChange={(e) => {
+                  setParentEmail(e.target.value);
+                  setPreflightMode("idle");
+                }}
+                onBlur={runPreflight}
                 className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
               />
+              {preflightMode === "checking" ? (
+                <p className="mt-1 text-xs text-pw-text-muted">Checking…</p>
+              ) : null}
             </div>
             <div>
-              <label className="block text-sm font-medium text-pw-text">Password *</label>
+              <label className="block text-sm font-medium text-pw-text">
+                {preflightMode === "EXISTING_USER" ? "Your password *" : "Password *"}
+              </label>
               <input
                 type="password"
                 required
                 value={parentPassword}
                 onChange={(e) => setParentPassword(e.target.value)}
-                placeholder="At least 8 characters with a letter and number"
+                placeholder={
+                  preflightMode === "EXISTING_USER"
+                    ? "Enter your password to link your children"
+                    : "At least 8 characters with a letter and number"
+                }
                 className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
               />
-              <p className="mt-1 text-xs text-pw-text-muted">
-                You&apos;ll use this to sign in after registration.
-              </p>
+              {preflightMode === "EXISTING_USER" ? (
+                <p className="mt-1 text-xs text-pw-text-muted">
+                  This email is already registered. Enter your password to continue.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-pw-text-muted">
+                  You&apos;ll use this to sign in after registration.
+                </p>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-pw-text">Confirm password *</label>
-              <input
-                type="password"
-                required
-                value={parentPasswordConfirm}
-                onChange={(e) => setParentPasswordConfirm(e.target.value)}
-                placeholder="Re-enter your password"
-                className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
-              />
-            </div>
+            {preflightMode !== "EXISTING_USER" ? (
+              <div>
+                <label className="block text-sm font-medium text-pw-text">Confirm password *</label>
+                <input
+                  type="password"
+                  required
+                  value={parentPasswordConfirm}
+                  onChange={(e) => setParentPasswordConfirm(e.target.value)}
+                  placeholder="Re-enter your password"
+                  className="mt-1 w-full rounded-md border border-pw-border bg-white px-3 py-2 text-pw-text"
+                />
+              </div>
+            ) : null}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-pw-text">Phone</label>
               <input
@@ -730,7 +802,7 @@ function SignupContent() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-lg bg-pw-accent-primary px-6 py-3 font-medium text-pw-accent-foreground hover:bg-pw-accent-strong disabled:opacity-60"
+            className="rounded-md bg-accent-primary px-6 py-3 text-base font-medium text-white shadow-sm transition hover:bg-accent-strong focus-visible:outline focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Submitting…" : "Submit registration"}
           </button>

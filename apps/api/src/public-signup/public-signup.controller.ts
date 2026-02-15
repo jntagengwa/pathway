@@ -3,12 +3,17 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Post,
   Query,
 } from "@nestjs/common";
 import { PublicSignupService } from "./public-signup.service";
 import { PublicSignupConfigDto } from "./dto/public-signup-config.dto";
-import { PublicSignupSubmitDto } from "./dto/public-signup-submit.dto";
+import {
+  PublicSignupSubmitDto,
+  SubmitExistingUserDto,
+} from "./dto/public-signup-submit.dto";
+import { SignupPreflightDto } from "./dto/signup-preflight.dto";
 
 /**
  * Public (unauthenticated) endpoints for invite-only parent signup.
@@ -17,7 +22,9 @@ import { PublicSignupSubmitDto } from "./dto/public-signup-submit.dto";
  */
 @Controller("public")
 export class PublicSignupController {
-  constructor(private readonly publicSignupService: PublicSignupService) {}
+  constructor(
+    @Inject(PublicSignupService) private readonly publicSignupService: PublicSignupService,
+  ) {}
 
   @Get("signup/config")
   async getConfig(
@@ -29,8 +36,27 @@ export class PublicSignupController {
     return this.publicSignupService.getConfig(token.trim());
   }
 
+  @Post("signup/preflight")
+  async preflight(@Body() body: SignupPreflightDto): Promise<{
+    email: string;
+    userExists: boolean;
+    mode: "EXISTING_USER" | "NEW_USER";
+  }> {
+    return this.publicSignupService.signupPreflight(
+      body.inviteToken,
+      body.email,
+    );
+  }
+
   @Post("signup/submit")
   async submit(@Body() body: PublicSignupSubmitDto): Promise<{ success: true; message: string }> {
     return this.publicSignupService.submit(body);
+  }
+
+  @Post("signup/submit-existing-user")
+  async submitExistingUser(
+    @Body() body: SubmitExistingUserDto,
+  ): Promise<{ success: true; message: string }> {
+    return this.publicSignupService.submitExistingUser(body);
   }
 }
