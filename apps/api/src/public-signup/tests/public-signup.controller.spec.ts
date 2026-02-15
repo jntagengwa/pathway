@@ -7,6 +7,7 @@ describe("PublicSignupController", () => {
   let app: Awaited<ReturnType<typeof createApp>>;
   const serviceMock = {
     getConfig: jest.fn(),
+    signupPreflight: jest.fn(),
     submit: jest.fn(),
   };
 
@@ -24,6 +25,7 @@ describe("PublicSignupController", () => {
   beforeEach(async () => {
     app = await createApp();
     serviceMock.getConfig.mockReset();
+    serviceMock.signupPreflight.mockReset();
     serviceMock.submit.mockReset();
   });
 
@@ -55,6 +57,48 @@ describe("PublicSignupController", () => {
 
       expect(serviceMock.getConfig).toHaveBeenCalledWith("abc123token");
       expect(res.body).toEqual(config);
+    });
+  });
+
+  describe("POST /public/signup/preflight", () => {
+    it("returns EXISTING_USER when email exists", async () => {
+      serviceMock.signupPreflight.mockResolvedValue({
+        email: "existing@example.com",
+        userExists: true,
+        mode: "EXISTING_USER",
+      });
+
+      const res = await request(app.getHttpServer())
+        .post("/public/signup/preflight")
+        .send({
+          inviteToken: "a".repeat(32),
+          email: "existing@example.com",
+        })
+        .expect(201);
+
+      expect(res.body.mode).toBe("EXISTING_USER");
+      expect(serviceMock.signupPreflight).toHaveBeenCalledWith(
+        "a".repeat(32),
+        "existing@example.com",
+      );
+    });
+
+    it("returns NEW_USER when email does not exist", async () => {
+      serviceMock.signupPreflight.mockResolvedValue({
+        email: "new@example.com",
+        userExists: false,
+        mode: "NEW_USER",
+      });
+
+      const res = await request(app.getHttpServer())
+        .post("/public/signup/preflight")
+        .send({
+          inviteToken: "a".repeat(32),
+          email: "new@example.com",
+        })
+        .expect(201);
+
+      expect(res.body.mode).toBe("NEW_USER");
     });
   });
 

@@ -27,6 +27,7 @@ export default function ChildDetailPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const [photoLoadError, setPhotoLoadError] = React.useState(false);
   const [exporting, setExporting] = React.useState(false);
   const [exportFrom, setExportFrom] = React.useState(() => {
     const d = new Date();
@@ -46,6 +47,7 @@ export default function ChildDetailPage() {
     try {
       const result = await fetchChildById(childId);
       setChild(result);
+      setPhotoLoadError(false);
       if (!result) {
         setNotFound(true);
       }
@@ -95,7 +97,9 @@ export default function ChildDetailPage() {
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm">Edit child</Button>
+          <Button asChild size="sm">
+              <Link href={`/children/${childId}/edit`}>Edit child</Link>
+            </Button>
         </div>
       </div>
 
@@ -150,15 +154,25 @@ export default function ChildDetailPage() {
               <div className="flex items-center gap-3">
                 {child.hasPhotoConsent ? (
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
+                    className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-accent"
                     aria-hidden
                   >
-                    {child.fullName
-                      .split(" ")
-                      .map((part) => part[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)}
+                    <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-accent-foreground">
+                      {child.fullName
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </div>
+                    {!photoLoadError && (
+                      <img
+                        src={`/api/children/${child.id}/photo`}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={() => setPhotoLoadError(true)}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div

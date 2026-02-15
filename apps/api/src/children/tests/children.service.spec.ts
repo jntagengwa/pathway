@@ -63,6 +63,44 @@ describe("ChildrenService", () => {
     });
   });
 
+  describe("getPhoto", () => {
+    it("returns photo when consent and photoBytes", async () => {
+      const buf = Buffer.from("fake-image-data");
+      findFirst.mockResolvedValueOnce({
+        photoConsent: true,
+        photoBytes: buf,
+        photoContentType: "image/jpeg",
+        photoKey: null,
+      });
+      const res = await svc.getPhoto("c1", tenantId);
+      expect(res).not.toBeNull();
+      expect(res?.buffer).toEqual(buf);
+      expect(res?.contentType).toBe("image/jpeg");
+    });
+
+    it("returns null when no consent", async () => {
+      findFirst.mockResolvedValueOnce({
+        photoConsent: false,
+        photoBytes: Buffer.from("x"),
+        photoContentType: "image/jpeg",
+        photoKey: null,
+      });
+      const res = await svc.getPhoto("c1", tenantId);
+      expect(res).toBeNull();
+    });
+
+    it("returns null when no photo bytes", async () => {
+      findFirst.mockResolvedValueOnce({
+        photoConsent: true,
+        photoBytes: null,
+        photoContentType: null,
+        photoKey: null,
+      });
+      const res = await svc.getPhoto("c1", tenantId);
+      expect(res).toBeNull();
+    });
+  });
+
   describe("create", () => {
     const baseDto = {
       firstName: "Jess",

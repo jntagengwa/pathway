@@ -28,6 +28,7 @@ jest.mock("@pathway/db", () => {
       },
       child: {
         create: jest.fn(),
+        findMany: jest.fn(),
       },
       emergencyContact: {
         createMany: jest.fn(),
@@ -35,6 +36,10 @@ jest.mock("@pathway/db", () => {
     parentSignupConsent: {
       create: jest.fn(),
     },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) => {
+      const p = jest.requireMock("@pathway/db").prisma;
+      return fn(p);
+    }),
   },
   };
 });
@@ -65,6 +70,104 @@ describe("PublicSignupService", () => {
     jest.clearAllMocks();
     mailerMock.sendParentSignupCompleteEmail.mockResolvedValue(undefined);
     auth0Mock.createUser.mockResolvedValue("auth0|123");
+  });
+
+  describe("signupPreflight", () => {
+    it("returns NEW_USER when email does not exist", async () => {
+      (prisma.publicSignupLink.findFirst as jest.Mock).mockResolvedValue(validLink);
+      (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
+
+      const result = await service.signupPreflight("a".repeat(32), "new@example.com");
+
+      expect(result).toEqual({
+        email: "new@example.com",
+        userExists: false,
+        mode: "NEW_USER",
+      });
+    });
+
+    it("returns EXISTING_USER when email exists", async () => {
+      (prisma.publicSignupLink.findFirst as jest.Mock).mockResolvedValue(validLink);
+      (prisma.user.findFirst as jest.Mock).mockResolvedValue({
+        id: "user-1",
+        email: "existing@example.com",
+        name: "Jane Doe",
+        displayName: "Jane Doe",
+      });
+
+      const result = await service.signupPreflight("a".repeat(32), "Existing@Example.com");
+
+      expect(result).toMatchObject({
+        email: "existing@example.com",
+        userExists: true,
+        mode: "EXISTING_USER",
+        displayName: "Jane Doe",
+      });
+    });
+
+    it("throws when token is invalid", async () => {
+      (prisma.publicSignupLink.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.signupPreflight("invalid", "any@example.com"),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe("linkChildrenExistingUser", () => {
+    it("sets hasFamilyAccess and creates parent-child links", async () => {
+      (prisma.publicSignupLink.findFirst as jest.Mock).mockResolvedValue(validLink);
+      (prisma.child.findMany as jest.Mock).mockResolvedValue([
+        { id: "child-1" },
+        { id: "child-2" },
+      ]);
+      (prisma.user.update as jest.Mock).mockResolvedValue({});
+      (prisma.userTenantRole.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.userTenantRole.create as jest.Mock).mockResolvedValue({});
+      (prisma.$transaction as jest.Mock).mockImplementation((fn: (tx: unknown) => Promise<unknown>) =>
+        fn(prisma),
+      );
+
+      const result = await service.linkChildrenExistingUser(
+        "user-1",
+        "a".repeat(32),
+        ["child-1", "child-2"],
+      );
+
+      expect(result).toEqual({ success: true, linkedCount: 2 });
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-1" },
+          data: expect.objectContaining({
+            tenantId: "tenant-1",
+            hasFamilyAccess: true,
+            children: { connect: [{ id: "child-1" }, { id: "child-2" }] },
+          }),
+        }),
+      );
+    });
+
+    it("is idempotent - calling twice does not duplicate links", async () => {
+      (prisma.publicSignupLink.findFirst as jest.Mock).mockResolvedValue(validLink);
+      (prisma.child.findMany as jest.Mock).mockResolvedValue([{ id: "child-1" }]);
+      (prisma.user.update as jest.Mock).mockResolvedValue({});
+      (prisma.userTenantRole.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.userTenantRole.create as jest.Mock).mockResolvedValue({});
+      (prisma.$transaction as jest.Mock).mockImplementation((fn: (tx: unknown) => Promise<unknown>) =>
+        fn(prisma),
+      );
+
+      await service.linkChildrenExistingUser("user-1", "a".repeat(32), ["child-1"]);
+      await service.linkChildrenExistingUser("user-1", "a".repeat(32), ["child-1"]);
+
+      expect(prisma.user.update).toHaveBeenCalledTimes(2);
+      expect((prisma.user.update as jest.Mock).mock.calls[0][0].data.children).toEqual({
+        connect: [{ id: "child-1" }],
+      });
+      expect((prisma.user.update as jest.Mock).mock.calls[1][0].data.children).toEqual({
+        connect: [{ id: "child-1" }],
+      });
+    });
   });
 
   describe("resolveLink / getConfig", () => {

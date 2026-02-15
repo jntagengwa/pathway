@@ -1,12 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  Inject,
+  Optional,
+} from "@nestjs/common";
 import { createHash } from "crypto";
 import { prisma, Role } from "@pathway/db";
-import { Inject } from "@nestjs/common";
 import { MailerService } from "../mailer/mailer.service";
 import { Auth0ManagementService } from "../auth/auth0-management.service";
 import type { PublicSignupConfigDto } from "./dto/public-signup-config.dto";
 import type {
   PublicSignupSubmitDto,
+  SubmitExistingUserDto,
   EmergencyContactDto,
 } from "./dto/public-signup-submit.dto";
 
@@ -29,8 +35,8 @@ type ResolvedLink = {
 export class PublicSignupService {
   constructor(
     @Inject(MailerService) private readonly mailerService: MailerService,
-    @Inject(Auth0ManagementService)
-    private readonly auth0Management: Auth0ManagementService,
+    @Optional() @Inject(Auth0ManagementService)
+    private readonly auth0Management: Auth0ManagementService | null,
   ) {}
 
   private hashToken(token: string): string {
@@ -79,6 +85,308 @@ export class PublicSignupService {
     };
   }
 
+  /**
+   * Preflight check: does the email belong to an existing user?
+   * Gated by valid invite token to avoid email enumeration.
+   * Returns mode: EXISTING_USER (show password, stay on form) or NEW_USER (show password + confirm).
+   * When user exists, returns displayName for pre-fill (prefer name if it does not look like email).
+   */
+  async signupPreflight(
+    inviteToken: string,
+    email: string,
+  ): Promise<{
+    email: string;
+    userExists: boolean;
+    mode: "EXISTING_USER" | "NEW_USER";
+    displayName?: string;
+  }> {
+    await this.resolveLink(inviteToken);
+    const normalized = email.trim().toLowerCase();
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalized, mode: "insensitive" } },
+      select: { id: true, name: true, displayName: true },
+    });
+    const userExists = !!user;
+    let displayName: string | undefined;
+    if (user) {
+      const name = user.name?.trim();
+      const disp = user.displayName?.trim();
+      if (name && !name.includes("@")) {
+        displayName = name;
+      } else if (disp && !disp.includes("@")) {
+        displayName = disp;
+      } else if (name) {
+        displayName = name;
+      } else if (disp) {
+        displayName = disp;
+      }
+    }
+    return {
+      email: normalized,
+      userExists,
+      mode: userExists ? "EXISTING_USER" : "NEW_USER",
+      ...(displayName ? { displayName } : {}),
+    };
+  }
+
+  /**
+   * Link children to an authenticated existing user (staff account gaining family access).
+   * Requires valid invite token. Sets hasFamilyAccess=true and upserts parent-child links (idempotent).
+   * When childrenToCreate is provided, creates those children first then links.
+   */
+  async linkChildrenExistingUser(
+    userId: string,
+    inviteToken: string,
+    childIds: string[],
+    childrenToCreate?: Array<{
+      firstName?: string;
+      lastName?: string;
+      preferredName?: string;
+      dateOfBirth?: string;
+      allergies?: string;
+      photoConsent?: boolean;
+    }>,
+  ): Promise<{ success: true; linkedCount: number }> {
+    const link = await this.resolveLink(inviteToken);
+    const idsToLink = [...childIds];
+
+    if (childrenToCreate && childrenToCreate.length > 0) {
+      for (const c of childrenToCreate) {
+        const firstName = (c.firstName ?? "").trim();
+        const lastName = (c.lastName ?? "").trim();
+        if (!firstName || !lastName) continue;
+        const dateOfBirth =
+          c.dateOfBirth?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(c.dateOfBirth.trim())
+            ? new Date(c.dateOfBirth.trim())
+            : null;
+        const child = await prisma.child.create({
+          data: {
+            tenantId: link.tenantId,
+            firstName,
+            lastName,
+            preferredName: c.preferredName?.trim() || null,
+            dateOfBirth,
+            allergies: (c.allergies ?? "").trim() || "none",
+            photoConsent: c.photoConsent ?? false,
+            guardians: { connect: { id: userId } },
+          },
+          select: { id: true },
+        });
+        idsToLink.push(child.id);
+      }
+    }
+
+    if (idsToLink.length === 0) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { tenantId: link.tenantId, hasFamilyAccess: true },
+      });
+      const existingRole = await prisma.userTenantRole.findFirst({
+        where: { userId, tenantId: link.tenantId, role: Role.PARENT },
+      });
+      if (!existingRole) {
+        await prisma.userTenantRole.create({
+          data: { userId, tenantId: link.tenantId, role: Role.PARENT },
+        });
+      }
+      return { success: true, linkedCount: 0 };
+    }
+
+    const children = await prisma.child.findMany({
+      where: { id: { in: idsToLink }, tenantId: link.tenantId },
+      select: { id: true },
+    });
+    if (children.length !== idsToLink.length) {
+      throw new BadRequestException("one or more children not found or not in tenant");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          tenantId: link.tenantId,
+          hasFamilyAccess: true,
+          children: { connect: idsToLink.map((id) => ({ id })) },
+        },
+      });
+
+      const existingRole = await tx.userTenantRole.findFirst({
+        where: { userId, tenantId: link.tenantId, role: Role.PARENT },
+      });
+      if (!existingRole) {
+        await tx.userTenantRole.create({
+          data: { userId, tenantId: link.tenantId, role: Role.PARENT },
+        });
+      }
+    });
+
+    return { success: true, linkedCount: idsToLink.length };
+  }
+
+  /**
+   * Submit for existing user: verify password, then link children and complete signup.
+   * Keeps user on the same form - no redirect to Auth0.
+   * Requires Auth0 "Password" grant type to be enabled.
+   */
+  async submitExistingUser(dto: SubmitExistingUserDto): Promise<{ success: true; message: string }> {
+    const link = await this.resolveLink(dto.token);
+
+    if (!dto.consents.dataProcessingConsent) {
+      throw new BadRequestException("Data processing consent is required");
+    }
+    if (!dto.emergencyContacts?.length) {
+      throw new BadRequestException("At least one emergency contact is required");
+    }
+    if (!dto.children?.length) {
+      throw new BadRequestException("At least one child is required");
+    }
+
+    for (const child of dto.children) {
+      if ((child.photoBase64 || child.photoContentType) && !child.photoConsent) {
+        throw new BadRequestException(
+          "Photo can only be set when photo consent is granted for that child",
+        );
+      }
+    }
+
+    const email = dto.parent.email.trim().toLowerCase();
+    const auth0Sub = await this.auth0Management?.verifyPassword(email, dto.parent.password);
+    if (!auth0Sub) {
+      throw new BadRequestException("Invalid email or password");
+    }
+
+    const identity = await prisma.userIdentity.findUnique({
+      where: {
+        provider_providerSubject: { provider: "auth0", providerSubject: auth0Sub },
+      },
+      include: { user: true },
+    });
+    if (!identity?.user) {
+      throw new BadRequestException(
+        "Account not found. Please sign in via the app first, or use a different email.",
+      );
+    }
+
+    const user = identity.user;
+    const fullName = dto.parent.fullName.trim();
+    const safeName = fullName && !fullName.includes("@") ? fullName : null;
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: safeName ?? user.name ?? fullName,
+        displayName: safeName ?? user.displayName ?? fullName,
+        tenantId: link.tenantId,
+        hasFamilyAccess: true,
+      },
+    });
+
+    const existingRole = await prisma.userTenantRole.findFirst({
+      where: { userId: user.id, tenantId: link.tenantId, role: Role.PARENT },
+    });
+    if (!existingRole) {
+      await prisma.userTenantRole.create({
+        data: {
+          userId: user.id,
+          tenantId: link.tenantId,
+          role: Role.PARENT,
+        },
+      });
+    }
+
+    const now = new Date();
+
+    for (const c of dto.children) {
+      const allergies = (c.allergies ?? "").trim() || "none";
+      let photoBytes: Buffer | null = null;
+      let photoContentType: string | null = null;
+      if (c.photoConsent && c.photoBase64?.trim()) {
+        const decoded = this.decodeAndValidatePhoto(
+          c.photoBase64.trim(),
+          c.photoContentType?.trim(),
+        );
+        photoBytes = decoded.buffer;
+        photoContentType = decoded.contentType;
+      }
+
+      const dateOfBirth =
+        c.dateOfBirth?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(c.dateOfBirth.trim())
+          ? new Date(c.dateOfBirth.trim())
+          : null;
+
+      await prisma.child.create({
+        data: {
+          tenantId: link.tenantId,
+          firstName: c.firstName.trim(),
+          lastName: c.lastName.trim(),
+          preferredName: c.preferredName?.trim() || null,
+          dateOfBirth,
+          allergies,
+          additionalNeedsNotes: c.additionalNeedsNotes?.trim() || null,
+          schoolName: c.schoolName?.trim() || null,
+          yearGroup: c.yearGroup?.trim() || null,
+          gpName: c.gpName?.trim() || null,
+          gpPhone: c.gpPhone?.trim() || null,
+          specialNeedsType: c.specialNeedsType?.trim() || null,
+          specialNeedsOther:
+            c.specialNeedsType === "other" && c.specialNeedsOther?.trim()
+              ? c.specialNeedsOther.trim()
+              : null,
+          photoConsent: c.photoConsent,
+          photoKey: null,
+          photoBytes: photoBytes ?? undefined,
+          photoContentType: photoContentType ?? undefined,
+          groupId: c.groupId || null,
+          guardians: { connect: { id: user.id } },
+        },
+      });
+    }
+
+    await prisma.emergencyContact.createMany({
+      data: dto.emergencyContacts.map((ec: EmergencyContactDto) => ({
+        userId: user.id,
+        tenantId: link.tenantId,
+        name: ec.name.trim(),
+        phone: ec.phone.trim(),
+        relationship: ec.relationship?.trim() || null,
+      })),
+    });
+
+    await prisma.parentSignupConsent.create({
+      data: {
+        userId: user.id,
+        tenantId: link.tenantId,
+        dataProcessingConsentAt: now,
+        firstAidConsentAt: dto.consents.firstAidConsent ? now : null,
+        consentingAdultName: fullName,
+        consentingAdultRelationship: dto.parent.relationshipToChild?.trim() || null,
+      },
+    });
+
+    await prisma.publicSignupLink.update({
+      where: { id: link.id },
+      data: { lastUsedAt: now },
+    });
+
+    const adminUrl = process.env.ADMIN_URL || "https://app.nexsteps.dev";
+    try {
+      await this.mailerService.sendParentSignupCompleteEmail({
+        to: email,
+        parentName: fullName,
+        siteName: link.siteName,
+        orgName: link.orgName,
+        loginUrl: `${adminUrl}/login`,
+      });
+    } catch {
+      // Do not fail submit if email fails
+    }
+
+    return {
+      success: true,
+      message: "Registration complete. You can now sign in to access your account.",
+    };
+  }
+
   async submit(dto: PublicSignupSubmitDto): Promise<{ success: true; message: string }> {
     const link = await this.resolveLink(dto.token);
 
@@ -119,7 +427,7 @@ export class PublicSignupService {
         },
       });
 
-      const auth0UserId = await this.auth0Management.createUser({
+      const auth0UserId = await this.auth0Management?.createUser({
         email,
         password: dto.parent.password,
         name: safeName ?? fullName,

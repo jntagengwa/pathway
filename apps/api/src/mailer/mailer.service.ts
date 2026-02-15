@@ -1,6 +1,26 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Resend } from "resend";
 
+/** Resend requires: `email@example.com` or `Name <email@example.com>` */
+const DEFAULT_FROM = "Nexsteps <noreply@mail.nexsteps.dev>";
+
+function parseAndValidateFromAddress(
+  raw: string | undefined,
+): { from: string; usedFallback: boolean } {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return { from: DEFAULT_FROM, usedFallback: false };
+
+  // Plain email: something@domain.tld
+  const plainEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (plainEmail.test(trimmed)) return { from: trimmed, usedFallback: false };
+
+  // Name <email@domain.tld> format (allows optional space before <)
+  const nameAndEmail = /^[^<]+<[^\s@]+@[^\s@]+\.[^\s@]+>$/;
+  if (nameAndEmail.test(trimmed)) return { from: trimmed, usedFallback: false };
+
+  return { from: DEFAULT_FROM, usedFallback: true };
+}
+
 type SendInviteEmailParams = {
   to: string;
   inviteUrl: string;
@@ -44,7 +64,17 @@ export class MailerService {
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
-    this.fromAddress = process.env.RESEND_FROM || "Nexsteps <noreply@mail.nexsteps.dev>";
+    const { from, usedFallback } = parseAndValidateFromAddress(
+      process.env.RESEND_FROM,
+    );
+    this.fromAddress = from;
+
+    if (usedFallback) {
+      this.logger.warn(
+        `[📧 MAILER] RESEND_FROM is invalid or empty. Using default. ` +
+          `Resend requires: email@example.com or "Name <email@example.com>"`,
+      );
+    }
 
     if (apiKey) {
       this.resend = new Resend(apiKey);

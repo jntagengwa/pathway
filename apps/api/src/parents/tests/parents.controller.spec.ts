@@ -7,9 +7,14 @@ import {
   UserTenantRole,
 } from "@pathway/auth";
 import { AuthUserGuard } from "../../auth/auth-user.guard";
+import { PublicSignupService } from "../../public-signup/public-signup.service";
 import { ParentsController } from "../parents.controller";
 import { ParentsService } from "../parents.service";
 import type { ParentDetailDto, ParentSummaryDto } from "../dto/parents.dto";
+
+const mockPublicSignupService = {
+  linkChildrenExistingUser: jest.fn(),
+};
 
 const tenantId = "tenant-1";
 const orgId = "org-1";
@@ -50,6 +55,10 @@ describe("ParentsController", () => {
       controllers: [ParentsController],
       providers: [
         { provide: ParentsService, useValue: mockService },
+        {
+          provide: PublicSignupService,
+          useValue: mockPublicSignupService,
+        },
         {
           provide: PathwayRequestContext,
           useValue: buildRequestContext({

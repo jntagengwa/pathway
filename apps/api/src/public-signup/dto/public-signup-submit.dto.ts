@@ -48,6 +48,32 @@ export class ParentGuardianDto {
   relationshipToChild?: string;
 }
 
+/** Same as ParentGuardianDto but password only requires non-empty (existing users already have a password). */
+export class ParentGuardianExistingUserDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  fullName!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty({ message: "Password is required" })
+  @MaxLength(128)
+  password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  relationshipToChild?: string;
+}
+
 export class EmergencyContactDto {
   @IsString()
   @IsNotEmpty()
@@ -179,6 +205,33 @@ export class PublicSignupSubmitDto {
   @ValidateNested()
   @Type(() => ParentGuardianDto)
   parent!: ParentGuardianDto;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EmergencyContactDto)
+  emergencyContacts!: EmergencyContactDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChildSignupDto)
+  children!: ChildSignupDto[];
+
+  @ValidateNested()
+  @Type(() => ConsentsDto)
+  consents!: ConsentsDto;
+}
+
+/** Submit for existing users: password rules relaxed (they already have a password). */
+export class SubmitExistingUserDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(32)
+  @MaxLength(128)
+  token!: string;
+
+  @ValidateNested()
+  @Type(() => ParentGuardianExistingUserDto)
+  parent!: ParentGuardianExistingUserDto;
 
   @IsArray()
   @ValidateNested({ each: true })

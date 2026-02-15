@@ -2003,7 +2003,7 @@ const mapApiChildDetailToAdmin = (c: ApiChildDetail): AdminChildDetail => ({
     c.primaryGroup ??
     c.groupId ??
     null,
-  hasPhotoConsent: Boolean(c.hasPhotoConsent),
+  hasPhotoConsent: Boolean(c.hasPhotoConsent ?? c.photoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:
     (Array.isArray(c.disabilities) && c.disabilities.length > 0) ||
@@ -2053,6 +2053,73 @@ export async function fetchChildById(
   };
 }
 
+/** Shape for edit form; includes raw API fields needed for UpdateChildPayload */
+export type ChildEditFormData = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  preferredName: string | null;
+  allergies: string;
+  photoConsent: boolean;
+  groupId: string | null;
+  guardianIds: string[];
+};
+
+export async function fetchChildForEdit(
+  id: string,
+): Promise<ChildEditFormData | null> {
+  const useMock = isUsingMockApi();
+  if (useMock) {
+    const child = await fetchChildById(id);
+    if (!child) return null;
+    const [firstName, ...rest] = (child.fullName || " ").split(" ");
+    const lastName = rest.join(" ") || "";
+    return {
+      id: child.id,
+      firstName: firstName || "",
+      lastName,
+      preferredName: child.preferredName ?? null,
+      allergies: "",
+      photoConsent: child.hasPhotoConsent ?? false,
+      groupId: null,
+      guardianIds: [],
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/children/${id}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch child (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiChildDetail & {
+    guardians?: { id: string }[];
+  };
+  const allergies =
+    typeof json.allergies === "string"
+      ? json.allergies
+      : Array.isArray(json.allergies)
+        ? (json.allergies as string[]).join(", ")
+        : "";
+  return {
+    id: json.id,
+    firstName: json.firstName ?? "",
+    lastName: json.lastName ?? "",
+    preferredName: json.preferredName ?? null,
+    allergies,
+    photoConsent: Boolean(json.hasPhotoConsent ?? json.photoConsent),
+    groupId: json.groupId ?? json.group?.id ?? null,
+    guardianIds: json.guardians?.map((g) => g.id) ?? [],
+  };
+}
+
 // Uses real API when NEXT_PUBLIC_API_BASE_URL is set; falls back to mock if missing.
 export async function fetchChildren(): Promise<AdminChildRow[]> {
   const useMock = isUsingMockApi();
@@ -2072,6 +2139,43 @@ export async function fetchChildren(): Promise<AdminChildRow[]> {
 
   const json = (await res.json()) as ApiChild[];
   return json.map(mapApiChildToAdmin);
+}
+
+export type UpdateChildPayload = {
+  firstName?: string;
+  lastName?: string;
+  preferredName?: string | null;
+  allergies?: string;
+  photoConsent?: boolean;
+  groupId?: string | null;
+  guardianIds?: string[];
+};
+
+export async function updateChild(
+  id: string,
+  payload: UpdateChildPayload,
+): Promise<AdminChildDetail | null> {
+  if (isUsingMockApi()) {
+    return fetchChildById(id);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/children/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to update child (${res.status}): ${body || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as ApiChildDetail;
+  return mapApiChildDetailToAdmin(json);
 }
 
 // TODO: replace with real API call; include tenant/org context and auth
@@ -2230,6 +2334,73 @@ export async function fetchParentById(
       body = "";
     }
     throw new Error(`Failed to fetch parent: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as ApiParentDetail;
+  return mapApiParentDetailToAdmin(json);
+}
+
+export type UpdateParentPayload = {
+  displayName?: string;
+  childIds?: string[];
+};
+
+export async function linkChildrenExistingUser(
+  inviteToken: string,
+  childrenToCreate: Array<{
+    firstName?: string;
+    lastName?: string;
+    preferredName?: string;
+    dateOfBirth?: string;
+    allergies?: string;
+    photoConsent?: boolean;
+  }>,
+): Promise<{ success: true; linkedCount: number }> {
+  if (isUsingMockApi()) {
+    return { success: true, linkedCount: childrenToCreate.length };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/parents/link-children-existing-user`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({
+      inviteToken,
+      childrenToCreate,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to link children (${res.status}): ${body}`);
+  }
+
+  return res.json() as Promise<{ success: true; linkedCount: number }>;
+}
+
+export async function updateParent(
+  id: string,
+  payload: UpdateParentPayload,
+): Promise<AdminParentDetail | null> {
+  if (isUsingMockApi()) {
+    return fetchParentById(id);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/parents/${id}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({
+      displayName: payload.displayName,
+      childIds: payload.childIds,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update parent (${res.status}): ${body}`);
   }
 
   const json = (await res.json()) as ApiParentDetail;

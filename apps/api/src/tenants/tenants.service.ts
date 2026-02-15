@@ -19,11 +19,15 @@ export type PublicSignupLinkResult = {
 };
 
 function getWebBaseUrl(): string {
-  return (
-    process.env.PUBLIC_WEB_BASE_URL ??
-    process.env.NEXSTEPS_WEB_BASE_URL ??
-    "https://nexsteps.dev"
-  );
+  const explicit = process.env.PUBLIC_WEB_BASE_URL ?? process.env.NEXSTEPS_WEB_BASE_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const isLocal =
+    process.env.NODE_ENV === "development" ||
+    (process.env.API_HOST ?? "").includes("localhost") ||
+    (process.env.NEXT_PUBLIC_API_URL ?? "").includes("localhost");
+
+  return isLocal ? "https://www.localhost:3000" : "https://nexsteps.dev";
 }
 
 function buildSignupUrl(token: string): string {

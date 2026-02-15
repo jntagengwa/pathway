@@ -73,7 +73,9 @@ export default function ParentDetailPage() {
           <Button variant="secondary" size="sm" onClick={load}>
             Refresh
           </Button>
-          <Button size="sm">Edit parent</Button>
+          <Button asChild size="sm">
+              <Link href={`/parents/${parentId}/edit`}>Edit parent</Link>
+            </Button>
         </div>
       </div>
 

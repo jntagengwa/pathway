@@ -6,9 +6,13 @@ import {
   Param,
   Body,
   BadRequestException,
+  NotFoundException,
   UseGuards,
   Inject,
+  Res,
+  Header,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { CurrentTenant } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { ChildrenService } from "./children.service";
@@ -23,6 +27,21 @@ export class ChildrenController {
   @Get()
   async list(@CurrentTenant("tenantId") tenantId: string) {
     return this.childrenService.list(tenantId);
+  }
+
+  @Get(":id/photo")
+  @Header("Cache-Control", "private, max-age=300")
+  async getPhoto(
+    @Param("id") id: string,
+    @CurrentTenant("tenantId") tenantId: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.childrenService.getPhoto(id, tenantId);
+    if (!result) {
+      throw new NotFoundException("Photo not found");
+    }
+    res.setHeader("Content-Type", result.contentType);
+    res.send(result.buffer);
   }
 
   @Get(":id")

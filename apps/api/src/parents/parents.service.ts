@@ -1,10 +1,15 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import type {
   ParentChildSummaryDto,
   ParentDetailDto,
   ParentSummaryDto,
 } from "./dto/parents.dto";
+import type { UpdateParentDto } from "./dto/update-parent.dto";
 
 const listSelect = {
   id: true,
@@ -78,5 +83,59 @@ export class ParentsService {
       email: parent.email ?? null,
       children,
     };
+  }
+
+  /**
+   * Update parent profile (display name) and linked children.
+   * Idempotent: re-linking same children does not duplicate rows.
+   */
+  async updateForTenant(
+    tenantId: string,
+    orgId: string,
+    parentId: string,
+    input: UpdateParentDto,
+  ): Promise<ParentDetailDto> {
+    void orgId;
+    const parent = await prisma.user.findFirst({
+      where: { id: parentId, tenantId, hasFamilyAccess: true },
+      select: { id: true, tenantId: true },
+    });
+    if (!parent) throw new NotFoundException("Parent not found");
+
+    if (input.childIds !== undefined) {
+      if (input.childIds.length > 0) {
+        const children = await prisma.child.findMany({
+          where: { id: { in: input.childIds }, tenantId },
+          select: { id: true },
+        });
+        if (children.length !== input.childIds.length) {
+          throw new BadRequestException("one or more children not found or not in tenant");
+        }
+      }
+      await prisma.user.update({
+        where: { id: parentId },
+        data: {
+          children: { set: input.childIds.map((id) => ({ id })) },
+        },
+      });
+    }
+
+    if (input.displayName !== undefined) {
+      const safeName =
+        input.displayName.trim() && !input.displayName.includes("@")
+          ? input.displayName.trim()
+          : null;
+      await prisma.user.update({
+        where: { id: parentId },
+        data: {
+          name: safeName,
+          displayName: safeName,
+        },
+      });
+    }
+
+    const updated = await this.findOneForTenant(tenantId, orgId, parentId);
+    if (!updated) throw new NotFoundException("Parent not found");
+    return updated;
   }
 }

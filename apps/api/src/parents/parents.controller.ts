@@ -1,12 +1,18 @@
 import {
   Controller,
   Get,
+  Patch,
   Param,
+  Body,
+  Post,
+  Req,
   UseGuards,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Inject,
 } from "@nestjs/common";
+import type { Request } from "express";
 import {
   CurrentOrg,
   CurrentTenant,
@@ -16,13 +22,26 @@ import {
 } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { ParentsService } from "./parents.service";
+import { PublicSignupService } from "../public-signup/public-signup.service";
 import type { ParentDetailDto, ParentSummaryDto } from "./dto/parents.dto";
+import {
+  updateParentSchema,
+  type UpdateParentDto,
+} from "./dto/update-parent.dto";
+import {
+  LinkChildrenExistingUserDto,
+} from "./dto/link-children-existing-user.dto";
+
+interface AuthRequest extends Request {
+  authUserId?: string;
+}
 
 @Controller("parents")
 @UseGuards(AuthUserGuard)
 export class ParentsController {
   constructor(
     @Inject(ParentsService) private readonly parentsService: ParentsService,
+    @Inject(PublicSignupService) private readonly publicSignupService: PublicSignupService,
     @Inject(PathwayRequestContext) private readonly requestContext: PathwayRequestContext,
   ) {}
 
@@ -51,6 +70,45 @@ export class ParentsController {
       throw new NotFoundException("Parent not found");
     }
     return parent;
+  }
+
+  @Post("link-children-existing-user")
+  async linkChildrenExistingUser(
+    @Req() req: AuthRequest,
+    @Body() body: LinkChildrenExistingUserDto,
+  ): Promise<{ success: true; linkedCount: number }> {
+    const userId = req.authUserId;
+    if (!userId) {
+      throw new BadRequestException("Authentication required");
+    }
+    const childIds = body.children?.map((c) => c.childId) ?? [];
+    const childrenToCreate = body.childrenToCreate;
+    return this.publicSignupService.linkChildrenExistingUser(
+      userId,
+      body.inviteToken,
+      childIds,
+      childrenToCreate,
+    );
+  }
+
+  @Patch(":id")
+  async update(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @CurrentOrg("orgId") orgId: string,
+  ): Promise<ParentDetailDto> {
+    this.assertStaffAccess();
+    const parsed = updateParentSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.format());
+    }
+    return this.parentsService.updateForTenant(
+      tenantId,
+      orgId,
+      id,
+      parsed.data as UpdateParentDto,
+    );
   }
 
   private assertStaffAccess() {
