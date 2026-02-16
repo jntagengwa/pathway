@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return new NextResponse(body, {
+    return new NextResponse(new Uint8Array(body), {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "private, max-age=300",

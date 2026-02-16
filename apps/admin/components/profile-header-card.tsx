@@ -21,7 +21,7 @@ export type ProfileHeaderCardProps = {
   /** Disable upload button while uploading */
   isUploading?: boolean;
   /** Ref for the hidden file input when using upload */
-  fileInputRef?: React.RefObject<HTMLInputElement | null>;
+  fileInputRef?: React.RefObject<HTMLInputElement>;
   /** Handler for file selection when using upload */
   onFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
