@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -27,7 +27,7 @@ const defaultChild = (): ChildEntry => ({
   photoConsent: false,
 });
 
-export default function SignupCompletePage() {
+function SignupCompleteContent() {
   const searchParams = useSearchParams();
   const token = searchParams?.get("token") ?? "";
   const { data: session, status } = useSession();
@@ -248,5 +248,19 @@ export default function SignupCompletePage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function SignupCompletePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+          <p className="text-sm text-text-muted">Loading…</p>
+        </div>
+      }
+    >
+      <SignupCompleteContent />
+    </Suspense>
   );
 }
