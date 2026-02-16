@@ -92,7 +92,9 @@ export default function BlogAdminPage() {
                     <h2 className="font-medium text-text-primary">{post.title}</h2>
                     <p className="text-sm text-text-muted">
                       {post.slug} · {post.status}
-                      {post.publishedAt && ` · ${new Date(post.publishedAt).toLocaleDateString()}`}
+                      {post.isFeatured && " · Featured"}
+                      {post.publishedAt &&
+                        ` · ${post.status === "SCHEDULED" ? "Goes live" : "Published"} ${new Date(post.publishedAt).toLocaleString()}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

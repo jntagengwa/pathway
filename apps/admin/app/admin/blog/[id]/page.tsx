@@ -30,6 +30,8 @@ export default function EditBlogPostPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [thumbnailImageId, setThumbnailImageId] = useState<string | null>(null);
   const [headerImageId, setHeaderImageId] = useState<string | null>(null);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -55,6 +57,7 @@ export default function EditBlogPostPage() {
           setTags(p.tags ?? []);
           setThumbnailImageId(p.thumbnailImageId);
           setHeaderImageId(p.headerImageId);
+          setIsFeatured(p.isFeatured ?? false);
         }
       })
       .catch((err: unknown) => {
@@ -84,6 +87,7 @@ export default function EditBlogPostPage() {
         thumbnailImageId,
         headerImageId,
         tags,
+        isFeatured,
       });
       setPost(updated);
     } catch (err) {
@@ -105,6 +109,33 @@ export default function EditBlogPostPage() {
       setError(err instanceof Error ? err.message : "Failed to publish");
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleSchedule = async () => {
+    if (!post || !scheduledAt) return;
+    setError(null);
+    setPublishing(true);
+    try {
+      await publishBlogPost(post.id, { scheduledAt: new Date(scheduledAt).toISOString() });
+      const updated = await fetchBlogPostAdmin(post.id);
+      if (updated) setPost(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to schedule");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleFeaturedChange = (checked: boolean) => {
+    setIsFeatured(checked);
+    if (post?.status === "PUBLISHED") {
+      updateBlogPost(post.id, { isFeatured: checked })
+        .then((updated) => setPost(updated))
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Failed to update featured");
+          setIsFeatured(!checked);
+        });
     }
   };
 
@@ -154,10 +185,28 @@ export default function EditBlogPostPage() {
 
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary">Edit: {post.title}</h1>
-        {post.status !== "PUBLISHED" && (
-          <Button onClick={handlePublish} disabled={publishing}>
-            {publishing ? "Publishing..." : "Publish"}
-          </Button>
+        {post.status !== "PUBLISHED" && post.status !== "SCHEDULED" && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="rounded-md border border-border-subtle px-3 py-2 text-sm"
+              />
+              <Button
+                onClick={handleSchedule}
+                disabled={publishing || !scheduledAt}
+                variant="outline"
+              >
+                {publishing ? "Scheduling..." : "Schedule"}
+              </Button>
+            </div>
+            <Button onClick={handlePublish} disabled={publishing}>
+              {publishing ? "Publishing..." : "Publish now"}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -168,7 +217,7 @@ export default function EditBlogPostPage() {
           </div>
         )}
 
-        <Card className="mb-6 space-y-4 p-6">
+        <Card className="mb-6 space-y-3 p-6">
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -217,8 +266,19 @@ export default function EditBlogPostPage() {
               helpText="Large image at top of post. Recommended 1200×630px."
             />
           </div>
-          <div>
-            <Label htmlFor="tags">Categories</Label>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isFeatured"
+                checked={isFeatured}
+                onChange={(e) => handleFeaturedChange(e.target.checked)}
+                className="h-4 w-4 rounded border-border-subtle"
+              />
+              <Label htmlFor="isFeatured">Featured (shown in featured slot on blog index)</Label>
+            </div>
+            <div>
+              <Label htmlFor="tags">Categories</Label>
             <Input
               id="tags"
               value={tags.join(", ")}
@@ -236,6 +296,7 @@ export default function EditBlogPostPage() {
             <p className="mt-1 text-xs text-text-muted">
               Comma-separated. Used for filtering on the blog index.
             </p>
+            </div>
           </div>
           <div>
             <Label>Content</Label>
