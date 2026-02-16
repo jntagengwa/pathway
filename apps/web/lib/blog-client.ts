@@ -60,14 +60,18 @@ export async function fetchBlogPosts(
   const params = new URLSearchParams();
   if (cursor) params.set("cursor", cursor);
   params.set("limit", String(limit));
-  const res = await fetch(`${API_BASE_URL}/public/blog/posts?${params}`, {
-    next: { revalidate: 60 },
-    ...getFetchOptions(),
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch blog posts: ${res.status}`);
+  try {
+    const res = await fetch(`${API_BASE_URL}/public/blog/posts?${params}`, {
+      next: { revalidate: 60 },
+      ...getFetchOptions(),
+    });
+    if (!res.ok) {
+      return { posts: [], nextCursor: undefined };
+    }
+    return res.json();
+  } catch {
+    return { posts: [], nextCursor: undefined };
   }
-  return res.json();
 }
 
 export async function fetchBlogPostBySlug(slug: string): Promise<BlogPostDetail | null> {

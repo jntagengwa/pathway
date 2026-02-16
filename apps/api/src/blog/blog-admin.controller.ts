@@ -105,9 +105,9 @@ export class BlogAdminController {
 
   @Get("posts")
   async listPosts(
+    @Req() req: AuthRequest,
     @Query("cursor") cursor?: string,
     @Query("limit") limit?: string,
-    @Req() req: AuthRequest,
   ) {
     await this.assertBlogAdmin(req);
     const l = limit ? Math.min(50, Math.max(1, parseInt(limit, 10))) : 50;
