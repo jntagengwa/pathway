@@ -200,13 +200,17 @@ model UserOrgRole {
 }
 
 model User {
-  id          String  @id @default(uuid())
-  email       String? @unique
+  id          String    @id @default(uuid())
+  email       String?   @unique
   name        String?
   displayName String?
   firstName   String?
   lastName    String?
-  isActive    Boolean @default(true)
+  dateOfBirth        DateTime? @db.Date
+  avatarUrl          String?   // External URL fallback (e.g. Auth0)
+  avatarBytes        Bytes?    // Inline storage until S3
+  avatarContentType  String?   // e.g. image/jpeg
+  isActive           Boolean   @default(true)
 
   // NOTE: kept for backward compatibility (single-tenant user). For suites, prefer UserTenantRole.
   tenantId String?

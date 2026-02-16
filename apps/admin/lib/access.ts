@@ -82,6 +82,21 @@ export function canAccessAdminSection(role: AdminRoleInfo): boolean {
 }
 
 /**
+ * Staff without admin (no SITE_ADMIN, no ORG_ADMIN).
+ * Sees Profile instead of People; no Classes, Announcements, or Safeguarding dashboard.
+ */
+export function isStaffOnly(role: AdminRoleInfo): boolean {
+  return role.isStaff && !role.isSiteAdmin && !role.isOrgAdmin && !role.isOrgOwner;
+}
+
+/**
+ * Site admin or org admin. Can access People, Classes, Announcements, full Safeguarding.
+ */
+export function isSiteAdminOrHigher(role: AdminRoleInfo): boolean {
+  return role.isSiteAdmin || role.isOrgAdmin || role.isOrgOwner;
+}
+
+/**
  * Check if user can access billing & subscription management
  * Restricted to org admins and owners only
  */
@@ -108,9 +123,11 @@ export function canAccessSafeguardingAdmin(role: AdminRoleInfo): boolean {
 export type AccessRequirement =
   | "none" // Always visible
   | "admin-only" // Org/site admins only
-  | "billing" // Billing access
-  | "safeguarding-admin" // Safeguarding admin overview
-  | "staff-or-admin"; // Any authenticated user
+  | "billing" // Billing access (org admin only)
+  | "safeguarding-admin" // Safeguarding admin overview (view concerns)
+  | "staff-or-admin" // Any authenticated user
+  | "staff-only" // Staff without admin (Profile, Create concern)
+  | "site-admin-or-higher"; // SITE_ADMIN or ORG_ADMIN (People, Classes, Announcements)
 
 export type AccessContext = {
   /** When true, billing nav and purchase flows are hidden (master/internal org). */
@@ -133,10 +150,13 @@ export function meetsAccessRequirement(
     case "admin-only":
       return canAccessAdminSection(role);
     case "billing":
-      // Show billing nav for org admins; billing page itself handles master-org messaging
       return canAccessBilling(role);
     case "safeguarding-admin":
       return canAccessSafeguardingAdmin(role);
+    case "staff-only":
+      return isStaffOnly(role);
+    case "site-admin-or-higher":
+      return isSiteAdminOrHigher(role);
     default:
       return true;
   }

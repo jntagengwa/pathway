@@ -18,6 +18,12 @@ import { useAdminAccess } from "../../../../lib/use-admin-access";
 import { canAccessSafeguardingAdmin } from "../../../../lib/access";
 import { NoAccessCard } from "../../../../components/no-access-card";
 
+/** Staff can create; only safeguarding-admin can view. After create, staff go to dashboard. */
+function getPostCreateRedirect(role: { isSafeguardingStaff: boolean; isSiteAdmin: boolean; isOrgAdmin: boolean }): string {
+  const canView = role.isSafeguardingStaff || role.isSiteAdmin || role.isOrgAdmin;
+  return canView ? "/safeguarding" : "/";
+}
+
 export default function NewConcernPage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
@@ -50,18 +56,13 @@ export default function NewConcernPage() {
   }, []);
 
   React.useEffect(() => {
-    if (
-      sessionStatus !== "authenticated" ||
-      !session ||
-      isLoadingAccess ||
-      !canAccessSafeguardingAdmin(role)
-    ) {
+    if (sessionStatus !== "authenticated" || !session || isLoadingAccess) {
       return;
     }
     const token = (session as { accessToken?: string })?.accessToken ?? null;
     setApiClientToken(token);
     void loadChildren();
-  }, [sessionStatus, session, isLoadingAccess, role, loadChildren]);
+  }, [sessionStatus, session, isLoadingAccess, loadChildren]);
 
   const filteredChildren = React.useMemo(() => {
     if (!childSearch.trim()) return children;
@@ -83,12 +84,13 @@ export default function NewConcernPage() {
       setIsSubmitting(true);
       setSubmitError(null);
       try {
-        const created = await createConcern({
+        await createConcern({
           childId,
           summary: summaryTrimmed,
           details: details.trim() || undefined,
         });
-        router.push(`/safeguarding/concerns/${created.id}`);
+        const redirect = getPostCreateRedirect(role);
+        router.push(redirect);
       } catch (err) {
         setSubmitError(
           err instanceof Error ? err.message : "Failed to create concern",
@@ -97,7 +99,7 @@ export default function NewConcernPage() {
         setIsSubmitting(false);
       }
     },
-    [childId, summary, details, router],
+    [childId, summary, details, router, role],
   );
 
   const canSubmit = Boolean(childId && summary.trim());
@@ -111,21 +113,17 @@ export default function NewConcernPage() {
     );
   }
 
-  if (!canAccessSafeguardingAdmin(role)) {
-    return (
-      <NoAccessCard
-        title="You don't have access to create concerns"
-        message="Creating concerns is only available to site admins, org admins, or safeguarding leads."
-      />
-    );
-  }
+  // Any staff can create; safeguarding-admin sees "Back to Safeguarding", others see "Back to Dashboard"
+  const canViewSafeguarding = canAccessSafeguardingAdmin(role);
+  const backHref = canViewSafeguarding ? "/safeguarding" : "/";
+  const backLabel = canViewSafeguarding ? "Back to Safeguarding" : "Back to Dashboard";
 
   return (
     <div className="flex flex-col gap-4">
       <Button asChild variant="secondary" size="sm">
-        <Link href="/safeguarding" className="inline-flex items-center gap-2">
+        <Link href={backHref} className="inline-flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Back to Safeguarding
+          {backLabel}
         </Link>
       </Button>
 

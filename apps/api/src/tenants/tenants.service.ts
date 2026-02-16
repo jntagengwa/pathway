@@ -27,7 +27,7 @@ function getWebBaseUrl(): string {
     (process.env.API_HOST ?? "").includes("localhost") ||
     (process.env.NEXT_PUBLIC_API_URL ?? "").includes("localhost");
 
-  return isLocal ? "https://www.localhost:3000" : "https://nexsteps.dev";
+  return isLocal ? "https://localhost:3000" : "https://nexsteps.dev";
 }
 
 function buildSignupUrl(token: string): string {

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Building2,
@@ -9,13 +10,22 @@ import {
   LogOut,
   User,
   Loader2,
+  Settings,
 } from "lucide-react";
 import {
   SiteOption,
   fetchActiveSiteState,
   setActiveSite,
+  fetchStaffProfile,
 } from "@/lib/api-client";
-import { getSafeDisplayName } from "@/lib/names";
+import { getSafeDisplayName, getInitials } from "@/lib/names";
+import { useAdminAccess } from "@/lib/use-admin-access";
+
+function getTierLabel(role: { isOrgAdmin: boolean; isOrgOwner: boolean; isSiteAdmin: boolean }): string {
+  if (role.isOrgAdmin || role.isOrgOwner) return "Admin";
+  if (role.isSiteAdmin) return "Team Lead";
+  return "Staff Member";
+}
 
 type SiteState = {
   activeSiteId: string | null;
@@ -43,6 +53,7 @@ function groupSitesByOrg(sites: SiteOption[]) {
 
 export function TopBarActions() {
   const { data: session, status } = useSession();
+  const { role } = useAdminAccess();
   const [siteState, setSiteState] = React.useState<SiteState>({
     activeSiteId: null,
     sites: [],
@@ -57,6 +68,10 @@ export function TopBarActions() {
 
   const [siteOpen, setSiteOpen] = React.useState(false);
   const [userOpen, setUserOpen] = React.useState(false);
+  const [staffProfile, setStaffProfile] = React.useState<{
+    hasAvatar: boolean;
+  } | null>(null);
+  const [avatarError, setAvatarError] = React.useState(false);
 
   const userDisplayName = session?.user
     ? getSafeDisplayName(session.user)
@@ -106,6 +121,29 @@ export function TopBarActions() {
   React.useEffect(() => {
     void loadActiveSite();
   }, [loadActiveSite]);
+
+  // Fetch staff profile for avatar when authenticated
+  React.useEffect(() => {
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    fetchStaffProfile()
+      .then((p) => {
+        if (!cancelled) {
+          setStaffProfile({ hasAvatar: p.hasAvatar ?? false });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStaffProfile({ hasAvatar: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
+  const avatarSrc =
+    staffProfile?.hasAvatar && !avatarError
+      ? "/api/staff/profile/avatar"
+      : (session?.user as { image?: string | null })?.image ?? null;
 
   // Auto-select when only one site is available.
   React.useEffect(() => {
@@ -239,7 +277,7 @@ export function TopBarActions() {
         )}
       </div>
 
-      {/* User menu */}
+      {/* User menu (pill-style trigger) */}
       <div className="relative" ref={userMenuRef}>
         <button
           type="button"
@@ -247,46 +285,89 @@ export function TopBarActions() {
             setUserOpen((open) => !open);
             setSiteOpen(false);
           }}
-          className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-accent-primary"
+          aria-label="Open user menu"
+          className="flex min-w-0 max-w-[240px] items-center gap-3 rounded-full border border-border-subtle bg-surface px-3.5 py-2 shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-accent-primary"
         >
-          <span className="hidden sm:inline">
-            {userDisplayName ?? "Account"}
-          </span>
-          <span className="inline sm:hidden">
-            <User className="h-4 w-4" />
-          </span>
-          <ChevronDown className="h-3 w-3 text-text-muted" />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-subtle text-xs font-semibold text-accent-strong">
+            {avatarSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarSrc}
+                alt=""
+                width={28}
+                height={28}
+                className="h-full w-full object-cover"
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              getInitials(userDisplayName ?? "U")
+            )}
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <div className="truncate text-sm font-medium text-text-primary">
+              {userDisplayName ?? "Account"}
+            </div>
+            <div className="truncate text-xs font-bold text-accent-strong">
+              {getTierLabel(role)}
+            </div>
+          </div>
+          <ChevronDown className="h-4 w-4 shrink-0 text-text-muted" />
         </button>
 
         {userOpen && (
           <div
             ref={userMenuDropdownRef}
-            className="absolute right-0 top-full z-50 mt-2 w-64 -translate-x-0 rounded-xl border border-border-subtle bg-surface shadow-lg"
-            style={{ right: 0, transform: "translateX(0)" }}
+            className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border-subtle bg-surface shadow-lg"
             role="menu"
           >
             <div className="flex items-center gap-2 px-3 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-subtle text-xs font-semibold text-accent-strong">
-                {(userDisplayName ?? userEmail ?? "U")
-                  .toString()
-                  .slice(0, 2)
-                  .toUpperCase()}
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-subtle text-xs font-semibold text-accent-strong">
+                {avatarSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="h-full w-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  getInitials(userDisplayName ?? "U")
+                )}
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-text-primary">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-text-primary">
                   {userDisplayName ?? "Signed-in user"}
-                </span>
+                </div>
                 {userEmail && (
-                  <span className="text-xs text-text-muted">{userEmail}</span>
+                  <div className="truncate text-xs text-text-muted">{userEmail}</div>
                 )}
               </div>
             </div>
 
             <div className="border-t border-border-subtle py-1 text-sm">
+              <Link
+                href="/staff/profile"
+                onClick={() => setUserOpen(false)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary"
+              >
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setUserOpen(false)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+              <div className="border-t border-border-subtle" />
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-status-danger hover:bg-status-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-status-danger"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-status-danger hover:bg-status-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-danger"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Sign out</span>

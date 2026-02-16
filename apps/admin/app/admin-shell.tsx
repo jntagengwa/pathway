@@ -15,7 +15,6 @@ import {
 import { useAdminAccess } from "@/lib/use-admin-access";
 import { meetsAccessRequirement, type AccessRequirement } from "@/lib/access";
 import { OnboardingModal } from "@/components/onboarding-modal";
-import { getSafeDisplayName } from "@/lib/names";
 import { cn } from "@pathway/ui";
 
 const getDevRuntimeState = () => {
@@ -29,20 +28,25 @@ const getDevRuntimeState = () => {
   return { isMockApi, hasDevToken };
 };
 
-// Define access requirements for each nav item
+// Define access requirements for each nav item.
+// Staff (no admin): Profile, Children, Parents, Lessons, Sessions, My schedule, Attendance, Create concern.
+// Site/Org admin: People, Classes, Announcements, Safeguarding (view), Reports, Settings.
+// Org admin only: Billing.
 const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = [
   { ...defaultSidebarItems[0], access: "staff-or-admin" }, // Dashboard
-  { ...defaultSidebarItems[1], access: "staff-or-admin" }, // People (list visible to staff; invite/edit gated on page)
+  { label: "Profile", href: "/staff/profile", iconIndex: 1, access: "staff-only" }, // Staff only (replaces People)
+  { ...defaultSidebarItems[1], access: "site-admin-or-higher" }, // People (admins only)
   { ...defaultSidebarItems[2], access: "staff-or-admin" }, // Children
   { ...defaultSidebarItems[3], access: "staff-or-admin" }, // Parents & Guardians
   { ...defaultSidebarItems[4], access: "staff-or-admin" }, // Lessons
-  { ...defaultSidebarItems[5], access: "staff-or-admin" }, // Classes
+  { ...defaultSidebarItems[5], access: "site-admin-or-higher" }, // Classes (admins only)
   { ...defaultSidebarItems[6], access: "staff-or-admin" }, // Sessions & Rota
   { ...defaultSidebarItems[7], access: "staff-or-admin" }, // My schedule
   { ...defaultSidebarItems[8], access: "staff-or-admin" }, // Attendance
-  { ...defaultSidebarItems[9], access: "staff-or-admin" }, // Notices & Announcements
-  { ...defaultSidebarItems[10], access: "safeguarding-admin" }, // Safeguarding
-  { ...defaultSidebarItems[11], access: "billing" }, // Billing
+  { ...defaultSidebarItems[9], access: "site-admin-or-higher" }, // Notices & Announcements (admins only)
+  { label: "Create concern", href: "/safeguarding/concerns/new", iconIndex: 10, access: "staff-or-admin" }, // All staff can create
+  { ...defaultSidebarItems[10], access: "safeguarding-admin" }, // Safeguarding (view dashboard)
+  { ...defaultSidebarItems[11], access: "billing" }, // Billing (org admin only)
   { ...defaultSidebarItems[12], access: "admin-only" }, // Reports
   { ...defaultSidebarItems[13], access: "admin-only" }, // Settings
 ];
@@ -50,6 +54,7 @@ const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = 
 const titleMap: Record<string, string> = {
   "/": "Today",
   "/dashboard": "Today",
+  "/staff/profile": "Profile",
   "/people": "People",
   "/users": "People",
   "/children": "Children",
@@ -196,14 +201,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({
           <TopBar
             title={title}
             rightSlot={
-              <div className="flex items-center gap-3">
-                {session?.user && (
-                  <span className="hidden text-sm text-text-muted sm:inline">
-                    Welcome, {getSafeDisplayName(session.user)}
-                  </span>
-                )}
                 <TopBarActions />
-              </div>
             }
           />
           <main className="flex-1 overflow-y-auto px-8 py-6">

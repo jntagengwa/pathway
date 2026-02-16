@@ -17,7 +17,7 @@ const createMock: jest.Mock<
 > = jest.fn();
 const updateMock: jest.Mock<
   Promise<unknown>,
-  [string, UpdateChildDto, string]
+  [string, UpdateChildDto, string, string | undefined, boolean]
 > = jest.fn();
 
 const mockService: ChildrenService = {
@@ -70,6 +70,7 @@ describe("ChildrenController", () => {
       firstName: "Jess",
       lastName: "Doe",
       allergies: "peanuts",
+      photoConsent: false,
     };
     const created = { id: "c1", ...dto };
     createMock.mockResolvedValueOnce(created);
@@ -79,10 +80,10 @@ describe("ChildrenController", () => {
     expect(createMock).toHaveBeenCalledWith(dto, tenantId);
   });
 
-  it("create should 400 on invalid body (missing allergies)", async () => {
+  it("create should 400 on invalid body (missing firstName)", async () => {
     const bad = {
-      firstName: "Jess",
       lastName: "Doe",
+      allergies: "none",
     } as unknown as CreateChildDto;
 
     await expect(controller.create(bad, tenantId)).rejects.toBeInstanceOf(
@@ -95,6 +96,11 @@ describe("ChildrenController", () => {
     const updated = { id: "c1", firstName: "New", lastName: "Name" };
     updateMock.mockResolvedValueOnce(updated);
 
+    const mockReq = {
+      authUserId: "u1",
+      __pathwayContext: { siteRole: null },
+    } as Parameters<ChildrenController["update"]>[3];
+
     const res = await controller.update(
       "c1",
       {
@@ -102,6 +108,7 @@ describe("ChildrenController", () => {
         lastName: "Name",
       },
       tenantId,
+      mockReq,
     );
     expect(res).toEqual(updated);
     expect(updateMock).toHaveBeenCalledWith(
@@ -111,12 +118,18 @@ describe("ChildrenController", () => {
         lastName: "Name",
       },
       tenantId,
+      "u1",
+      false,
     );
   });
 
   it("update should 400 on invalid uuid for groupId", async () => {
+    const mockReq = {
+      authUserId: "u1",
+      __pathwayContext: { siteRole: null },
+    } as Parameters<ChildrenController["update"]>[3];
     await expect(
-      controller.update("c1", { groupId: "not-a-uuid" }, tenantId),
+      controller.update("c1", { groupId: "not-a-uuid" }, tenantId, mockReq),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(updateMock).not.toHaveBeenCalled();
   });

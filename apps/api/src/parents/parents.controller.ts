@@ -57,10 +57,17 @@ export class ParentsController {
   @Get(":id")
   async getOne(
     @Param("id") id: string,
+    @Req() req: AuthRequest,
     @CurrentTenant("tenantId") tenantId: string,
     @CurrentOrg("orgId") orgId: string,
   ): Promise<ParentDetailDto> {
-    this.assertStaffAccess();
+    const isOwnProfile = req.authUserId === id;
+    const isOrgAdmin = this.requestContext.roles.org.some(
+      (r) => r === UserOrgRole.ORG_ADMIN,
+    );
+    if (!isOwnProfile && !isOrgAdmin) {
+      this.assertStaffAccess();
+    }
     const parent = await this.parentsService.findOneForTenant(
       tenantId,
       orgId,
@@ -95,10 +102,17 @@ export class ParentsController {
   async update(
     @Param("id") id: string,
     @Body() body: unknown,
+    @Req() req: AuthRequest,
     @CurrentTenant("tenantId") tenantId: string,
     @CurrentOrg("orgId") orgId: string,
   ): Promise<ParentDetailDto> {
-    this.assertStaffAccess();
+    const isOwnProfile = req.authUserId === id;
+    const isOrgAdmin = this.requestContext.roles.org.some(
+      (r) => r === UserOrgRole.ORG_ADMIN,
+    );
+    if (!isOwnProfile && !isOrgAdmin) {
+      this.assertStaffAccess();
+    }
     const parsed = updateParentSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());

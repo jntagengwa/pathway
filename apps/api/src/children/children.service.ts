@@ -1,11 +1,15 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Common selection used by handlers
 const childSelect = {
@@ -126,13 +130,53 @@ export class ChildrenService {
       guardiansConnect = guardians.map((g) => ({ id: g.id }));
     }
 
-    // 4) Create
+    // 4) Photo decode (when photoConsent + photoBase64)
+    let photoBytes: Buffer | undefined;
+    let photoContentType: string | null = null;
+    if (input.photoConsent && input.photoBase64?.trim()) {
+      const decoded = this.decodeAndValidatePhoto(
+        input.photoBase64.trim(),
+        input.photoContentType?.trim(),
+      );
+      photoBytes = decoded.buffer;
+      photoContentType = decoded.contentType;
+    }
+
+    // 5) Date of birth
+    const dateOfBirth =
+      input.dateOfBirth?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(input.dateOfBirth.trim())
+        ? new Date(input.dateOfBirth.trim())
+        : null;
+
+    // 6) Pickup permissions -> notes when provided
+    const notes =
+      input.pickupPermissions?.trim()
+        ? `Authorised collectors: ${input.pickupPermissions.trim()}`
+        : undefined;
+
+    // 7) Create
     return prisma.child.create({
       data: {
         firstName,
         lastName,
-        photoKey: input.photoKey ?? null,
+        preferredName: input.preferredName?.trim() || null,
+        dateOfBirth,
         allergies: input.allergies,
+        additionalNeedsNotes: input.additionalNeedsNotes?.trim() || null,
+        schoolName: input.schoolName?.trim() || null,
+        yearGroup: input.yearGroup?.trim() || null,
+        gpName: input.gpName?.trim() || null,
+        gpPhone: input.gpPhone?.trim() || null,
+        specialNeedsType: input.specialNeedsType?.trim() || null,
+        specialNeedsOther:
+          input.specialNeedsType === "other" && input.specialNeedsOther?.trim()
+            ? input.specialNeedsOther.trim()
+            : null,
+        photoConsent: input.photoConsent ?? false,
+        photoKey: input.photoKey ?? null,
+        photoBytes: photoBytes ?? undefined,
+        photoContentType: photoContentType ?? undefined,
+        notes,
         disabilities: input.disabilities ?? [],
         tenant: { connect: { id: resolvedTenantId } },
         ...(input.groupId ? { group: { connect: { id: input.groupId } } } : {}),
@@ -144,16 +188,199 @@ export class ChildrenService {
     });
   }
 
+  private decodeAndValidatePhoto(
+    photoBase64: string,
+    contentType?: string | null,
+  ): { buffer: Buffer; contentType: string } {
+    let data = photoBase64;
+    let detectedType = contentType;
+    if (data.startsWith("data:")) {
+      const match = data.match(/^data:([^;]+);base64,/);
+      if (match) {
+        detectedType = match[1].trim().toLowerCase();
+        data = data.replace(/^data:[^;]+;base64,/, "");
+      }
+    }
+    const buffer = Buffer.from(data, "base64");
+    if (buffer.length > MAX_PHOTO_BYTES) {
+      throw new BadRequestException(
+        `Photo must be at most ${MAX_PHOTO_BYTES / 1024 / 1024}MB`,
+      );
+    }
+    if (buffer.length === 0) {
+      throw new BadRequestException("Photo data is empty");
+    }
+    const type = detectedType || "image/jpeg";
+    if (!ALLOWED_PHOTO_TYPES.includes(type)) {
+      throw new BadRequestException(
+        `Photo must be one of: ${ALLOWED_PHOTO_TYPES.join(", ")}`,
+      );
+    }
+    return { buffer, contentType: type };
+  }
+
+  /**
+   * Check if user can edit child: must be site admin or a linked guardian.
+   */
+  async assertCanEditChild(
+    childId: string,
+    tenantId: string,
+    userId: string,
+    isSiteAdmin: boolean,
+  ): Promise<void> {
+    if (isSiteAdmin) return;
+    const child = await prisma.child.findFirst({
+      where: { id: childId, tenantId },
+      select: { guardians: { select: { id: true } } },
+    });
+    if (!child) throw new NotFoundException("Child not found");
+    const isGuardian = child.guardians.some((g) => g.id === userId);
+    if (!isGuardian) {
+      throw new ForbiddenException(
+        "Only admins and linked parents can edit this child",
+      );
+    }
+  }
+
+  /**
+   * Upload photo for child. Requires photoConsent; only admin or linked parent can upload.
+   */
+  async uploadPhoto(
+    childId: string,
+    tenantId: string,
+    userId: string,
+    isSiteAdmin: boolean,
+    photoBase64: string,
+    contentType?: string | null,
+  ): Promise<void> {
+    await this.assertCanEditChild(childId, tenantId, userId, isSiteAdmin);
+
+    const child = await prisma.child.findFirst({
+      where: { id: childId, tenantId },
+      select: { photoConsent: true },
+    });
+    if (!child) throw new NotFoundException("Child not found");
+    if (!child.photoConsent) {
+      throw new BadRequestException(
+        "Photo consent must be granted before uploading a photo",
+      );
+    }
+
+    let data = photoBase64;
+    let detectedType = contentType;
+    if (data.startsWith("data:")) {
+      const match = data.match(/^data:([^;]+);base64,/);
+      if (match) {
+        detectedType = match[1].trim().toLowerCase();
+        data = data.replace(/^data:[^;]+;base64,/, "");
+      }
+    }
+    const buffer = Buffer.from(data, "base64");
+    if (buffer.length > MAX_PHOTO_BYTES) {
+      throw new BadRequestException(
+        `Photo must be at most ${MAX_PHOTO_BYTES / 1024 / 1024}MB`,
+      );
+    }
+    if (buffer.length === 0) {
+      throw new BadRequestException("Photo data is empty");
+    }
+    const type = detectedType || "image/jpeg";
+    if (!ALLOWED_PHOTO_TYPES.includes(type)) {
+      throw new BadRequestException(
+        `Photo must be one of: ${ALLOWED_PHOTO_TYPES.join(", ")}`,
+      );
+    }
+
+    await prisma.child.update({
+      where: { id: childId },
+      data: {
+        photoBytes: buffer,
+        photoContentType: type,
+        photoKey: null,
+      },
+    });
+  }
+
+  /**
+   * Link an existing parent (user with family access) to a child by email.
+   * Caller must be a linked parent of the child.
+   */
+  async linkParentByEmail(
+    childId: string,
+    tenantId: string,
+    callerUserId: string,
+    email: string,
+  ): Promise<{ linked: true; parentId: string } | { userNotFound: true }> {
+    await this.assertCanEditChild(childId, tenantId, callerUserId, false);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email is required");
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email: { equals: normalizedEmail, mode: "insensitive" },
+        hasFamilyAccess: true,
+        OR: [
+          { tenantId },
+          { siteMemberships: { some: { tenantId } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return { userNotFound: true };
+    }
+
+    const child = await prisma.child.findFirst({
+      where: { id: childId, tenantId },
+      select: { guardians: { select: { id: true } } },
+    });
+    if (!child) throw new NotFoundException("Child not found");
+    const alreadyLinked = child.guardians.some((g) => g.id === user.id);
+    if (alreadyLinked) {
+      return { linked: true, parentId: user.id };
+    }
+
+    await prisma.child.update({
+      where: { id: childId },
+      data: {
+        guardians: {
+          connect: { id: user.id },
+        },
+      },
+    });
+    return { linked: true, parentId: user.id };
+  }
+
   /**
    * Update fields; if guardianIds provided, replace the set (idempotent) after validations.
+   * Only admin or linked parent can update. Parents cannot change guardianIds.
    */
-  async update(id: string, input: UpdateChildDto, tenantId: string) {
+  async update(
+    id: string,
+    input: UpdateChildDto,
+    tenantId: string,
+    userId?: string,
+    isSiteAdmin?: boolean,
+  ) {
     // Ensure child exists and capture its tenant for checks
     const current = await prisma.child.findFirst({
       where: { id, tenantId },
-      select: { id: true, tenantId: true },
+      select: { id: true, tenantId: true, guardians: { select: { id: true } } },
     });
     if (!current) throw new NotFoundException("Child not found");
+
+    // Permission: only admin or linked parent can update
+    if (userId !== undefined && isSiteAdmin !== undefined) {
+      await this.assertCanEditChild(id, tenantId, userId, isSiteAdmin);
+      // Parents cannot change guardianIds
+      if (!isSiteAdmin) {
+        input = { ...input, guardianIds: undefined };
+      }
+    }
 
     // If group provided, ensure it belongs to the same tenant
     if (input.groupId) {

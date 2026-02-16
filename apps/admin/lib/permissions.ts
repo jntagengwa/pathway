@@ -8,6 +8,7 @@ import {
   canAccessAdminSection,
   canAccessBilling,
   canAccessSafeguardingAdmin,
+  isSiteAdminOrHigher,
 } from "./access";
 
 /** Paths restricted to ORG_ADMIN or SITE_ADMIN (admin-only). */
@@ -22,19 +23,20 @@ const ADMIN_ONLY_PATHS = [
 const ADMIN_ONLY_PREFIXES = ["/settings", "/reports", "/people/invite"];
 
 /** Paths restricted to ORG_ADMIN only (billing). */
-const BILLING_PATHS = ["/billing"];
 const BILLING_PREFIXES = ["/billing"];
 
-/** Paths restricted to safeguarding admin (ORG_ADMIN, SITE_ADMIN, SAFEGUARDING_LEAD). */
-const SAFEGUARDING_PATHS = ["/safeguarding"];
-const SAFEGUARDING_PREFIXES = ["/safeguarding"];
+/** Paths restricted to SITE_ADMIN or ORG_ADMIN (People, Classes, Announcements). */
+const SITE_ADMIN_PATHS = ["/people", "/classes", "/notices"];
+const SITE_ADMIN_PREFIXES = ["/people", "/classes", "/notices"];
+
+/** Create concern: any staff can access. */
+const CREATE_CONCERN_PATH = "/safeguarding/concerns/new";
 
 /**
  * Check if the user can access the given pathname.
- * Staff can access: /, /sessions, /attendance, /people (list), /children, /parents, /lessons, /classes, /my-schedule, /notices.
- * Admin-only: /settings, /reports, /people/invite, classes/sessions create.
- * Billing: /billing (ORG_ADMIN only).
- * Safeguarding: /safeguarding and subpaths (ORG_ADMIN, SITE_ADMIN, SAFEGUARDING_LEAD).
+ * Staff (no admin): /, /staff/profile, /children, /parents, /lessons, /sessions, /my-schedule, /attendance, /safeguarding/concerns/new.
+ * Site/Org admin: + /people, /classes, /notices, /safeguarding (view).
+ * Org admin only: /billing.
  */
 export function canAccessRoute(
   pathname: string,
@@ -45,9 +47,10 @@ export function canAccessRoute(
   if (BILLING_PREFIXES.some((p) => path === p || path.startsWith(p + "/"))) {
     return canAccessBilling(role);
   }
-  if (
-    SAFEGUARDING_PREFIXES.some((p) => path === p || path.startsWith(p + "/"))
-  ) {
+  if (path === CREATE_CONCERN_PATH) {
+    return true; // Any authenticated staff can create concerns
+  }
+  if (path === "/safeguarding" || path.startsWith("/safeguarding/")) {
     return canAccessSafeguardingAdmin(role);
   }
   if (
@@ -56,11 +59,14 @@ export function canAccessRoute(
   ) {
     return canAccessAdminSection(role);
   }
-  if (path === "/people" || path.startsWith("/people/")) {
+  if (
+    SITE_ADMIN_PATHS.some((p) => path === p) ||
+    SITE_ADMIN_PREFIXES.some((p) => path.startsWith(p + "/"))
+  ) {
     if (path === "/people/invite" || path.startsWith("/people/invite/")) {
       return canAccessAdminSection(role);
     }
-    return true; // list and detail viewable by staff (edit gated by canPerform)
+    return isSiteAdminOrHigher(role);
   }
 
   return true;
@@ -79,7 +85,8 @@ export type AdminAction =
   | "settings:edit-site"
   | "reports:access"
   | "billing:access"
-  | "safeguarding:access";
+  | "safeguarding:access"
+  | "safeguarding:create";
 
 /**
  * Check if the user can perform the given action.
@@ -109,6 +116,8 @@ export function canPerform(
       return canAccessBilling(role);
     case "safeguarding:access":
       return canAccessSafeguardingAdmin(role);
+    case "safeguarding:create":
+      return true; // Any staff can create concerns
     default:
       return false;
   }

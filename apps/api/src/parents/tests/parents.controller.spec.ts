@@ -103,7 +103,10 @@ describe("ParentsController", () => {
     };
     getMock.mockResolvedValueOnce(detail);
 
-    const result = await controller.getOne("p1", tenantId, orgId);
+    const mockReq = { authUserId: "u1" } as Parameters<
+      ParentsController["getOne"]
+    >[1];
+    const result = await controller.getOne("p1", mockReq, tenantId, orgId);
 
     expect(result).toEqual(detail);
     expect(getMock).toHaveBeenCalledWith(tenantId, orgId, "p1");
@@ -112,8 +115,11 @@ describe("ParentsController", () => {
   it("404s when parent missing", async () => {
     getMock.mockResolvedValueOnce(null);
 
+    const mockReq = { authUserId: "u1" } as Parameters<
+      ParentsController["getOne"]
+    >[1];
     await expect(
-      controller.getOne("missing", tenantId, orgId),
+      controller.getOne("missing", mockReq, tenantId, orgId),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
