@@ -1,9 +1,13 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
-import { PathwayAuthGuard } from "@pathway/auth";
+import { PathwayAuthGuard, PathwayRequestContext } from "@pathway/auth";
 import { AuthUserGuard } from "../../auth/auth-user.guard";
 import { ChildrenController } from "../../children/children.controller";
 import { ChildrenService } from "../../children/children.service";
+
+const mockRequestContext = {
+  roles: { org: [], tenant: [] },
+} as unknown as PathwayRequestContext;
 import { CreateChildDto } from "../../children/dto/create-child.dto";
 import { UpdateChildDto } from "../../children/dto/update-child.dto";
 
@@ -35,7 +39,10 @@ describe("ChildrenController", () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChildrenController],
-      providers: [{ provide: ChildrenService, useValue: mockService }],
+      providers: [
+        { provide: ChildrenService, useValue: mockService },
+        { provide: PathwayRequestContext, useValue: mockRequestContext },
+      ],
     })
       .overrideGuard(PathwayAuthGuard)
       .useValue({ canActivate: () => true })

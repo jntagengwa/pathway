@@ -2272,6 +2272,37 @@ export async function linkParentToChild(
   >;
 }
 
+/** Invite a parent to a child. ORG_ADMIN or linked parent only. Links if user exists, creates+invites if not. */
+export async function inviteParentToChild(
+  childId: string,
+  email: string,
+  name?: string,
+): Promise<
+  | { linked: true; parentId: string }
+  | { invited: true; parentId: string }
+  | { userNotFound: true }
+> {
+  if (isUsingMockApi()) {
+    return { userNotFound: true };
+  }
+  const res = await fetch(`${API_BASE_URL}/children/${childId}/invite-parent`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({ email: email.trim(), name: name?.trim() || undefined }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to invite parent: ${res.status} ${body}`);
+  }
+  return res.json() as Promise<
+    | { linked: true; parentId: string }
+    | { invited: true; parentId: string }
+    | { userNotFound: true }
+  >;
+}
+
 /** Upload child photo. Requires photoConsent; only admin or linked parent can upload. */
 export async function uploadChildPhoto(
   childId: string,

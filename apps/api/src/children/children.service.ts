@@ -3,10 +3,12 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  Inject,
 } from "@nestjs/common";
-import { prisma } from "@pathway/db";
+import { prisma, SiteRole } from "@pathway/db";
 import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
+import { InvitesService } from "../invites/invites.service";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -36,6 +38,10 @@ const childSelect = {
 
 @Injectable()
 export class ChildrenService {
+  constructor(
+    @Inject(InvitesService) private readonly invitesService: InvitesService,
+  ) {}
+
   async list(tenantId: string) {
     return prisma.child.findMany({
       where: { tenantId },
@@ -299,6 +305,133 @@ export class ChildrenService {
         photoKey: null,
       },
     });
+  }
+
+  /**
+   * Assert caller can invite a parent: must be ORG_ADMIN or a linked parent of the child.
+   */
+  private async assertCanInviteParent(
+    childId: string,
+    tenantId: string,
+    callerUserId: string,
+    isOrgAdmin: boolean,
+  ): Promise<void> {
+    if (isOrgAdmin) return;
+    const child = await prisma.child.findFirst({
+      where: { id: childId, tenantId },
+      select: { guardians: { select: { id: true } } },
+    });
+    if (!child) throw new NotFoundException("Child not found");
+    const isLinkedParent = child.guardians.some((g) => g.id === callerUserId);
+    if (!isLinkedParent) {
+      throw new ForbiddenException(
+        "Only org admins and linked parents can invite another parent",
+      );
+    }
+  }
+
+  /**
+   * Invite a parent to a child. If user exists: link and grant access. If not: create, invite, link.
+   * Caller must be ORG_ADMIN or a linked parent.
+   */
+  async inviteParentToChild(
+    childId: string,
+    tenantId: string,
+    callerUserId: string,
+    isOrgAdmin: boolean,
+    email: string,
+    name?: string,
+  ): Promise<
+    | { linked: true; parentId: string }
+    | { invited: true; parentId: string }
+    | { userNotFound: true }
+  > {
+    await this.assertCanInviteParent(childId, tenantId, callerUserId, isOrgAdmin);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email is required");
+    }
+
+    const child = await prisma.child.findFirst({
+      where: { id: childId, tenantId },
+      select: { id: true, tenantId: true, guardians: { select: { id: true } } },
+    });
+    if (!child) throw new NotFoundException("Child not found");
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { orgId: true },
+    });
+    if (!tenant) throw new NotFoundException("Tenant not found");
+
+    const existingUser = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      const alreadyLinked = child.guardians.some((g) => g.id === existingUser.id);
+      if (alreadyLinked) {
+        return { linked: true, parentId: existingUser.id };
+      }
+
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: existingUser.id },
+          data: { hasFamilyAccess: true },
+        }),
+        prisma.siteMembership.upsert({
+          where: {
+            tenantId_userId: { tenantId, userId: existingUser.id },
+          },
+          create: {
+            tenantId,
+            userId: existingUser.id,
+            role: SiteRole.VIEWER,
+          },
+          update: {},
+        }),
+        prisma.child.update({
+          where: { id: childId },
+          data: {
+            guardians: { connect: { id: existingUser.id } },
+          },
+        }),
+      ]);
+      return { linked: true, parentId: existingUser.id };
+    }
+
+    await this.invitesService.createInvite(tenant.orgId, callerUserId, {
+      email: normalizedEmail,
+      name: name || undefined,
+      siteAccess: {
+        mode: "ALL_SITES",
+        role: SiteRole.VIEWER,
+      },
+    });
+
+    const newUser = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (!newUser) {
+      return { userNotFound: true };
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: newUser.id },
+        data: { hasFamilyAccess: true },
+      }),
+      prisma.child.update({
+        where: { id: childId },
+        data: {
+          guardians: { connect: { id: newUser.id } },
+        },
+      }),
+    ]);
+    return { invited: true, parentId: newUser.id };
   }
 
   /**
