@@ -49,7 +49,7 @@ export default function HeaderNav() {
     { label: "Readiness Score", href: "/readiness-score" },
     { label: "Toolkit", href: "/toolkit" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Resources", href: "/resources" },
+    { label: "Resources", href: "/blog" },
   ];
 
   return (

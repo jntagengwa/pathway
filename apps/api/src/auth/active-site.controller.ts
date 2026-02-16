@@ -231,6 +231,11 @@ export class ActiveSiteController {
       throw new UnauthorizedException("Missing authenticated user");
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { superUser: true },
+    });
+
     // Get user's org memberships to determine org roles
     const orgMemberships = await prisma.orgMembership.findMany({
       where: { userId },
@@ -291,6 +296,7 @@ export class ActiveSiteController {
 
     return {
       userId,
+      superUser: user?.superUser ?? false,
       currentOrgIsMasterOrg,
       orgRoles: Array.from(orgRoles.entries()).map(([orgId, role]) => ({
         orgId,

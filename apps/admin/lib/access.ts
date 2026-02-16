@@ -13,6 +13,7 @@ export type AdminRoleInfo = {
   isSiteAdmin: boolean;
   isStaff: boolean;
   isSafeguardingStaff: boolean;
+  isSuperUser: boolean;
 };
 
 /**
@@ -34,6 +35,7 @@ export function getAdminRoleInfoFromApiResponse(
     isSiteAdmin: false,
     isStaff: true,
     isSafeguardingStaff: false,
+    isSuperUser: false,
   };
 
   if (!rolesResponse) {
@@ -63,6 +65,7 @@ export function getAdminRoleInfoFromApiResponse(
     (!isOrgAdmin && !isSiteAdmin);
 
   const isSafeguardingStaff = isSafeguardingLead;
+  const isSuperUser = rolesResponse.superUser === true;
 
   return {
     isOrgAdmin,
@@ -70,6 +73,7 @@ export function getAdminRoleInfoFromApiResponse(
     isSiteAdmin,
     isStaff,
     isSafeguardingStaff,
+    isSuperUser,
   };
 }
 
@@ -127,7 +131,8 @@ export type AccessRequirement =
   | "safeguarding-admin" // Safeguarding admin overview (view concerns)
   | "staff-or-admin" // Any authenticated user
   | "staff-only" // Staff without admin (Profile, Create concern)
-  | "site-admin-or-higher"; // SITE_ADMIN or ORG_ADMIN (People, Classes, Announcements)
+  | "site-admin-or-higher" // SITE_ADMIN or ORG_ADMIN (People, Classes, Announcements)
+  | "super-user"; // Nexsteps staff only (e.g. blog)
 
 export type AccessContext = {
   /** When true, billing nav and purchase flows are hidden (master/internal org). */
@@ -157,6 +162,8 @@ export function meetsAccessRequirement(
       return isStaffOnly(role);
     case "site-admin-or-higher":
       return isSiteAdminOrHigher(role);
+    case "super-user":
+      return role.isSuperUser;
     default:
       return true;
   }

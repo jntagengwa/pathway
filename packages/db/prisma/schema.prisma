@@ -101,6 +101,64 @@ enum LeadKind {
   READINESS
 }
 
+// --- Blog (platform-wide, not tenant-scoped) ---
+
+enum BlogPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BlogAssetType {
+  THUMBNAIL
+  HEADER
+  INLINE
+}
+
+enum BlogAssetStorage {
+  POSTGRES
+}
+
+model BlogAsset {
+  id        String           @id @default(uuid())
+  type      BlogAssetType
+  storage   BlogAssetStorage  @default(POSTGRES)
+  mimeType  String
+  byteSize  Int
+  sha256    String           @unique
+  width     Int?
+  height    Int?
+  bytes     Bytes
+  createdAt DateTime         @default(now())
+
+  @@index([sha256])
+}
+
+model BlogPost {
+  id                 String         @id @default(uuid())
+  title              String
+  slug               String         @unique
+  excerpt            String?        @db.Text
+  contentJson        Json
+  contentHtml        String         @db.Text
+  seoTitle           String?
+  seoDescription     String?        @db.Text
+  thumbnailImageId   String?
+  headerImageId      String?
+  status             BlogPostStatus @default(DRAFT)
+  publishedAt        DateTime?
+  tags               String[]       @default([])
+  authorName         String?        // Set at publish from publishing user
+  authorAvatarId     String?        // BlogAsset id if avatar stored at publish
+  readTimeMinutes    Int?           // Calculated from content at publish
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([slug])
+}
+
 enum StaffAttendanceStatus {
   PRESENT
   ABSENT
@@ -211,6 +269,7 @@ model User {
   avatarBytes        Bytes?    // Inline storage until S3
   avatarContentType  String?   // e.g. image/jpeg
   isActive           Boolean   @default(true)
+  superUser          Boolean   @default(false) // Nexsteps staff only (e.g. blog admin)
 
   // NOTE: kept for backward compatibility (single-tenant user). For suites, prefer UserTenantRole.
   tenantId String?

@@ -31,6 +31,7 @@ import { LeadsModule } from "./leads/leads.module";
 import { StaffModule } from "./staff/staff.module";
 import { PublicSignupModule } from "./public-signup/public-signup.module";
 import { ExportsModule } from "./exports/exports.module";
+import { BlogModule } from "./blog/blog.module";
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ExportsModule } from "./exports/exports.module";
     StaffModule,
     PublicSignupModule,
     ExportsModule,
+    BlogModule,
   ],
 })
 export class AppModule {}

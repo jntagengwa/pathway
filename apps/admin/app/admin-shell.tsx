@@ -47,6 +47,7 @@ const navItemsWithAccess: (SidebarNavItem & { access?: AccessRequirement })[] = 
   { label: "Create concern", href: "/safeguarding/concerns/new", iconIndex: 10, access: "staff-or-admin" }, // All staff can create
   { ...defaultSidebarItems[10], access: "safeguarding-admin" }, // Safeguarding (view dashboard)
   { ...defaultSidebarItems[11], access: "billing" }, // Billing (org admin only)
+  { label: "Blog", href: "/admin/blog", iconIndex: 4, access: "super-user" },
   { ...defaultSidebarItems[12], access: "admin-only" }, // Reports
   { ...defaultSidebarItems[13], access: "admin-only" }, // Settings
 ];
@@ -71,6 +72,7 @@ const titleMap: Record<string, string> = {
   "/safeguarding/notes/new": "Create positive note",
   "/billing": "Billing & Usage",
   "/billing/buy-now": "Buy Now",
+  "/admin/blog": "Blog",
   "/reports": "Reports & Insights",
   "/settings": "Settings & Organisation",
 };
