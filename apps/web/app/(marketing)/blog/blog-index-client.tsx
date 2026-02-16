@@ -159,9 +159,11 @@ export default function BlogIndexClient({
                     )}
                   </div>
                   <div className="flex flex-1 flex-col justify-center p-6 md:p-8">
-                    <span className="mb-2 inline-block w-fit rounded-full bg-accent-subtle px-3 py-1 text-xs font-medium text-accent-strong">
-                      Featured
-                    </span>
+                    {filteredFeatured.isFeatured && (
+                      <span className="mb-2 inline-block w-fit rounded-full bg-accent-subtle px-3 py-1 text-xs font-medium text-accent-strong">
+                        Featured
+                      </span>
+                    )}
                     <h2 className="text-2xl font-bold text-text-primary md:text-3xl">
                       {filteredFeatured.title}
                     </h2>

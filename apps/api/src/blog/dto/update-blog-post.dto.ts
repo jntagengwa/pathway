@@ -13,6 +13,7 @@ export const updateBlogPostDto = z.object({
   thumbnailImageId: z.string().uuid().optional().nullable(),
   headerImageId: z.string().uuid().optional().nullable(),
   tags: z.array(z.string()).optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 export type UpdateBlogPostDto = z.infer<typeof updateBlogPostDto>;

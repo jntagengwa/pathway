@@ -40,6 +40,7 @@ export type BlogPostSummary = {
   authorName: string | null;
   authorAvatarId: string | null;
   readTimeMinutes: number | null;
+  isFeatured: boolean;
   createdAt: string;
   updatedAt: string;
 };

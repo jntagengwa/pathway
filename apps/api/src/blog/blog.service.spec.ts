@@ -11,6 +11,7 @@ jest.mock("@pathway/db", () => ({
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
     },
     blogAsset: {
@@ -80,17 +81,25 @@ describe("BlogService", () => {
           publishedAt: new Date(now.getTime() - 1000),
         },
       ];
+      (prisma.blogPost.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
       (prisma.blogPost.findMany as jest.Mock).mockResolvedValue(posts);
 
       const result = await service.listPublic(20);
 
+      expect(prisma.blogPost.updateMany).toHaveBeenCalledWith({
+        where: {
+          status: "SCHEDULED",
+          publishedAt: { lte: expect.any(Date) },
+        },
+        data: { status: "PUBLISHED" },
+      });
       expect(prisma.blogPost.findMany).toHaveBeenCalledWith({
         where: {
           status: "PUBLISHED",
           publishedAt: { lte: expect.any(Date) },
         },
         take: 21,
-        orderBy: { publishedAt: "desc" },
+        orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }],
       });
       expect(result.posts).toHaveLength(1);
     });

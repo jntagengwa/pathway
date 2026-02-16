@@ -4992,6 +4992,7 @@ export type AdminBlogPost = {
   status: string;
   publishedAt: string | null;
   tags: string[];
+  isFeatured: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -5079,6 +5080,7 @@ export async function updateBlogPost(
     thumbnailImageId: string | null;
     headerImageId: string | null;
     tags: string[];
+    isFeatured: boolean;
   }>,
 ): Promise<AdminBlogPost> {
   if (isUsingMockApi()) {
@@ -5099,6 +5101,7 @@ export async function updateBlogPost(
 
 export async function publishBlogPost(
   id: string,
+  options?: { scheduledAt?: string },
 ): Promise<{ contentHtml: string; slug: string }> {
   if (isUsingMockApi()) {
     throw new Error("Cannot publish blog post: API not configured");
@@ -5107,6 +5110,7 @@ export async function publishBlogPost(
     method: "POST",
     headers: buildAuthHeaders(),
     credentials: "include",
+    body: JSON.stringify(options ?? {}),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");

@@ -34,7 +34,13 @@ export class BlogService {
     const post = await prisma.blogPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException("Post not found");
     if (post.status === "PUBLISHED") {
-      throw new BadRequestException("Cannot edit a published post directly; create a new version or archive first");
+      if (dto.isFeatured === undefined) {
+        throw new BadRequestException("Cannot edit a published post directly; only isFeatured can be updated");
+      }
+      return prisma.blogPost.update({
+        where: { id },
+        data: { isFeatured: dto.isFeatured },
+      });
     }
     if (dto.slug && dto.slug !== post.slug) {
       const existing = await prisma.blogPost.findUnique({ where: { slug: dto.slug } });
@@ -52,6 +58,7 @@ export class BlogService {
         ...(dto.thumbnailImageId !== undefined && { thumbnailImageId: dto.thumbnailImageId }),
         ...(dto.headerImageId !== undefined && { headerImageId: dto.headerImageId }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
+        ...(dto.isFeatured !== undefined && { isFeatured: dto.isFeatured }),
       },
     });
   }
@@ -61,6 +68,28 @@ export class BlogService {
     baseUrl: string,
     authorUserId?: string,
   ): Promise<{ contentHtml: string; slug: string }> {
+    return this.publishOrSchedule(id, baseUrl, authorUserId, undefined);
+  }
+
+  async schedule(
+    id: string,
+    baseUrl: string,
+    scheduledAt: Date,
+    authorUserId?: string,
+  ): Promise<{ contentHtml: string; slug: string }> {
+    const now = new Date();
+    if (scheduledAt <= now) {
+      throw new BadRequestException("Scheduled time must be in the future");
+    }
+    return this.publishOrSchedule(id, baseUrl, authorUserId, scheduledAt);
+  }
+
+  private async publishOrSchedule(
+    id: string,
+    baseUrl: string,
+    authorUserId?: string,
+    scheduledAt?: Date,
+  ): Promise<{ contentHtml: string; slug: string }> {
     const post = await prisma.blogPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException("Post not found");
     if (post.status === "PUBLISHED") {
@@ -68,6 +97,8 @@ export class BlogService {
     }
     const contentHtml = tiptapJsonToHtml(post.contentJson, baseUrl);
     const now = new Date();
+    const goLiveAt = scheduledAt ?? now;
+    const status = scheduledAt ? "SCHEDULED" : "PUBLISHED";
 
     let authorName: string | null = "Nexsteps";
     let authorAvatarId: string | null = null;
@@ -100,8 +131,8 @@ export class BlogService {
     await prisma.blogPost.update({
       where: { id },
       data: {
-        status: "PUBLISHED",
-        publishedAt: now,
+        status,
+        publishedAt: goLiveAt,
         contentHtml,
         authorName,
         authorAvatarId,
@@ -109,6 +140,18 @@ export class BlogService {
       },
     });
     return { contentHtml, slug: post.slug };
+  }
+
+  /** Promote SCHEDULED posts to PUBLISHED when publishedAt <= now. Called before public queries. */
+  async processScheduledPosts(): Promise<void> {
+    const now = new Date();
+    await prisma.blogPost.updateMany({
+      where: {
+        status: "SCHEDULED",
+        publishedAt: { lte: now },
+      },
+      data: { status: "PUBLISHED" },
+    });
   }
 
   private estimateReadTime(html: string): number {
@@ -167,6 +210,7 @@ export class BlogService {
   }
 
   async listPublic(limit = 20, cursor?: string) {
+    await this.processScheduledPosts();
     const now = new Date();
     const items = await prisma.blogPost.findMany({
       where: {
@@ -175,7 +219,7 @@ export class BlogService {
       },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-      orderBy: { publishedAt: "desc" },
+      orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }],
     });
     const hasMore = items.length > limit;
     const posts = hasMore ? items.slice(0, limit) : items;
@@ -184,6 +228,7 @@ export class BlogService {
   }
 
   async getPublicBySlug(slug: string) {
+    await this.processScheduledPosts();
     const now = new Date();
     const post = await prisma.blogPost.findFirst({
       where: {

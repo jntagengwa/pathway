@@ -74,10 +74,20 @@ export class BlogAdminController {
   }
 
   @Post("posts/:id/publish")
-  async publishPost(@Param("id") id: string, @Req() req: AuthRequest) {
+  async publishPost(
+    @Param("id") id: string,
+    @Body() body: { scheduledAt?: string } | undefined,
+    @Req() req: AuthRequest,
+  ) {
     await this.assertBlogAdmin(req);
     const baseUrl = process.env.PUBLIC_BLOG_BASE_URL ?? "https://nexsteps.dev";
-    const result = await this.blogService.publish(id, baseUrl, req.authUserId);
+    let result: { contentHtml: string; slug: string };
+    if (body?.scheduledAt) {
+      const scheduledAt = new Date(body.scheduledAt);
+      result = await this.blogService.schedule(id, baseUrl, scheduledAt, req.authUserId);
+    } else {
+      result = await this.blogService.publish(id, baseUrl, req.authUserId);
+    }
     await this.triggerRevalidation(baseUrl, result.slug);
     return result;
   }

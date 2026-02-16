@@ -152,6 +152,7 @@ model BlogPost {
   authorName         String?        // Set at publish from publishing user
   authorAvatarId     String?        // BlogAsset id if avatar stored at publish
   readTimeMinutes    Int?           // Calculated from content at publish
+  isFeatured         Boolean        @default(false) // Shown in featured slot on blog index
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
