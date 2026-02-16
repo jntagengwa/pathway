@@ -209,7 +209,7 @@ export default function ChildDetailPage() {
     setAddParentError(null);
     try {
       const result = await linkParentToChild(childId, email);
-      if (result.linked) {
+      if ("linked" in result && result.linked) {
         setAddParentStatus("success");
         setAddParentSuccessMessage("Parent linked successfully.");
         setAddParentEmail("");
@@ -247,7 +247,7 @@ export default function ChildDetailPage() {
         },
       });
       const linkResult = await linkParentToChild(childId, email);
-      if (linkResult.linked) {
+      if ("linked" in linkResult && linkResult.linked) {
         setAddParentSuccessMessage(
           "Invite sent and parent linked. They will have access once they accept.",
         );
