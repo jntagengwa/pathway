@@ -14,7 +14,7 @@ import {
   Header,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { CurrentTenant } from "@pathway/auth";
+import { CurrentTenant, PathwayRequestContext, UserOrgRole } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { ChildrenService } from "./children.service";
 import { createChildSchema, CreateChildDto } from "./dto/create-child.dto";
@@ -29,7 +29,10 @@ type AuthenticatedRequest = Request & {
 @Controller("children")
 @UseGuards(AuthUserGuard)
 export class ChildrenController {
-  constructor(@Inject(ChildrenService) private readonly childrenService: ChildrenService) {}
+  constructor(
+    @Inject(ChildrenService) private readonly childrenService: ChildrenService,
+    @Inject(PathwayRequestContext) private readonly requestContext: PathwayRequestContext,
+  ) {}
 
   @Get()
   async list(@CurrentTenant("tenantId") tenantId: string) {
@@ -142,6 +145,39 @@ export class ChildrenController {
       tenantId,
       userId,
       email,
+    );
+  }
+
+  /**
+   * Invite a parent to the child. Only ORG_ADMIN or a linked parent can invite.
+   * If user exists: link to child and grant family access.
+   * If user doesn't exist: create user, send invite email, link to child.
+   */
+  @Post(":id/invite-parent")
+  async inviteParent(
+    @Param("id") id: string,
+    @Body() body: { email?: string; name?: string },
+    @CurrentTenant("tenantId") tenantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.authUserId;
+    if (!userId) {
+      throw new BadRequestException("Authentication required");
+    }
+    const email = body?.email?.trim();
+    if (!email) {
+      throw new BadRequestException("Email is required");
+    }
+    const isOrgAdmin = this.requestContext.roles.org.some(
+      (r) => r === UserOrgRole.ORG_ADMIN,
+    );
+    return this.childrenService.inviteParentToChild(
+      id,
+      tenantId,
+      userId,
+      isOrgAdmin,
+      email,
+      body?.name?.trim() || undefined,
     );
   }
 }

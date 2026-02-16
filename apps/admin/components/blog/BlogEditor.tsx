@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
 import { uploadBlogAsset } from "../../lib/api-client";
 
 type BlogEditorProps = {
@@ -25,6 +26,11 @@ export function BlogEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: { rel: "noopener noreferrer" },
+        validate: (href) => /^(\/|https?:\/\/)/.test(href ?? ""),
+      }),
       Image.configure({
         HTMLAttributes: { loading: "lazy" },
       }),
@@ -145,9 +151,22 @@ export function BlogEditor({
 
   const isBold = editor.isActive("bold");
   const isItalic = editor.isActive("italic");
+  const isLink = editor.isActive("link");
   const isH2 = editor.isActive("heading", { level: 2 });
   const isH3 = editor.isActive("heading", { level: 3 });
   const isList = editor.isActive("bulletList") || editor.isActive("orderedList");
+
+  const setLink = useCallback(() => {
+    const href = editor.getAttributes("link").href;
+    const url = window.prompt("Link URL (use / for internal, e.g. /blog/post-slug, /demo):", href ?? "");
+    if (url === null) return;
+    if (url === "") {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    const hrefNorm = url.startsWith("/") || /^https?:\/\//.test(url) ? url : `https://${url}`;
+    editor.chain().focus().setLink({ href: hrefNorm }).run();
+  }, [editor]);
 
   return (
     <div className={className}>
@@ -173,6 +192,17 @@ export function BlogEditor({
           }`}
         >
           Italic
+        </button>
+        <button
+          type="button"
+          onClick={setLink}
+          className={`${toolbarBtn} ${
+            isLink
+              ? "bg-accent-subtle text-accent-strong shadow-sm"
+              : "text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong"
+          }`}
+        >
+          Link
         </button>
         <button
           type="button"
@@ -225,7 +255,7 @@ export function BlogEditor({
         </button>
       </div>
       <p className="mb-2 text-xs text-text-muted">
-        Use &quot;Add section&quot; for sub-headers. Images can be placed inline, above or below text by positioning the cursor.
+        Use &quot;Add section&quot; for sub-headers. Select text and click Link to add internal paths (e.g. /blog/post-slug, /demo) or external URLs.
       </p>
       <div className="min-h-[200px] rounded-md border border-border-subtle bg-surface px-3 py-2 prose prose-sm max-w-none">
         <EditorContent editor={editor} />

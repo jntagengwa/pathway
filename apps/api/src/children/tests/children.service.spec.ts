@@ -18,8 +18,17 @@ jest.mock("@pathway/db", () => ({
   },
 }));
 
+const mockInvitesService = {
+  createInvite: jest.fn(),
+};
+
+jest.mock("../../invites/invites.service", () => ({
+  InvitesService: jest.fn().mockImplementation(() => mockInvitesService),
+}));
+
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { ChildrenService } from "../../children/children.service";
+import { InvitesService } from "../../invites/invites.service";
 
 describe("ChildrenService", () => {
   let svc: ChildrenService;
@@ -27,7 +36,7 @@ describe("ChildrenService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    svc = new ChildrenService();
+    svc = new ChildrenService(mockInvitesService as unknown as InvitesService);
   });
 
   describe("list", () => {

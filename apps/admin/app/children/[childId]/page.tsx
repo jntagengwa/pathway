@@ -10,13 +10,11 @@ import { ProfileHeaderCard } from "../../../components/profile-header-card";
 import { canAccessAdminSection, canAccessSafeguardingAdmin } from "../../../lib/access";
 import { useAdminAccess } from "../../../lib/use-admin-access";
 import {
-  createInvite,
   exportAttendanceCsv,
-  fetchActiveSiteState,
   fetchChildForEdit,
   fetchChildById,
   fetchGroups,
-  linkParentToChild,
+  inviteParentToChild,
   updateChild,
   uploadChildPhoto,
   type ChildEditFormData,
@@ -62,8 +60,9 @@ export default function ChildDetailPage() {
   const [photoVersion, setPhotoVersion] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [addParentEmail, setAddParentEmail] = React.useState("");
+  const [addParentName, setAddParentName] = React.useState("");
   const [addParentStatus, setAddParentStatus] = React.useState<
-    "idle" | "linking" | "inviting" | "success" | "error"
+    "idle" | "inviting" | "success" | "error"
   >("idle");
   const [addParentError, setAddParentError] = React.useState<string | null>(
     null,
@@ -88,6 +87,8 @@ export default function ChildDetailPage() {
     isAdmin || (!!currentUserId && guardianIds.includes(currentUserId));
   const isLinkedParent =
     !!currentUserId && guardianIds.includes(currentUserId);
+  const canInviteParent =
+    (role?.isOrgAdmin ?? false) || isLinkedParent;
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -202,67 +203,35 @@ export default function ChildDetailPage() {
     e.target.value = "";
   };
 
-  const handleLinkParent = async () => {
+  const handleInviteParent = async () => {
     const email = addParentEmail.trim();
-    if (!email || !child || !isLinkedParent) return;
-    setAddParentStatus("linking");
+    if (!email || !child || !canInviteParent) return;
+    setAddParentStatus("inviting");
     setAddParentError(null);
     try {
-      const result = await linkParentToChild(childId, email);
+      const result = await inviteParentToChild(childId, email, addParentName.trim() || undefined);
       if ("linked" in result && result.linked) {
         setAddParentStatus("success");
         setAddParentSuccessMessage("Parent linked successfully.");
         setAddParentEmail("");
+        setAddParentName("");
+        await load();
+      } else if ("invited" in result && result.invited) {
+        setAddParentStatus("success");
+        setAddParentSuccessMessage(
+          "Invite sent. They will receive an email to sign in or sign up, then they will have access to this child.",
+        );
+        setAddParentEmail("");
+        setAddParentName("");
         await load();
       } else {
         setAddParentStatus("idle");
-        setAddParentError("User not found. Use Invite to send them a signup link.");
+        setAddParentError("Could not complete invite. Please try again.");
       }
     } catch (err) {
       setAddParentStatus("error");
       setAddParentError(
-        err instanceof Error ? err.message : "Failed to link parent",
-      );
-    }
-  };
-
-  const handleInviteParent = async () => {
-    const email = addParentEmail.trim();
-    if (!email || !child || !isLinkedParent) return;
-    setAddParentStatus("inviting");
-    setAddParentError(null);
-    try {
-      const state = await fetchActiveSiteState();
-      const activeSite =
-        state.sites.find((s) => s.id === state.activeSiteId) ?? state.sites[0];
-      const orgId = activeSite?.orgId;
-      if (!orgId) {
-        throw new Error("Active organisation not found");
-      }
-      await createInvite(orgId, {
-        email,
-        siteAccess: {
-          mode: "ALL_SITES",
-          role: "VIEWER",
-        },
-      });
-      const linkResult = await linkParentToChild(childId, email);
-      if ("linked" in linkResult && linkResult.linked) {
-        setAddParentSuccessMessage(
-          "Invite sent and parent linked. They will have access once they accept.",
-        );
-        await load();
-      } else {
-        setAddParentSuccessMessage(
-          "Invite sent. They will get site access when they accept. Contact an admin to link them to this child after they join.",
-        );
-      }
-      setAddParentStatus("success");
-      setAddParentEmail("");
-    } catch (err) {
-      setAddParentStatus("error");
-      setAddParentError(
-        err instanceof Error ? err.message : "Failed to send invite",
+        err instanceof Error ? err.message : "Failed to invite parent",
       );
     }
   };
@@ -498,62 +467,51 @@ export default function ChildDetailPage() {
             </Card>
           </div>
 
-          {isLinkedParent && (
+          {canInviteParent && (
             <Card
-              title="Add a parent"
-              description="Invite another parent to view this child. If they already have an account, they will be linked. Otherwise, send them an invite to sign up."
+              title="Invite parent"
+              description="Add another parent or guardian. If they already have an account, they will be linked. Otherwise, they will receive an invite email to sign up."
             >
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                 <div className="min-w-0 flex-1">
-                  <Label htmlFor="add-parent-email">Email</Label>
+                  <Label htmlFor="add-parent-email">Email *</Label>
                   <Input
                     id="add-parent-email"
                     type="email"
                     value={addParentEmail}
                     onChange={(e) => {
                       setAddParentEmail(e.target.value);
-                    setAddParentStatus("idle");
-                    setAddParentError(null);
-                    setAddParentSuccessMessage(null);
-                  }}
+                      setAddParentStatus("idle");
+                      setAddParentError(null);
+                      setAddParentSuccessMessage(null);
+                    }}
                     placeholder="e.g. partner@example.com"
                     className="mt-1"
-                    disabled={
-                      addParentStatus === "linking" ||
-                      addParentStatus === "inviting"
-                    }
+                    disabled={addParentStatus === "inviting"}
                   />
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={handleLinkParent}
-                    disabled={
-                      !addParentEmail.trim() ||
-                      addParentStatus === "linking" ||
-                      addParentStatus === "inviting"
-                    }
-                  >
-                    {addParentStatus === "linking"
-                      ? "Linking…"
-                      : "Link existing"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleInviteParent}
-                    disabled={
-                      !addParentEmail.trim() ||
-                      addParentStatus === "linking" ||
-                      addParentStatus === "inviting"
-                    }
-                  >
-                    {addParentStatus === "inviting"
-                      ? "Sending…"
-                      : "Invite new"}
-                  </Button>
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="add-parent-name">Name (optional)</Label>
+                  <Input
+                    id="add-parent-name"
+                    type="text"
+                    value={addParentName}
+                    onChange={(e) => setAddParentName(e.target.value)}
+                    placeholder="For new users"
+                    className="mt-1"
+                    disabled={addParentStatus === "inviting"}
+                  />
                 </div>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleInviteParent}
+                  disabled={
+                    !addParentEmail.trim() || addParentStatus === "inviting"
+                  }
+                >
+                  {addParentStatus === "inviting" ? "Inviting…" : "Invite parent"}
+                </Button>
               </div>
               {addParentSuccessMessage && (
                 <p className="mt-3 text-sm text-status-success">
