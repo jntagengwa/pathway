@@ -542,6 +542,7 @@ export async function fetchActiveSiteState(): Promise<ActiveSiteState> {
 
 export type UserRolesResponse = {
   userId: string;
+  superUser?: boolean;
   currentOrgIsMasterOrg?: boolean;
   orgRoles: Array<{ orgId: string; role: string }>;
   siteRoles: Array<{ tenantId: string; role: string }>;
@@ -563,6 +564,7 @@ export async function fetchUserRoles(): Promise<UserRolesResponse> {
     // In mock mode, return empty roles (will fall back to dev mode admin access)
     return {
       userId: "mock-user",
+      superUser: false,
       currentOrgIsMasterOrg: false,
       orgRoles: [],
       siteRoles: [],
@@ -4972,4 +4974,188 @@ export async function updateUserProfile(data: {
     const body = await res.text().catch(() => "");
     throw new Error(`Failed to update profile: ${res.status} ${body}`);
   }
+}
+
+// --- Blog (admin) ---
+
+export type AdminBlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  contentJson: Record<string, unknown>;
+  contentHtml: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  thumbnailImageId: string | null;
+  headerImageId: string | null;
+  status: string;
+  publishedAt: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminBlogUploadAssetResponse = {
+  id: string;
+  url: string;
+  width?: number;
+  height?: number;
+};
+
+export async function fetchBlogPostsAdmin(
+  cursor?: string,
+  limit = 50,
+): Promise<{ posts: AdminBlogPost[]; nextCursor?: string }> {
+  if (isUsingMockApi()) {
+    return { posts: [], nextCursor: undefined };
+  }
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  params.set("limit", String(limit));
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts?${params}`, {
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch blog posts: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export async function fetchBlogPostAdmin(id: string): Promise<AdminBlogPost | null> {
+  if (isUsingMockApi()) return null;
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts/${id}`, {
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch blog post: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export async function createBlogPost(data: {
+  title: string;
+  slug: string;
+  excerpt?: string;
+  contentJson?: Record<string, unknown>;
+  seoTitle?: string;
+  seoDescription?: string;
+  thumbnailImageId?: string | null;
+  headerImageId?: string | null;
+  tags?: string[];
+}): Promise<AdminBlogPost> {
+  if (isUsingMockApi()) {
+    throw new Error("Cannot create blog post: API not configured");
+  }
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to create blog post: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export async function updateBlogPost(
+  id: string,
+  data: Partial<{
+    title: string;
+    slug: string;
+    excerpt: string | null;
+    contentJson: Record<string, unknown>;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    thumbnailImageId: string | null;
+    headerImageId: string | null;
+    tags: string[];
+  }>,
+): Promise<AdminBlogPost> {
+  if (isUsingMockApi()) {
+    throw new Error("Cannot update blog post: API not configured");
+  }
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts/${id}`, {
+    method: "PUT",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update blog post: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export async function publishBlogPost(
+  id: string,
+): Promise<{ contentHtml: string; slug: string }> {
+  if (isUsingMockApi()) {
+    throw new Error("Cannot publish blog post: API not configured");
+  }
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts/${id}/publish`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to publish blog post: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export async function deleteBlogPost(id: string): Promise<{ slug: string }> {
+  if (isUsingMockApi()) {
+    throw new Error("Cannot delete blog post: API not configured");
+  }
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts/${id}`, {
+    method: "DELETE",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to delete blog post: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export async function uploadBlogAsset(
+  fileBase64: string,
+  mimeType: "image/png" | "image/jpeg" | "image/webp",
+  type: "THUMBNAIL" | "HEADER" | "INLINE" = "INLINE",
+  width?: number,
+  height?: number,
+): Promise<AdminBlogUploadAssetResponse> {
+  if (isUsingMockApi()) {
+    throw new Error("Cannot upload blog asset: API not configured");
+  }
+  const res = await fetch(`${API_BASE_URL}/admin/blog/assets`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify({
+      fileBase64,
+      mimeType,
+      type,
+      width,
+      height,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to upload blog asset: ${res.status} ${body}`);
+  }
+  return res.json();
 }

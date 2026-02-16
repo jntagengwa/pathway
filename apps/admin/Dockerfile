@@ -37,11 +37,13 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 # This ensures workspace binaries are resolved correctly
 # Accept NEXT_PUBLIC_API_URL as build argument for production builds
 # This is required because Next.js embeds NEXT_PUBLIC_* vars at build time
-# Default to mock mode when no API URL provided (enables CI/Docker build to succeed)
+# NEXT_PUBLIC_API_URL must be passed at build time for production (e.g. https://api.nexsteps.dev).
+# NEXT_PUBLIC_USE_MOCK_API defaults to false so real API is used when URL is set.
+# Set NEXT_PUBLIC_USE_MOCK_API=true only for local/dev builds that need mock data.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_USE_MOCK_API
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_USE_MOCK_API=${NEXT_PUBLIC_USE_MOCK_API:-true}
+ENV NEXT_PUBLIC_USE_MOCK_API=${NEXT_PUBLIC_USE_MOCK_API:-false}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm --filter @pathway/admin build

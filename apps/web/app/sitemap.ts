@@ -1,17 +1,11 @@
 import type { MetadataRoute } from "next";
-import { getAllResources } from "../lib/resources";
+import { fetchBlogPosts } from "../lib/blog-client";
 
 const baseUrl = "https://nexsteps.dev";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const resources = getAllResources();
-  const resourceUrls: MetadataRoute.Sitemap = resources.map((resource) => ({
-    url: `${baseUrl}/resources/${resource.slug}`,
-    lastModified: new Date(resource.publishedAt),
-    changeFrequency: "monthly",
-    priority: 0.6,
-  }));
+export const revalidate = 60;
 
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     {
       url: baseUrl,
@@ -56,7 +50,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/resources`,
+      url: `${baseUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.7,
@@ -103,7 +97,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.5,
     },
-    ...resourceUrls,
+    ...(await getBlogPostUrls()),
   ];
+}
+
+async function getBlogPostUrls(): Promise<MetadataRoute.Sitemap> {
+  try {
+    const { posts } = await fetchBlogPosts(undefined, 500);
+    return posts.map((post) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: new Date(post.updatedAt),
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    }));
+  } catch {
+    return [];
+  }
 }
 

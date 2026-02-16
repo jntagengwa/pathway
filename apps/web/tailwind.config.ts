@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  plugins: [require("@tailwindcss/typography")],
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -75,9 +76,31 @@ const config: Config = {
         card: "0px 10px 30px rgba(15, 23, 42, 0.06)",
         soft: "0px 4px 12px rgba(15, 23, 42, 0.04)",
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            "--tw-prose-body": "rgb(var(--pw-text-primary))",
+            "--tw-prose-headings": "rgb(var(--pw-text-primary))",
+            "--tw-prose-links": "rgb(var(--pw-accent-strong))",
+            maxWidth: "none",
+            "p, ul, ol, blockquote": {
+              marginTop: "1.25em",
+              marginBottom: "1.25em",
+            },
+            img: {
+              borderRadius: "12px",
+              marginTop: "1.5em",
+              marginBottom: "1.5em",
+            },
+            blockquote: {
+              borderLeftColor: "rgb(var(--pw-accent-secondary))",
+              fontStyle: "italic",
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [],
 };
 
 export default config;

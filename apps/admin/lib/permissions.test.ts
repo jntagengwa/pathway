@@ -12,6 +12,7 @@ const staffRole: AdminRoleInfo = {
   isSiteAdmin: false,
   isStaff: true,
   isSafeguardingStaff: false,
+  isSuperUser: false,
 };
 
 const siteAdminRole: AdminRoleInfo = {
@@ -20,6 +21,7 @@ const siteAdminRole: AdminRoleInfo = {
   isSiteAdmin: true,
   isStaff: true,
   isSafeguardingStaff: false,
+  isSuperUser: false,
 };
 
 const orgAdminRole: AdminRoleInfo = {
@@ -28,6 +30,7 @@ const orgAdminRole: AdminRoleInfo = {
   isSiteAdmin: false,
   isStaff: true,
   isSafeguardingStaff: false,
+  isSuperUser: false,
 };
 
 const safeguardingLeadRole: AdminRoleInfo = {
@@ -36,6 +39,7 @@ const safeguardingLeadRole: AdminRoleInfo = {
   isSiteAdmin: false,
   isStaff: true,
   isSafeguardingStaff: true,
+  isSuperUser: false,
 };
 
 function runTests() {
