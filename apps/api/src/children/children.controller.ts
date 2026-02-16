@@ -9,15 +9,22 @@ import {
   NotFoundException,
   UseGuards,
   Inject,
+  Req,
   Res,
   Header,
 } from "@nestjs/common";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { CurrentTenant } from "@pathway/auth";
 import { AuthUserGuard } from "../auth/auth-user.guard";
 import { ChildrenService } from "./children.service";
 import { createChildSchema, CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto, updateChildSchema } from "./dto/update-child.dto";
+import { uploadChildPhotoDto } from "./dto/upload-photo.dto";
+
+type AuthenticatedRequest = Request & {
+  authUserId?: string;
+  __pathwayContext?: { siteRole?: string | null };
+};
 
 @Controller("children")
 @UseGuards(AuthUserGuard)
@@ -69,15 +76,72 @@ export class ChildrenController {
     @Param("id") id: string,
     @Body() body: unknown,
     @CurrentTenant("tenantId") tenantId: string,
+    @Req() req: AuthenticatedRequest,
   ) {
     const parsed = updateChildSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.format());
     }
+    const userId = req.authUserId;
+    const isSiteAdmin =
+      req.__pathwayContext?.siteRole === "SITE_ADMIN";
     return this.childrenService.update(
       id,
       parsed.data as UpdateChildDto,
       tenantId,
+      userId,
+      isSiteAdmin,
+    );
+  }
+
+  @Post(":id/photo")
+  async uploadPhoto(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @CurrentTenant("tenantId") tenantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.authUserId;
+    if (!userId) {
+      throw new BadRequestException("Authentication required");
+    }
+    const parsed = uploadChildPhotoDto.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.format());
+    }
+    const isSiteAdmin =
+      req.__pathwayContext?.siteRole === "SITE_ADMIN";
+    await this.childrenService.uploadPhoto(
+      id,
+      tenantId,
+      userId,
+      isSiteAdmin,
+      parsed.data.photoBase64,
+      parsed.data.photoContentType,
+    );
+    return { ok: true };
+  }
+
+  @Post(":id/link-parent")
+  async linkParent(
+    @Param("id") id: string,
+    @Body() body: { email?: string },
+    @CurrentTenant("tenantId") tenantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.authUserId;
+    if (!userId) {
+      throw new BadRequestException("Authentication required");
+    }
+    const email = body?.email?.trim();
+    if (!email) {
+      throw new BadRequestException("Email is required");
+    }
+    return this.childrenService.linkParentByEmail(
+      id,
+      tenantId,
+      userId,
+      email,
     );
   }
 }

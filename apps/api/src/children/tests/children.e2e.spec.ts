@@ -121,18 +121,18 @@ describe("Children (e2e)", () => {
     expect(res.body).toHaveProperty("groupId", groupId);
   });
 
-  it("POST /children invalid body should 400 (missing allergies)", async () => {
+  it("POST /children without allergies defaults to none", async () => {
     if (!app) return;
-    const bad = { firstName: "No", lastName: "Allergy", tenantId };
+    const payload = { firstName: "No", lastName: "Allergy", tenantId };
 
     const res = await request(app.getHttpServer())
       .post("/children")
-      .send(bad)
+      .send(payload)
       .set("content-type", "application/json")
       .set("Authorization", authHeader);
 
-    // Some environments surface validation errors as 400, others as 404 via global filters.
-    expect([400, 404]).toContain(res.status);
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty("allergies", "none");
   });
 
   it("POST /children group from another tenant should 400", async () => {

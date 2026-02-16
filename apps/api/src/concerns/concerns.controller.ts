@@ -61,13 +61,19 @@ export class ConcernsController {
     orgRoles: [UserOrgRole.SAFEGUARDING_LEAD, UserOrgRole.ORG_ADMIN],
   };
 
+  /** Create: any staff (STAFF, TEACHER, ADMIN) or safeguarding/org admin can create. */
+  private static readonly safeguardingCreate = {
+    tenantRoles: [UserTenantRole.ADMIN, UserTenantRole.STAFF, UserTenantRole.TEACHER],
+    orgRoles: [UserOrgRole.SAFEGUARDING_LEAD, UserOrgRole.ORG_ADMIN],
+  };
+
   private static readonly safeguardingDelete = {
     tenantRoles: [UserTenantRole.ADMIN],
     orgRoles: [UserOrgRole.ORG_ADMIN],
   };
 
   @Post()
-  @AllowedSafeguardingRoles(ConcernsController.safeguardingAdmins)
+  @AllowedSafeguardingRoles(ConcernsController.safeguardingCreate)
   async create(
     @Body() body: unknown,
     @CurrentTenant("tenantId") tenantId: string,

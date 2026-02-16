@@ -171,7 +171,7 @@ export default function PeoplePage() {
           header: "",
           cell: (row) => (
             <Button asChild variant="secondary" size="sm">
-              <Link href={`/people/${row.id}/edit`}>Edit</Link>
+              <Link href={`/people/${row.id}`}>Edit</Link>
             </Button>
           ),
           width: "100px",

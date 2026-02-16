@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 const apiBaseUrl =
   process.env.ADMIN_INTERNAL_API_URL ??
+  process.env.API_INTERNAL_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://api.localhost:3001";
+  "http://localhost:3001";
 
 export async function GET(
   req: NextRequest,

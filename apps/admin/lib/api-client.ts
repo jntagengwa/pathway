@@ -2141,6 +2141,74 @@ export async function fetchChildren(): Promise<AdminChildRow[]> {
   return json.map(mapApiChildToAdmin);
 }
 
+export type CreateChildPayload = {
+  firstName: string;
+  lastName: string;
+  preferredName?: string | null;
+  dateOfBirth?: string | null; // YYYY-MM-DD
+  allergies?: string | null;
+  additionalNeedsNotes?: string | null;
+  schoolName?: string | null;
+  yearGroup?: string | null;
+  gpName?: string | null;
+  gpPhone?: string | null;
+  specialNeedsType?: "none" | "sen_support" | "ehcp" | "other" | null;
+  specialNeedsOther?: string | null;
+  photoConsent?: boolean;
+  photoBase64?: string | null;
+  photoContentType?: string | null;
+  pickupPermissions?: string | null;
+  groupId?: string | null;
+  guardianIds?: string[];
+};
+
+export async function createChild(
+  payload: CreateChildPayload,
+): Promise<{ id: string }> {
+  if (isUsingMockApi()) {
+    return { id: `mock-${crypto.randomUUID()}` };
+  }
+
+  const body: Record<string, unknown> = {
+    firstName: payload.firstName.trim(),
+    lastName: payload.lastName.trim(),
+    preferredName: payload.preferredName?.trim() || undefined,
+    dateOfBirth: payload.dateOfBirth?.trim() || undefined,
+    allergies: payload.allergies?.trim() || undefined,
+    additionalNeedsNotes: payload.additionalNeedsNotes?.trim() || undefined,
+    schoolName: payload.schoolName?.trim() || undefined,
+    yearGroup: payload.yearGroup?.trim() || undefined,
+    gpName: payload.gpName?.trim() || undefined,
+    gpPhone: payload.gpPhone?.trim() || undefined,
+    specialNeedsType: payload.specialNeedsType || undefined,
+    specialNeedsOther: payload.specialNeedsOther?.trim() || undefined,
+    photoConsent: payload.photoConsent ?? false,
+    photoBase64: payload.photoBase64 || undefined,
+    photoContentType: payload.photoContentType || undefined,
+    pickupPermissions: payload.pickupPermissions?.trim() || undefined,
+    groupId: payload.groupId || undefined,
+    guardianIds: payload.guardianIds?.length ? payload.guardianIds : undefined,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/children`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to create child (${res.status}): ${errBody || res.statusText}`,
+    );
+  }
+
+  const json = (await res.json()) as { id: string };
+  return { id: json.id };
+}
+
 export type UpdateChildPayload = {
   firstName?: string;
   lastName?: string;
@@ -2176,6 +2244,55 @@ export async function updateChild(
 
   const json = (await res.json()) as ApiChildDetail;
   return mapApiChildDetailToAdmin(json);
+}
+
+/** Link an existing parent to a child by email. Caller must be a linked parent. */
+export async function linkParentToChild(
+  childId: string,
+  email: string,
+): Promise<{ linked: true; parentId: string } | { userNotFound: true }> {
+  if (isUsingMockApi()) {
+    return { userNotFound: true };
+  }
+  const res = await fetch(`${API_BASE_URL}/children/${childId}/link-parent`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({ email: email.trim() }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to link parent: ${res.status} ${body}`);
+  }
+  return res.json() as Promise<
+    { linked: true; parentId: string } | { userNotFound: true }
+  >;
+}
+
+/** Upload child photo. Requires photoConsent; only admin or linked parent can upload. */
+export async function uploadChildPhoto(
+  childId: string,
+  photoBase64: string,
+  photoContentType?: string | null,
+): Promise<void> {
+  if (isUsingMockApi()) return;
+
+  const res = await fetch(`${API_BASE_URL}/children/${childId}/photo`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({
+      photoBase64,
+      photoContentType: photoContentType ?? undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to upload photo: ${res.status} ${body}`);
+  }
 }
 
 // TODO: replace with real API call; include tenant/org context and auth
@@ -4162,7 +4279,11 @@ export type StaffEditDetail = {
   firstName: string | null;
   lastName: string | null;
   fullName: string;
+  displayName?: string | null;
   email: string | null;
+  dateOfBirth?: string | null;
+  avatarUrl?: string | null;
+  hasAvatar?: boolean;
   role: string;
   isActive: boolean;
   weeklyAvailability: {
@@ -4173,6 +4294,47 @@ export type StaffEditDetail = {
   unavailableDates: { date: string; reason: string | null }[];
   preferredGroups: { id: string; name: string }[];
   canEditAvailability: boolean;
+};
+
+export type StaffProfileDetail = StaffEditDetail & {
+  displayName: string | null;
+  dateOfBirth: string | null;
+  avatarUrl: string | null;
+  hasAvatar: boolean;
+  assignments: {
+    id: string;
+    status: string;
+    session: {
+      id: string;
+      title: string;
+      startsAt: string;
+      endsAt: string;
+      groups: { id: string; name: string }[];
+      attendanceMarked?: number;
+      attendanceTotal?: number;
+    };
+  }[];
+  children: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    preferredName: string | null;
+    group: { name: string } | null;
+  }[];
+};
+
+export type StaffProfileUpdatePayload = {
+  firstName?: string;
+  lastName?: string;
+  displayName?: string | null;
+  dateOfBirth?: string | null;
+  weeklyAvailability?: {
+    day: string;
+    startTime: string;
+    endTime: string;
+  }[];
+  unavailableDates?: { date: string; reason?: string }[];
+  preferredGroupIds?: string[];
 };
 
 export type StaffEditUpdatePayload = {
@@ -4223,6 +4385,132 @@ export async function fetchStaffDetailForEdit(
   }
 
   return (await res.json()) as StaffEditDetail;
+}
+
+export async function fetchStaffProfile(): Promise<StaffProfileDetail> {
+  if (isUsingMockApi()) {
+    return {
+      id: "current",
+      firstName: "Alex",
+      lastName: "Morgan",
+      fullName: "Alex Morgan",
+      displayName: "Alex",
+      email: "alex.morgan@example.edu",
+      dateOfBirth: null,
+      avatarUrl: null,
+      hasAvatar: false,
+      role: "STAFF",
+      isActive: true,
+      weeklyAvailability: [
+        { day: "MON", startTime: "09:00", endTime: "12:00" },
+        { day: "MON", startTime: "14:00", endTime: "17:00" },
+      ],
+      unavailableDates: [],
+      preferredGroups: [
+        { id: "g1", name: "Year 3" },
+        { id: "g2", name: "Year 4" },
+      ],
+      canEditAvailability: true,
+      assignments: [
+        {
+          id: "a1",
+          status: "CONFIRMED",
+          session: {
+            id: "s1",
+            title: "Year 3 Maths",
+            startsAt: "2025-02-17T09:00:00Z",
+            endsAt: "2025-02-17T10:00:00Z",
+            groups: [{ id: "g1", name: "Year 3" }],
+            attendanceMarked: 18,
+            attendanceTotal: 18,
+          },
+        },
+        {
+          id: "a2",
+          status: "PENDING",
+          session: {
+            id: "s2",
+            title: "Reception Assembly",
+            startsAt: "2025-02-18T10:00:00Z",
+            endsAt: "2025-02-18T11:00:00Z",
+            groups: [{ id: "g0", name: "Reception" }],
+            attendanceMarked: 0,
+            attendanceTotal: 12,
+          },
+        },
+      ],
+      children: [
+        { id: "c1", firstName: "Sam", lastName: "Morgan", preferredName: "Sammy", group: { name: "Year 3" } },
+      ],
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/staff/profile`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch profile: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as StaffProfileDetail;
+}
+
+export async function updateStaffProfile(
+  payload: StaffProfileUpdatePayload,
+): Promise<StaffEditDetail> {
+  if (isUsingMockApi()) {
+    const current = await fetchStaffProfile();
+    return {
+      ...current,
+      firstName: payload.firstName ?? current.firstName,
+      lastName: payload.lastName ?? current.lastName,
+      displayName: payload.displayName ?? current.displayName,
+      dateOfBirth: payload.dateOfBirth ?? current.dateOfBirth,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/staff/profile`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update profile: ${res.status} ${body}`);
+  }
+
+  return (await res.json()) as StaffEditDetail;
+}
+
+/** Upload avatar image. Accepts base64-encoded image data. */
+export async function uploadStaffAvatar(
+  photoBase64: string,
+  photoContentType?: string | null,
+): Promise<void> {
+  if (isUsingMockApi()) {
+    return;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/staff/profile/avatar`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify({
+      photoBase64,
+      photoContentType: photoContentType ?? undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to upload avatar: ${res.status} ${body}`);
+  }
 }
 
 export async function updateStaff(

@@ -56,7 +56,11 @@ function runTests() {
   assert(canAccessRoute("/", staffRole), "STAFF can access /");
   assert(canAccessRoute("/attendance", staffRole), "STAFF can access /attendance");
   assert(canAccessRoute("/sessions", staffRole), "STAFF can access /sessions");
-  assert(canAccessRoute("/people", staffRole), "STAFF can access /people");
+  assert(canAccessRoute("/staff/profile", staffRole), "STAFF can access /staff/profile");
+  assert(!canAccessRoute("/people", staffRole), "STAFF cannot access /people");
+  assert(!canAccessRoute("/classes", staffRole), "STAFF cannot access /classes");
+  assert(!canAccessRoute("/notices", staffRole), "STAFF cannot access /notices");
+  assert(canAccessRoute("/safeguarding/concerns/new", staffRole), "STAFF can access /safeguarding/concerns/new");
   assert(!canAccessRoute("/billing", staffRole), "STAFF cannot access /billing");
   assert(!canAccessRoute("/reports", staffRole), "STAFF cannot access /reports");
   assert(!canAccessRoute("/settings", staffRole), "STAFF cannot access /settings");
@@ -66,6 +70,9 @@ function runTests() {
   assert(canAccessRoute("/billing", orgAdminRole), "ORG_ADMIN can access /billing");
   assert(canAccessRoute("/reports", orgAdminRole), "ORG_ADMIN can access /reports");
   assert(canAccessRoute("/settings", siteAdminRole), "SITE_ADMIN can access /settings");
+  assert(canAccessRoute("/people", siteAdminRole), "SITE_ADMIN can access /people");
+  assert(canAccessRoute("/classes", siteAdminRole), "SITE_ADMIN can access /classes");
+  assert(canAccessRoute("/notices", siteAdminRole), "SITE_ADMIN can access /notices");
   assert(canAccessRoute("/safeguarding", safeguardingLeadRole), "SAFEGUARDING_LEAD can access /safeguarding");
   assert(canAccessRoute("/safeguarding", siteAdminRole), "SITE_ADMIN can access /safeguarding");
   assert(canAccessRoute("/safeguarding", orgAdminRole), "ORG_ADMIN can access /safeguarding");
@@ -79,6 +86,7 @@ function runTests() {
   assert(canPerform("billing:access", orgAdminRole), "ORG_ADMIN can billing:access");
   assert(canPerform("safeguarding:access", safeguardingLeadRole), "SAFEGUARDING_LEAD can safeguarding:access");
   assert(canPerform("safeguarding:access", orgAdminRole), "ORG_ADMIN can safeguarding:access");
+  assert(canPerform("safeguarding:create", staffRole), "STAFF can safeguarding:create");
 
   console.log("");
   console.log(`Result: ${passed} passed, ${failed} failed`);
