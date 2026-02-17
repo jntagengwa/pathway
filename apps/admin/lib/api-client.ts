@@ -4327,6 +4327,13 @@ export type StaffEditDetail = {
   unavailableDates: { date: string; reason: string | null }[];
   preferredGroups: { id: string; name: string }[];
   canEditAvailability: boolean;
+  children?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    preferredName: string | null;
+    group: { name: string } | null;
+  }[];
 };
 
 export type StaffProfileDetail = StaffEditDetail & {
@@ -4373,6 +4380,7 @@ export type StaffProfileUpdatePayload = {
 export type StaffEditUpdatePayload = {
   firstName?: string;
   lastName?: string;
+  dateOfBirth?: string | null;
   role?: "SITE_ADMIN" | "STAFF" | "VIEWER";
   isActive?: boolean;
   weeklyAvailability?: {
@@ -4403,6 +4411,7 @@ export async function fetchStaffDetailForEdit(
       unavailableDates: [],
       preferredGroups: [],
       canEditAvailability: true,
+      children: [],
     };
   }
 

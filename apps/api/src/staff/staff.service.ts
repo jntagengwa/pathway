@@ -201,10 +201,11 @@ export class StaffService {
     unavailableDates: { date: string; reason: string | null }[];
     preferredGroups: { id: string; name: string }[];
     canEditAvailability: boolean;
+    children: { id: string; firstName: string; lastName: string; preferredName: string | null; group: { name: string } | null }[];
   }> {
     await assertStaffInTenant(userId, tenantId);
 
-    const [user, preferences, unavailableDates, preferredGroups, entitlements] =
+    const [user, preferences, unavailableDates, preferredGroups, entitlements, userWithChildren] =
       await Promise.all([
         prisma.user.findUniqueOrThrow({
           where: { id: userId },
@@ -235,6 +236,20 @@ export class StaffService {
           include: { group: { select: { id: true, name: true } } },
         }),
         this.resolvePlanTier(orgId),
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            children: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                preferredName: true,
+                group: { select: { name: true } },
+              },
+            },
+          },
+        }),
       ]);
 
     const fullName =
@@ -281,6 +296,14 @@ export class StaffService {
         name: pg.group.name,
       })),
       canEditAvailability: entitlements,
+      children:
+        userWithChildren?.children.map((c) => ({
+          id: c.id,
+          firstName: c.firstName,
+          lastName: c.lastName,
+          preferredName: c.preferredName,
+          group: c.group,
+        })) ?? [],
     };
   }
 
@@ -648,19 +671,17 @@ export class StaffService {
       }
     }
 
-    if (dto.firstName !== undefined || dto.lastName !== undefined) {
+    const userData: Record<string, unknown> = {};
+    if (dto.firstName !== undefined) userData.firstName = dto.firstName;
+    if (dto.lastName !== undefined) userData.lastName = dto.lastName;
+    if (dto.dateOfBirth !== undefined) {
+      userData.dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth) : null;
+    }
+    if (dto.isActive !== undefined) userData.isActive = dto.isActive;
+    if (Object.keys(userData).length > 0) {
       await prisma.user.update({
         where: { id: userId },
-        data: {
-          ...(dto.firstName !== undefined && { firstName: dto.firstName }),
-          ...(dto.lastName !== undefined && { lastName: dto.lastName }),
-          ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-        },
-      });
-    } else if (dto.isActive !== undefined) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { isActive: dto.isActive },
+        data: userData as never,
       });
     }
 

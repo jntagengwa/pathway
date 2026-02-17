@@ -33,7 +33,7 @@ const resolveOrgId = (activeSiteId: string | null, sites: Array<{ id: string; or
 export default function PeoplePage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
-  const { role, isLoading: isLoadingAccess } = useAdminAccess();
+  const { role, userId: apiUserId, isLoading: isLoadingAccess } = useAdminAccess();
   const [people, setPeople] = React.useState<PersonRow[]>([]);
   const [invites, setInvites] = React.useState<InviteRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -128,7 +128,8 @@ export default function PeoplePage() {
   }, [invites, searchQuery]);
 
   const canEditPeople = canPerform("people:edit", role);
-  const currentUserId = (session?.user as { id?: string })?.id ?? null;
+  const sessionUserId = (session?.user as { id?: string })?.id ?? null;
+  const currentUserId = sessionUserId || apiUserId || null;
 
   const peopleColumns = React.useMemo<ColumnDef<PersonRow>[]>(
     () => {
@@ -171,7 +172,8 @@ export default function PeoplePage() {
           id: "actions",
           header: "",
           cell: (row) => {
-            const isCurrentUser = currentUserId && row.id === currentUserId;
+            const isCurrentUser =
+              !!currentUserId && currentUserId === row.id;
             const href = isCurrentUser ? "/staff/profile" : `/people/${row.id}`;
             return (
               <Button asChild variant="secondary" size="sm">
