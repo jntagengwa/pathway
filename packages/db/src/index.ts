@@ -142,6 +142,16 @@ async function applyTenantContext(
   await tx.$executeRawUnsafe(`SET LOCAL row_security = on`);
 }
 
+/**
+ * Run an interactive transaction using the base Prisma client.
+ * Use this when prisma.$transaction fails (e.g. with the Proxy in some environments).
+ */
+export async function runTransaction<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  return basePrismaClient.$transaction(fn);
+}
+
 export async function withTenantRlsContext<T>(
   tenantId: string,
   orgId: string | null,

@@ -1,7 +1,8 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Inject, Injectable, UnauthorizedException, forwardRef } from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import type { DecodedAuthToken } from "./auth-token.util";
 import type { UpsertIdentityDto } from "./dto/upsert-identity.dto";
+import { InvitesService } from "../invites/invites.service";
 
 type UpsertResult = {
   userId: string;
@@ -20,6 +21,11 @@ function isEmail(value: string | null | undefined): boolean {
 
 @Injectable()
 export class AuthIdentityService {
+  constructor(
+    @Inject(forwardRef(() => InvitesService))
+    private readonly invitesService: InvitesService,
+  ) {}
+
   /**
    * Upsert a user + identity given Auth0 profile data.
    * This is called from NextAuth (admin app) via the internal endpoint and also
@@ -89,6 +95,15 @@ export class AuthIdentityService {
           : identity.user.name && !isEmail(identity.user.name)
             ? identity.user.name
             : null);
+
+      // Auto-accept any pending invites on login (e.g. user missed accept-invite page)
+      if (normalizedEmail) {
+        void this.invitesService
+          .acceptPendingInvitesByEmail(normalizedEmail, identity.userId)
+          .catch((err) =>
+            console.error("[AUTH] Failed to auto-accept pending invites:", err),
+          );
+      }
 
       return {
         userId: identity.userId,
@@ -176,9 +191,16 @@ export class AuthIdentityService {
       });
     }
 
-    // If this is a new user (not existingUser), check for pending invites and mark them as used
-    if (!existingUser && normalizedEmail) {
-      await this.markPendingInvitesAsUsed(normalizedEmail, user.id);
+    // Auto-accept pending invites on login (creates memberships, marks used)
+    if (normalizedEmail) {
+      try {
+        await this.invitesService.acceptPendingInvitesByEmail(
+          normalizedEmail,
+          user.id,
+        );
+      } catch (err) {
+        console.error("[AUTH] Failed to auto-accept pending invites:", err);
+      }
     }
 
     // Auto-provision site membership for new users (skip if user already has memberships)
@@ -198,45 +220,6 @@ export class AuthIdentityService {
       email: normalizedEmail ?? user.email,
       displayName: safeDisplayName,
     };
-  }
-
-  /**
-   * Marks pending invites as used when a user signs up with an email that matches an invite.
-   * This handles the case where users sign up via Auth0 before explicitly accepting the invite.
-   */
-  private async markPendingInvitesAsUsed(
-    email: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    userId: string,
-  ): Promise<void> {
-    if (!email) return;
-
-    try {
-      const now = new Date();
-      const pendingInvites = await prisma.invite.findMany({
-        where: {
-          email: email.toLowerCase().trim(),
-          usedAt: null,
-          revokedAt: null,
-          expiresAt: { gt: now },
-        },
-      });
-
-      if (pendingInvites.length > 0) {
-        // Mark all pending invites for this email as used
-        await prisma.invite.updateMany({
-          where: {
-            id: { in: pendingInvites.map((inv) => inv.id) },
-          },
-          data: {
-            usedAt: new Date(),
-          },
-        });
-      }
-    } catch (error) {
-      // Don't fail user creation if invite marking fails
-      console.error("[AUTH] Failed to mark pending invites as used:", error);
-    }
   }
 
   /**

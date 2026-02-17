@@ -18,6 +18,7 @@ import {
   createChild,
   type UpdateParentPayload,
 } from "../../../lib/api-client";
+import { toast } from "sonner";
 
 const statusTone: Record<string, "success" | "default"> = {
   active: "success",
@@ -131,6 +132,7 @@ export default function ParentDetailPage() {
       };
       const updated = await updateParent(parentId, payload);
       if (updated) setParent(updated);
+      toast.success("Profile saved successfully");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save changes",
@@ -191,6 +193,7 @@ export default function ParentDetailPage() {
         return [...prev, { id, fullName: name || "Child" }];
       });
       setAddChildModalOpen(false);
+      toast.success("Child added successfully");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create child",

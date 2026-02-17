@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { AdminShell } from "./admin-shell";
 import { Providers } from "./providers";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({
         <Providers>
           <AdminShell>{children}</AdminShell>
         </Providers>
+        <Toaster />
       </body>
     </html>
   );
