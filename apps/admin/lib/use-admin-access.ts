@@ -17,6 +17,8 @@ import { fetchUserRoles, type UserRolesResponse } from "./api-client";
 
 export type UseAdminAccessResult = {
   role: AdminRoleInfo;
+  /** Current user's ID (from API roles response). */
+  userId: string | null;
   /** True when current org is a master/internal org (no billing, unlimited). */
   currentOrgIsMasterOrg: boolean;
   isLoading: boolean;
@@ -98,8 +100,11 @@ export function useAdminAccess(): UseAdminAccessResult {
   const isLoading =
     sessionStatus === "loading" || (isLoadingRoles && !hasRoles);
 
+  const userId = rolesSource?.userId ?? null;
+
   return {
     role,
+    userId,
     currentOrgIsMasterOrg,
     isLoading,
     error,

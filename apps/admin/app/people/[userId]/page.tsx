@@ -65,6 +65,7 @@ export default function StaffDetailPage() {
 
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
+  const [dateOfBirth, setDateOfBirth] = React.useState("");
   const [role, setRole] = React.useState<string>("STAFF");
   const [isActive, setIsActive] = React.useState(true);
   const [weeklyAvailability, setWeeklyAvailability] = React.useState<
@@ -100,6 +101,7 @@ export default function StaffDetailPage() {
         setStaff(staffData);
         setFirstName(staffData.firstName ?? "");
         setLastName(staffData.lastName ?? "");
+        setDateOfBirth(staffData.dateOfBirth ?? "");
         setRole(staffData.role);
         setIsActive(staffData.isActive);
         setWeeklyAvailability(
@@ -214,6 +216,7 @@ export default function StaffDetailPage() {
       const payload: StaffEditUpdatePayload = {
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
+        dateOfBirth: dateOfBirth.trim() || null,
         role: role as "SITE_ADMIN" | "STAFF" | "VIEWER",
         isActive,
       };
@@ -369,10 +372,14 @@ export default function StaffDetailPage() {
                   </p>
                 </div>
                 <div>
-                  <Label>Date of birth</Label>
-                  <p className="mt-1 text-sm text-text-muted">
-                    {staff.dateOfBirth ?? "—"}
-                  </p>
+                  <Label htmlFor="dateOfBirth">Date of birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="role">Role</Label>
@@ -538,6 +545,36 @@ export default function StaffDetailPage() {
                 </div>
               </Card>
             </>
+          )}
+
+          {/* Children section - only if staff has linked children */}
+          {(staff.children?.length ?? 0) > 0 && (
+            <Card className="p-6">
+              <h2 className="text-lg font-bold text-text-primary">Children</h2>
+              <p className="mt-1 text-sm text-text-muted">
+                Children linked to this user&apos;s account
+              </p>
+              <ul className="mt-4 space-y-2">
+                {staff.children?.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between rounded border border-border-subtle px-3 py-2"
+                  >
+                    <span className="font-medium text-text-primary">
+                      {c.preferredName || `${c.firstName} ${c.lastName}`}
+                      {c.group && (
+                        <span className="ml-2 text-sm font-normal text-text-muted">
+                          — {c.group.name}
+                        </span>
+                      )}
+                    </span>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/children/${c.id}`}>View</Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
 
           <Card
