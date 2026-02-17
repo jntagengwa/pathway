@@ -128,6 +128,7 @@ export default function PeoplePage() {
   }, [invites, searchQuery]);
 
   const canEditPeople = canPerform("people:edit", role);
+  const currentUserId = (session?.user as { id?: string })?.id ?? null;
 
   const peopleColumns = React.useMemo<ColumnDef<PersonRow>[]>(
     () => {
@@ -169,17 +170,21 @@ export default function PeoplePage() {
         cols.push({
           id: "actions",
           header: "",
-          cell: (row) => (
-            <Button asChild variant="secondary" size="sm">
-              <Link href={`/people/${row.id}`}>Edit</Link>
-            </Button>
-          ),
+          cell: (row) => {
+            const isCurrentUser = currentUserId && row.id === currentUserId;
+            const href = isCurrentUser ? "/staff/profile" : `/people/${row.id}`;
+            return (
+              <Button asChild variant="secondary" size="sm">
+                <Link href={href}>Profile</Link>
+              </Button>
+            );
+          },
           width: "100px",
         });
       }
       return cols;
     },
-    [canEditPeople],
+    [canEditPeople, currentUserId],
   );
 
   const inviteColumns = React.useMemo<ColumnDef<InviteRow>[]>(

@@ -16,6 +16,14 @@ jest.mock("@pathway/db", () => ({
     user: { findMany: uFindMany },
     $disconnect: jest.fn(),
   },
+  runTransaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) => {
+    const mockTx = {
+      user: { update: jest.fn().mockResolvedValue({}), findFirst: jest.fn() },
+      siteMembership: { upsert: jest.fn().mockResolvedValue({}) },
+      child: { update: jest.fn().mockResolvedValue({}) },
+    };
+    return fn(mockTx as never);
+  }),
 }));
 
 const mockInvitesService = {

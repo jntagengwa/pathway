@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Inject,
 } from "@nestjs/common";
-import { prisma, SiteRole } from "@pathway/db";
+import { prisma, runTransaction, SiteRole } from "@pathway/db";
 import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
 import { InvitesService } from "../invites/invites.service";
@@ -376,12 +376,12 @@ export class ChildrenService {
         return { linked: true, parentId: existingUser.id };
       }
 
-      await prisma.$transaction([
-        prisma.user.update({
+      await runTransaction(async (tx) => {
+        await tx.user.update({
           where: { id: existingUser.id },
           data: { hasFamilyAccess: true },
-        }),
-        prisma.siteMembership.upsert({
+        });
+        await tx.siteMembership.upsert({
           where: {
             tenantId_userId: { tenantId, userId: existingUser.id },
           },
@@ -391,14 +391,14 @@ export class ChildrenService {
             role: SiteRole.VIEWER,
           },
           update: {},
-        }),
-        prisma.child.update({
+        });
+        await tx.child.update({
           where: { id: childId },
           data: {
             guardians: { connect: { id: existingUser.id } },
           },
-        }),
-      ]);
+        });
+      });
       return { linked: true, parentId: existingUser.id };
     }
 
@@ -419,18 +419,18 @@ export class ChildrenService {
       return { userNotFound: true };
     }
 
-    await prisma.$transaction([
-      prisma.user.update({
+    await runTransaction(async (tx) => {
+      await tx.user.update({
         where: { id: newUser.id },
         data: { hasFamilyAccess: true },
-      }),
-      prisma.child.update({
+      });
+      await tx.child.update({
         where: { id: childId },
         data: {
           guardians: { connect: { id: newUser.id } },
         },
-      }),
-    ]);
+      });
+    });
     return { invited: true, parentId: newUser.id };
   }
 

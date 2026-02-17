@@ -16,6 +16,7 @@ import {
   type StaffEditDetail,
   type StaffEditUpdatePayload,
 } from "../../../lib/api-client";
+import { toast } from "sonner";
 
 const WEEKDAYS: { value: string; label: string }[] = [
   { value: "MON", label: "Monday" },
@@ -227,6 +228,7 @@ export default function StaffDetailPage() {
       }
       const updated = await updateStaff(userId, payload);
       setStaff(updated);
+      toast.success("Profile saved successfully");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save changes",

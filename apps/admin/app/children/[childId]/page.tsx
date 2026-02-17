@@ -20,6 +20,7 @@ import {
   type ChildEditFormData,
   type UpdateChildPayload,
 } from "../../../lib/api-client";
+import { toast } from "sonner";
 
 const statusTone: Record<string, "success" | "default"> = {
   active: "success",
@@ -168,6 +169,7 @@ export default function ChildDetailPage() {
       };
       await updateChild(childId, payload);
       await load();
+      toast.success("Profile saved successfully");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save changes",
@@ -191,6 +193,7 @@ export default function ChildDetailPage() {
         await uploadChildPhoto(childId, base64, file.type);
         setPhotoVersion((v) => v + 1);
         await load();
+        toast.success("Photo updated successfully");
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to upload photo",
@@ -216,6 +219,7 @@ export default function ChildDetailPage() {
         setAddParentEmail("");
         setAddParentName("");
         await load();
+        toast.success("Parent linked successfully");
       } else if ("invited" in result && result.invited) {
         setAddParentStatus("success");
         setAddParentSuccessMessage(
@@ -224,6 +228,7 @@ export default function ChildDetailPage() {
         setAddParentEmail("");
         setAddParentName("");
         await load();
+        toast.success("Invite sent successfully");
       } else {
         setAddParentStatus("idle");
         setAddParentError("Could not complete invite. Please try again.");

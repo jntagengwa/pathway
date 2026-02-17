@@ -235,6 +235,39 @@ export class OrgsController {
           role: member.role,
         });
       }
+
+      // Include users who have logged in (UserIdentity) and were invited to this org
+      // but may not have completed accept-invite (no OrgMembership yet)
+      const orgInvites = await prisma.invite.findMany({
+        where: { orgId },
+        select: { email: true, orgRole: true },
+      });
+      const inviteEmails = [...new Set(orgInvites.map((i) => i.email.toLowerCase()))];
+      if (inviteEmails.length > 0) {
+        const usersWithIdentity = await prisma.user.findMany({
+          where: {
+            OR: inviteEmails.map((email) => ({
+              email: { equals: email, mode: "insensitive" },
+            })),
+            identities: { some: {} },
+          },
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+            email: true,
+          },
+        });
+        for (const user of usersWithIdentity) {
+          if (memberByUserId.has(user.id)) continue;
+          const invite = orgInvites.find(
+            (i) => i.email.toLowerCase() === (user.email ?? "").toLowerCase(),
+          );
+          const role = (invite?.orgRole as OrgRole) ?? OrgRole.ORG_MEMBER;
+          memberByUserId.set(user.id, { user, role });
+        }
+      }
+
       const validMembers = Array.from(memberByUserId.values());
 
       // Get site memberships for users in this org

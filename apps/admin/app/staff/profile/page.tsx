@@ -18,6 +18,7 @@ import {
 } from "@/lib/api-client";
 import { ProfileHeaderCard } from "@/components/profile-header-card";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const WEEKDAYS: { value: string; label: string }[] = [
   { value: "MON", label: "Monday" },
@@ -260,6 +261,7 @@ export default function StaffProfilePage() {
       }
       const updated = await updateStaffProfile(payload);
       setProfile((prev) => (prev ? { ...prev, ...updated } : null));
+      toast.success("Profile saved successfully");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save changes",
@@ -301,6 +303,7 @@ export default function StaffProfilePage() {
       const updated = await fetchStaffProfile();
       setProfile(updated);
       setAvatarVersion((v) => v + 1);
+      toast.success("Photo updated successfully");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to upload photo",

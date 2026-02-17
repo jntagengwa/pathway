@@ -393,10 +393,80 @@ export class InvitesService {
         orderBy: { createdAt: "desc" },
       });
 
-      return invites.map((inv) => this.toSummary(inv));
+      // For "pending": exclude invites where user has logged in (UserIdentity)
+      // Those users appear in People instead
+      let filteredInvites = invites;
+      if (status === "pending" && invites.length > 0) {
+        const inviteEmails = [...new Set(invites.map((i) => i.email.toLowerCase()))];
+        const emailsWithIdentity = await prisma.user.findMany({
+          where: {
+            OR: inviteEmails.map((email) => ({
+              email: { equals: email, mode: "insensitive" as const },
+            })),
+            identities: { some: {} },
+          },
+          select: { email: true },
+        });
+        const loggedInEmails = new Set(
+          emailsWithIdentity.map((u) => (u.email ?? "").toLowerCase()),
+        );
+        filteredInvites = invites.filter(
+          (inv) => !loggedInEmails.has(inv.email.toLowerCase()),
+        );
+      }
+
+      return filteredInvites.map((inv) => this.toSummary(inv));
     } catch (error) {
       console.error("[INVITES] listInvites error:", error instanceof Error ? error.message : String(error));
       throw error;
+    }
+  }
+
+  /**
+   * Accept pending invites by email on first login.
+   * Called from AuthIdentityService when a user logs in - auto-applies any pending
+   * invites for their email so they get org/site access even if they missed the accept-invite page.
+   */
+  async acceptPendingInvitesByEmail(
+    email: string,
+    userId: string,
+  ): Promise<void> {
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (!normalizedEmail) return;
+
+    const now = new Date();
+    const pendingInvites = await prisma.invite.findMany({
+      where: {
+        email: normalizedEmail,
+        usedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      include: { org: true },
+    });
+
+    if (pendingInvites.length === 0) return;
+
+    console.log("[INVITE] Auto-accepting pending invites on login:", {
+      email: normalizedEmail,
+      userId,
+      count: pendingInvites.length,
+    });
+
+    for (const invite of pendingInvites) {
+      try {
+        await this.applyInviteMemberships(
+          invite as Prisma.InviteGetPayload<{ include: { org: true } }> & {
+            name?: string | null;
+          },
+          userId,
+          normalizedEmail,
+        );
+        console.log("[INVITE] ✅ Auto-accepted invite:", invite.id);
+      } catch (err) {
+        console.error("[INVITE] Failed to auto-accept invite:", invite.id, err);
+        // Continue with other invites
+      }
     }
   }
 
@@ -439,11 +509,27 @@ export class InvitesService {
       );
     }
 
-    // Apply memberships
-    // Note: name field added to schema - Prisma client needs regeneration after migration
-    const { orgId, orgRole, siteIdsJson, siteRole, name: inviteName } = invite as Prisma.InviteGetPayload<{
-      include: { org: true };
-    }> & { name?: string | null };
+    return this.applyInviteMemberships(
+      invite as Prisma.InviteGetPayload<{ include: { org: true } }> & {
+        name?: string | null;
+      },
+      userId,
+      normalizedUserEmail,
+    );
+  }
+
+  /**
+   * Apply invite memberships: create OrgMembership, SiteMemberships, mark invite used.
+   * Shared by acceptInvite (token flow) and acceptPendingInvitesByEmail (login flow).
+   */
+  private async applyInviteMemberships(
+    invite: Prisma.InviteGetPayload<{ include: { org: true } }> & {
+      name?: string | null;
+    },
+    userId: string,
+    normalizedUserEmail: string,
+  ): Promise<ActiveSiteState> {
+    const { orgId, orgRole, siteIdsJson, siteRole, name: inviteName } = invite;
 
     // Update user name from invite if provided and user doesn't have a name yet
     if (inviteName?.trim()) {
@@ -454,28 +540,17 @@ export class InvitesService {
 
       if (user) {
         const updates: { name?: string; displayName?: string } = {};
-        
-        // Set name if it's currently null/empty
         if (!user.name?.trim()) {
           updates.name = inviteName.trim();
         }
-
-        // Set displayName if it's currently null/empty OR if it equals the email (auto-generated)
-        // Don't overwrite a good displayName that the user might have set themselves
         const currentDisplayName = user.displayName?.trim();
-        const userEmail = normalizedUserEmail;
-        if (!currentDisplayName || currentDisplayName === userEmail) {
+        if (!currentDisplayName || currentDisplayName === normalizedUserEmail) {
           updates.displayName = inviteName.trim();
         }
-
         if (Object.keys(updates).length > 0) {
           await prisma.user.update({
             where: { id: userId },
             data: updates,
-          });
-          console.log("[INVITE-ACCEPT] Updated user name from invite:", {
-            userId,
-            updates,
           });
         }
       }
@@ -484,11 +559,9 @@ export class InvitesService {
     console.log("[INVITE-ACCEPT] Applying memberships for invite:", {
       inviteId: invite.id,
       userId,
-      userEmail: normalizedUserEmail,
       orgRole,
       siteRole,
       hasSiteIdsJson: !!siteIdsJson,
-      inviteName,
     });
 
     // 1. Org membership
