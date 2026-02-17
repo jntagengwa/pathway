@@ -147,16 +147,8 @@ export function BlogEditor({
     input.click();
   }, [editor, handleImageUpload]);
 
-  if (!editor) return <div className={className}>Loading editor...</div>;
-
-  const isBold = editor.isActive("bold");
-  const isItalic = editor.isActive("italic");
-  const isLink = editor.isActive("link");
-  const isH2 = editor.isActive("heading", { level: 2 });
-  const isH3 = editor.isActive("heading", { level: 3 });
-  const isList = editor.isActive("bulletList") || editor.isActive("orderedList");
-
   const setLink = useCallback(() => {
+    if (!editor) return;
     const href = editor.getAttributes("link").href;
     const url = window.prompt("Link URL (use / for internal, e.g. /blog/post-slug, /demo):", href ?? "");
     if (url === null) return;
@@ -167,6 +159,15 @@ export function BlogEditor({
     const hrefNorm = url.startsWith("/") || /^https?:\/\//.test(url) ? url : `https://${url}`;
     editor.chain().focus().setLink({ href: hrefNorm }).run();
   }, [editor]);
+
+  if (!editor) return <div className={className}>Loading editor...</div>;
+
+  const isBold = editor.isActive("bold");
+  const isItalic = editor.isActive("italic");
+  const isLink = editor.isActive("link");
+  const isH2 = editor.isActive("heading", { level: 2 });
+  const isH3 = editor.isActive("heading", { level: 3 });
+  const isList = editor.isActive("bulletList") || editor.isActive("orderedList");
 
   return (
     <div className={className}>
