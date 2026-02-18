@@ -4,6 +4,7 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label, Select, Textarea } from "@pathway/ui";
+import { Checkbox } from "../../../../components/ui/checkbox";
 import {
   AdminAnnouncementFormValues,
   AdminAnnouncementDetail,
@@ -79,33 +80,11 @@ function StyledCheckbox({
       htmlFor={id}
       className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-primary"
     >
-      <input
+      <Checkbox
         id={id}
-        type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="sr-only peer"
       />
-      <span
-        className="flex h-4 w-4 items-center justify-center rounded border"
-        style={{
-          borderColor: PRIMARY_HEX,
-          backgroundColor: checked ? PRIMARY_HEX : "white",
-        }}
-      >
-        {checked ? (
-          <svg
-            aria-hidden
-            viewBox="0 0 20 20"
-            className="h-3.5 w-3.5 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-          >
-            <path d="M5 10.5 8.5 14 15 6" />
-          </svg>
-        ) : null}
-      </span>
       {label}
     </label>
   );

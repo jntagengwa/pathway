@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Badge, Button, Card, Input, Label, Select } from "@pathway/ui";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   fetchStaffDetailForEdit,
   fetchGroups,
@@ -314,13 +315,11 @@ export default function EditStaffPage() {
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="h-4 w-4 rounded border-border-subtle"
-              />
+                <Checkbox
+                  id="isActive"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                />
               <Label htmlFor="isActive">Active</Label>
             </div>
             {staff.email && (

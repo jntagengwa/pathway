@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button, Card, Input, Label } from "@pathway/ui";
+import { Checkbox } from "../../../components/ui/checkbox";
 import { linkChildrenExistingUser } from "../../../lib/api-client";
 
 type ChildEntry = {
@@ -211,12 +212,10 @@ function SignupCompleteContent() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id={`${child.id}-photoConsent`}
                   checked={child.photoConsent}
                   onChange={(e) => updateChild(child.id, { photoConsent: e.target.checked })}
-                  className="h-4 w-4 rounded border-border"
                 />
                 <Label htmlFor={`${child.id}-photoConsent`}>Photo consent</Label>
               </div>

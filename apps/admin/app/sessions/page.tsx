@@ -600,12 +600,20 @@ export default function SessionsPage() {
                                     );
                                     const tone =
                                       assignmentStatusTone[assignment.status];
-                                    const bg =
+                                    const defaultBg =
                                       tone === "success"
                                         ? "bg-status-success/10"
                                         : tone === "warning"
                                           ? "bg-status-warning/10"
                                           : "bg-surface-alt";
+                                    const borderStyle = assignment.sessionGroupColor
+                                      ? { borderColor: assignment.sessionGroupColor }
+                                      : undefined;
+                                    const bgStyle = assignment.sessionGroupColor
+                                      ? {
+                                          backgroundColor: `${assignment.sessionGroupColor}20`,
+                                        }
+                                      : undefined;
                                     return (
                                       <button
                                         key={assignment.id}
@@ -615,7 +623,19 @@ export default function SessionsPage() {
                                             `/sessions/${assignment.sessionId}`,
                                           )
                                         }
-                                        className={`flex w-full flex-col gap-0.5 rounded-md border border-accent-secondary px-2 py-1.5 text-left text-sm transition hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${bg}`}
+                                        className={`flex w-full flex-col gap-0.5 rounded-md border-2 px-2 py-1.5 text-left text-sm transition hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                                          !assignment.sessionGroupColor
+                                            ? `border-accent-secondary ${defaultBg}`
+                                            : "bg-surface"
+                                        }`}
+                                        style={
+                                          assignment.sessionGroupColor
+                                            ? {
+                                                ...borderStyle,
+                                                ...bgStyle,
+                                              }
+                                            : undefined
+                                        }
                                       >
                                         <span className="truncate font-bold text-text-primary">
                                           {assignment.sessionGroupName ??

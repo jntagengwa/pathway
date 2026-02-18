@@ -154,6 +154,7 @@ export class StaffController {
   @Patch(":userId")
   async update(
     @Param("userId") userId: string,
+    @Req() req: Request & { authUserId?: string },
     @Body() body: unknown,
     @CurrentTenant("tenantId") tenantId: string,
     @CurrentOrg("orgId") orgId: string,
@@ -161,10 +162,20 @@ export class StaffController {
     if (!tenantId || !orgId) {
       throw new BadRequestException("Active site context required");
     }
+    const callerUserId = req.authUserId;
+    if (!callerUserId) {
+      throw new BadRequestException("Not authenticated");
+    }
     const parsed = updateStaffDto.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.errors);
     }
-    return await this.staffService.update(userId, tenantId, orgId, parsed.data);
+    return await this.staffService.update(
+      userId,
+      tenantId,
+      orgId,
+      parsed.data,
+      callerUserId,
+    );
   }
 }

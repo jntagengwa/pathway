@@ -43,7 +43,10 @@ describe("ParentsService", () => {
         },
       ]);
       expect(findMany).toHaveBeenCalledWith({
-        where: { tenantId, hasFamilyAccess: true },
+        where: {
+          hasFamilyAccess: true,
+          OR: [{ tenantId }, { children: { some: { tenantId } } }],
+        },
         select: expect.any(Object),
         orderBy: [{ name: "asc" }, { email: "asc" }],
       });
@@ -75,7 +78,11 @@ describe("ParentsService", () => {
         ],
       });
       expect(findFirst).toHaveBeenCalledWith({
-        where: { id: "p1", tenantId, hasFamilyAccess: true },
+        where: {
+          id: "p1",
+          hasFamilyAccess: true,
+          OR: [{ tenantId }, { children: { some: { tenantId } } }],
+        },
         select: expect.any(Object),
       });
     });

@@ -45,6 +45,7 @@ export class GroupsService {
         minAge: true,
         maxAge: true,
         description: true,
+        color: true,
         isActive: true,
         sortOrder: true,
         createdAt: true,
@@ -61,6 +62,7 @@ export class GroupsService {
       minAge: g.minAge,
       maxAge: g.maxAge,
       description: g.description,
+      color: g.color,
       isActive: g.isActive,
       sortOrder: g.sortOrder,
       createdAt: g.createdAt,
@@ -79,6 +81,7 @@ export class GroupsService {
         minAge: true,
         maxAge: true,
         description: true,
+        color: true,
         isActive: true,
         sortOrder: true,
         createdAt: true,
@@ -102,6 +105,7 @@ export class GroupsService {
       minAge: input.minAge ?? undefined,
       maxAge: input.maxAge ?? undefined,
       description: input.description?.trim() || undefined,
+      color: input.color ?? undefined,
       isActive: input.isActive ?? true,
       sortOrder: input.sortOrder ?? undefined,
     };
@@ -163,6 +167,7 @@ export class GroupsService {
           minAge: parsed.minAge ?? undefined,
           maxAge: parsed.maxAge ?? undefined,
           description: parsed.description ?? undefined,
+          color: parsed.color ?? undefined,
           isActive: parsed.isActive ?? true,
           sortOrder: parsed.sortOrder ?? undefined,
           tenant: { connect: { id: parsed.tenantId } },
@@ -174,6 +179,7 @@ export class GroupsService {
           minAge: true,
           maxAge: true,
           description: true,
+          color: true,
           isActive: true,
           sortOrder: true,
           createdAt: true,
@@ -251,6 +257,7 @@ export class GroupsService {
       if (parsed.minAge !== undefined) data.minAge = parsed.minAge;
       if (parsed.maxAge !== undefined) data.maxAge = parsed.maxAge;
       if (parsed.description !== undefined) data.description = parsed.description;
+      if (parsed.color !== undefined) data.color = parsed.color;
       if (parsed.isActive !== undefined) data.isActive = parsed.isActive;
       if (parsed.sortOrder !== undefined) data.sortOrder = parsed.sortOrder;
 
@@ -264,6 +271,7 @@ export class GroupsService {
           minAge: true,
           maxAge: true,
           description: true,
+          color: true,
           isActive: true,
           sortOrder: true,
           createdAt: true,

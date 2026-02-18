@@ -123,7 +123,7 @@ export class AssignmentsService {
             title: true,
             startsAt: true,
             endsAt: true,
-            groups: { select: { id: true, name: true } },
+            groups: { select: { id: true, name: true, color: true } },
           },
         },
         user: { select: { id: true, name: true } },

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label } from "@pathway/ui";
+import { Checkbox } from "../../../components/ui/checkbox";
 import { DropdownMultiSelect } from "../../../components/dropdown-multi-select";
 import {
   bulkCreateSessions,
@@ -204,11 +205,9 @@ export default function BulkNewSessionsPage() {
                   key={d.value}
                   className="flex cursor-pointer items-center gap-2 text-sm"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={daysOfWeek.includes(d.value)}
                     onChange={() => toggleDay(d.value)}
-                    className="h-4 w-4 rounded border-border-subtle"
                   />
                   {d.label}
                 </label>
