@@ -78,6 +78,8 @@ export type AdminAssignmentRow = {
   status: "pending" | "confirmed" | "declined";
   sessionTitle?: string;
   sessionGroupName?: string;
+  /** Hex color for the primary group (for rota/schedule card styling) */
+  sessionGroupColor?: string | null;
   startsAt?: string;
   endsAt?: string;
 };
@@ -750,7 +752,7 @@ type ApiAssignment = {
     startsAt?: string | null;
     endsAt?: string | null;
     group?: { id: string; name: string } | null;
-    groups?: { id: string; name: string }[];
+    groups?: { id: string; name: string; color?: string | null }[];
   } | null;
   user?: {
     id: string;
@@ -809,6 +811,8 @@ export const mapApiAssignmentToAdminRow = (
     ? assignment.session.groups.map((g) => g.name).join(", ")
     : ((assignment.session as { group?: { name: string } })?.group?.name ??
       undefined);
+  const sessionGroupColor =
+    assignment.session?.groups?.[0]?.color ?? undefined;
 
   return {
     id: assignment.id,
@@ -821,6 +825,7 @@ export const mapApiAssignmentToAdminRow = (
     status: normalizeAssignmentStatus(assignment.status),
     sessionTitle: sessionMeta?.title ?? undefined,
     sessionGroupName: sessionGroupName ?? undefined,
+    sessionGroupColor: sessionGroupColor ?? undefined,
     startsAt,
     endsAt,
   };
@@ -1221,7 +1226,7 @@ export async function fetchSessions(): Promise<AdminSessionRow[]> {
     startsAt: string;
     endsAt: string;
     groupId?: string | null;
-    groups?: { id: string; name: string }[];
+    groups?: { id: string; name: string; color?: string | null }[];
     group?: { id: string; name: string } | null;
     groupLabel?: string | null;
     ageGroup?: string | null;
@@ -4327,6 +4332,7 @@ export type StaffEditDetail = {
   unavailableDates: { date: string; reason: string | null }[];
   preferredGroups: { id: string; name: string }[];
   canEditAvailability: boolean;
+  hasServeAccess?: boolean;
   children?: {
     id: string;
     firstName: string;
@@ -4381,6 +4387,7 @@ export type StaffEditUpdatePayload = {
   firstName?: string;
   lastName?: string;
   dateOfBirth?: string | null;
+  hasServeAccess?: boolean;
   role?: "SITE_ADMIN" | "STAFF" | "VIEWER";
   isActive?: boolean;
   weeklyAvailability?: {
@@ -4411,6 +4418,7 @@ export async function fetchStaffDetailForEdit(
       unavailableDates: [],
       preferredGroups: [],
       canEditAvailability: true,
+      hasServeAccess: false,
       children: [],
     };
   }
@@ -4631,6 +4639,7 @@ export type ClassRow = {
   minAge: number | null;
   maxAge: number | null;
   description: string | null;
+  color: string | null;
   isActive: boolean;
   sortOrder: number | null;
   createdAt: string;
@@ -4643,6 +4652,7 @@ export type CreateClassPayload = {
   minAge?: number | null;
   maxAge?: number | null;
   description?: string | null;
+  color?: string | null;
   isActive?: boolean;
   sortOrder?: number | null;
 };
@@ -4652,6 +4662,7 @@ export type UpdateClassPayload = {
   minAge?: number | null;
   maxAge?: number | null;
   description?: string | null;
+  color?: string | null;
   isActive?: boolean;
   sortOrder?: number | null;
 };
@@ -4666,6 +4677,7 @@ export async function fetchClasses(): Promise<ClassRow[]> {
         minAge: 7,
         maxAge: 8,
         description: null,
+        color: null,
         isActive: true,
         sortOrder: 0,
         createdAt: new Date().toISOString(),
@@ -4697,6 +4709,7 @@ export async function fetchClassById(id: string): Promise<ClassRow | null> {
       minAge: 7,
       maxAge: 8,
       description: null,
+      color: null,
       isActive: true,
       sortOrder: 0,
       createdAt: new Date().toISOString(),
@@ -4731,6 +4744,7 @@ export async function createClass(
       minAge: payload.minAge ?? null,
       maxAge: payload.maxAge ?? null,
       description: payload.description ?? null,
+      color: payload.color ?? null,
       isActive: payload.isActive ?? true,
       sortOrder: payload.sortOrder ?? null,
       createdAt: new Date().toISOString(),
@@ -4765,6 +4779,7 @@ export async function updateClass(
       minAge: payload.minAge ?? null,
       maxAge: payload.maxAge ?? null,
       description: payload.description ?? null,
+      color: payload.color ?? null,
       isActive: payload.isActive ?? true,
       sortOrder: payload.sortOrder ?? null,
       createdAt: new Date().toISOString(),

@@ -370,7 +370,19 @@ export default function MySchedulePage() {
               return (
                 <li
                   key={a.id}
-                  className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-alt p-3"
+                  className={`flex flex-col gap-2 rounded-lg border-2 p-3 ${
+                    !a.sessionGroupColor
+                      ? "border-border-subtle bg-surface-alt"
+                      : ""
+                  }`}
+                  style={
+                    a.sessionGroupColor
+                      ? {
+                          borderColor: a.sessionGroupColor,
+                          backgroundColor: `${a.sessionGroupColor}15`,
+                        }
+                      : undefined
+                  }
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>

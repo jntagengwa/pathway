@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Plus, User } from "lucide-react";
 import { Badge, Button, Card, Input, Label, Select, Textarea } from "@pathway/ui";
+import { Checkbox } from "../../../components/ui/checkbox";
 import { ProfileHeaderCard } from "../../../components/profile-header-card";
 import { canAccessSafeguardingAdmin } from "../../../lib/access";
 import { useAdminAccess } from "../../../lib/use-admin-access";
@@ -594,15 +595,13 @@ export default function ParentDetailPage() {
                     </div>
                     <div className="sm:col-span-2">
                       <label className="flex cursor-pointer items-center gap-2">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={childForm.photoConsent}
                           onChange={(e) =>
                             updateChildForm({
                               photoConsent: e.target.checked,
                             })
                           }
-                          className="rounded border-border"
                         />
                         <span className="text-sm font-medium text-text-primary">
                           I consent to photos of this child being used by the

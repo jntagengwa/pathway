@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Download, Mail, Plus, Trash2 } from "lucide-react";
 import { Badge, Button, Card, Input, Label, Select } from "@pathway/ui";
+import { Checkbox } from "../../../components/ui/checkbox";
 import { ProfileHeaderCard } from "../../../components/profile-header-card";
 import { canAccessAdminSection } from "../../../lib/access";
 import { useAdminAccess } from "../../../lib/use-admin-access";
@@ -66,6 +67,7 @@ export default function StaffDetailPage() {
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [dateOfBirth, setDateOfBirth] = React.useState("");
+  const [hasServeAccess, setHasServeAccess] = React.useState(false);
   const [role, setRole] = React.useState<string>("STAFF");
   const [isActive, setIsActive] = React.useState(true);
   const [weeklyAvailability, setWeeklyAvailability] = React.useState<
@@ -102,6 +104,7 @@ export default function StaffDetailPage() {
         setFirstName(staffData.firstName ?? "");
         setLastName(staffData.lastName ?? "");
         setDateOfBirth(staffData.dateOfBirth ?? "");
+        setHasServeAccess(staffData.hasServeAccess ?? false);
         setRole(staffData.role);
         setIsActive(staffData.isActive);
         setWeeklyAvailability(
@@ -217,6 +220,7 @@ export default function StaffDetailPage() {
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
         dateOfBirth: dateOfBirth.trim() || null,
+        hasServeAccess: userRole.isOrgAdmin ? hasServeAccess : undefined,
         role: role as "SITE_ADMIN" | "STAFF" | "VIEWER",
         isActive,
       };
@@ -381,6 +385,16 @@ export default function StaffDetailPage() {
                     className="mt-1"
                   />
                 </div>
+                {userRole.isOrgAdmin && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="hasServeAccess"
+                      checked={hasServeAccess}
+                      onChange={(e) => setHasServeAccess(e.target.checked)}
+                    />
+                    <Label htmlFor="hasServeAccess">Has serve access</Label>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="role">Role</Label>
                   <Select
@@ -397,12 +411,10 @@ export default function StaffDetailPage() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="isActive"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="h-4 w-4 rounded border-border-subtle"
                   />
                   <Label htmlFor="isActive">Active</Label>
                 </div>

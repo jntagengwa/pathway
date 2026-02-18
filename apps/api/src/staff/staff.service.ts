@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { prisma, Weekday } from "@pathway/db";
+import { prisma, Weekday, OrgRole } from "@pathway/db";
 import type { UpdateStaffDto } from "./dto/update-staff.dto";
 import type { UpdateProfileDto } from "./dto/update-profile.dto";
 import { getPlanDefinition } from "../billing/billing-plans";
@@ -201,6 +201,7 @@ export class StaffService {
     unavailableDates: { date: string; reason: string | null }[];
     preferredGroups: { id: string; name: string }[];
     canEditAvailability: boolean;
+    hasServeAccess: boolean;
     children: { id: string; firstName: string; lastName: string; preferredName: string | null; group: { name: string } | null }[];
   }> {
     await assertStaffInTenant(userId, tenantId);
@@ -221,6 +222,7 @@ export class StaffService {
             avatarBytes: true,
             avatarContentType: true,
             isActive: true,
+            hasServeAccess: true,
           },
         }),
         prisma.volunteerPreference.findMany({
@@ -296,6 +298,7 @@ export class StaffService {
         name: pg.group.name,
       })),
       canEditAvailability: entitlements,
+      hasServeAccess: user.hasServeAccess,
       children:
         userWithChildren?.children.map((c) => ({
           id: c.id,
@@ -629,6 +632,20 @@ export class StaffService {
     return this.getById(currentUserId, tenantId, orgId);
   }
 
+  private async isOrgAdmin(userId: string, orgId: string): Promise<boolean> {
+    const [membership, orgRole] = await Promise.all([
+      prisma.orgMembership.findFirst({
+        where: { userId, orgId, role: OrgRole.ORG_ADMIN },
+        select: { id: true },
+      }),
+      prisma.userOrgRole.findFirst({
+        where: { userId, orgId, role: OrgRole.ORG_ADMIN },
+        select: { id: true },
+      }),
+    ]);
+    return membership !== null || orgRole !== null;
+  }
+
   private async resolvePlanTier(orgId: string): Promise<boolean> {
     const org = await prisma.org.findUnique({
       where: { id: orgId },
@@ -651,10 +668,12 @@ export class StaffService {
     tenantId: string,
     orgId: string,
     dto: UpdateStaffDto,
+    callerUserId: string,
   ): Promise<ReturnType<StaffService["getById"]>> {
     await assertStaffInTenant(userId, tenantId);
 
     const canEditAvailability = await this.resolvePlanTier(orgId);
+    const isCallerOrgAdmin = await this.isOrgAdmin(callerUserId, orgId);
     if (!canEditAvailability) {
       const availabilityFields: (keyof UpdateStaffDto)[] = [
         "weeklyAvailability",
@@ -678,6 +697,9 @@ export class StaffService {
       userData.dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth) : null;
     }
     if (dto.isActive !== undefined) userData.isActive = dto.isActive;
+    if (dto.hasServeAccess !== undefined && isCallerOrgAdmin) {
+      userData.hasServeAccess = dto.hasServeAccess;
+    }
     if (Object.keys(userData).length > 0) {
       await prisma.user.update({
         where: { id: userId },

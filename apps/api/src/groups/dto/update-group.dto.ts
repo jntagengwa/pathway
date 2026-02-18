@@ -1,11 +1,19 @@
 import { z } from "zod";
 
+const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+
 export const updateGroupDto = z
   .object({
     name: z.string().min(1).trim().optional(),
     minAge: z.number().int().min(0).optional().nullable(),
     maxAge: z.number().int().min(0).optional().nullable(),
     description: z.string().max(2000).optional().nullable(),
+    color: z
+      .union([z.string().regex(hexColorRegex), z.literal("")])
+      .optional()
+      .transform((v) =>
+        v === undefined ? undefined : v === "" || !v ? null : v,
+      ),
     isActive: z.boolean().optional(),
     sortOrder: z.number().int().optional().nullable(),
   })

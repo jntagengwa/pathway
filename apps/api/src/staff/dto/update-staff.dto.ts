@@ -33,6 +33,7 @@ export const updateStaffDto = z.object({
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().min(1).max(100).optional(),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD").optional().nullable(),
+  hasServeAccess: z.boolean().optional(),
   role: z.enum(["SITE_ADMIN", "STAFF", "VIEWER"]).optional(),
   isActive: z.boolean().optional(),
   weeklyAvailability: z.array(weeklyAvailabilityItemSchema).optional(),

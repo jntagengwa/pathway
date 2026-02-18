@@ -42,8 +42,15 @@ export class ParentsService {
     orgId: string,
   ): Promise<ParentSummaryDto[]> {
     void orgId; // reserved for future org/org-role scoping
+    // Include users who have children in this tenant (multi-tenant) OR legacy tenantId match
     const parents = await prisma.user.findMany({
-      where: { tenantId, hasFamilyAccess: true },
+      where: {
+        hasFamilyAccess: true,
+        OR: [
+          { tenantId },
+          { children: { some: { tenantId } } },
+        ],
+      },
       select: listSelect,
       orderBy: [{ name: "asc" }, { email: "asc" }],
     });
@@ -63,7 +70,14 @@ export class ParentsService {
   ): Promise<ParentDetailDto | null> {
     void orgId; // reserved for future org/org-role scoping
     const parent = await prisma.user.findFirst({
-      where: { id: parentId, tenantId, hasFamilyAccess: true },
+      where: {
+        id: parentId,
+        hasFamilyAccess: true,
+        OR: [
+          { tenantId },
+          { children: { some: { tenantId } } },
+        ],
+      },
       select: detailSelect,
     });
 
@@ -97,8 +111,15 @@ export class ParentsService {
   ): Promise<ParentDetailDto> {
     void orgId;
     const parent = await prisma.user.findFirst({
-      where: { id: parentId, tenantId, hasFamilyAccess: true },
-      select: { id: true, tenantId: true },
+      where: {
+        id: parentId,
+        hasFamilyAccess: true,
+        OR: [
+          { tenantId },
+          { children: { some: { tenantId } } },
+        ],
+      },
+      select: { id: true },
     });
     if (!parent) throw new NotFoundException("Parent not found");
 

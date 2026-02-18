@@ -4,6 +4,7 @@ import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label, Select } from "@pathway/ui";
+import { Checkbox } from "../../../components/ui/checkbox";
 import {
   createInvite,
   fetchActiveSiteState,
@@ -345,8 +346,7 @@ export default function InvitePersonPage() {
                             key={site.id}
                             className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-primary"
                           >
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={selectedSiteIds.includes(site.id)}
                               onChange={(e) => {
                                 setFieldErrors((prev) => ({
@@ -363,7 +363,6 @@ export default function InvitePersonPage() {
                                   );
                                 }
                               }}
-                              className="h-4 w-4 rounded border-border-subtle"
                             />
                             {site.name}
                           </label>

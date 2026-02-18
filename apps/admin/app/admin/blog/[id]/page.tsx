@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label } from "@pathway/ui";
+import { Checkbox } from "../../../../components/ui/checkbox";
 import {
   fetchBlogPostAdmin,
   updateBlogPost,
@@ -268,12 +269,10 @@ export default function EditBlogPostPage() {
           </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="isFeatured"
                 checked={isFeatured}
                 onChange={(e) => handleFeaturedChange(e.target.checked)}
-                className="h-4 w-4 rounded border-border-subtle"
               />
               <Label htmlFor="isFeatured">Featured (shown in featured slot on blog index)</Label>
             </div>

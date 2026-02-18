@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, Label, Select, Textarea } from "@pathway/ui";
+import { ClassColorPicker } from "../../../components/class-color-picker";
 import {
   fetchActiveSiteState,
   createClass,
@@ -26,6 +27,7 @@ export default function NewClassPage() {
     minAge: null,
     maxAge: null,
     description: "",
+    color: null,
     isActive: true,
   });
   const [error, setError] = React.useState<string | null>(null);
@@ -91,6 +93,7 @@ export default function NewClassPage() {
         minAge: form.minAge ?? undefined,
         maxAge: form.maxAge ?? undefined,
         description: form.description?.trim() || undefined,
+        color: form.color ?? undefined,
         isActive: form.isActive ?? true,
       });
       router.push("/classes");
@@ -175,6 +178,14 @@ export default function NewClassPage() {
                 </p>
               ) : null}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <ClassColorPicker
+              id="class-color"
+              value={form.color ?? null}
+              onChange={(c) => handleChange("color", c)}
+            />
           </div>
 
           <div className="flex flex-col gap-2">
