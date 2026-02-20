@@ -6,6 +6,16 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { uploadBlogAsset } from "../../lib/api-client";
+import { Table } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableHeader from "@tiptap/extension-table-header";
+import TableCell from "@tiptap/extension-table-cell";
+import { addColumnAfter, addRowAfter, deleteTable } from "prosemirror-tables";
+import {
+  Fragment,
+  type Node as ProseMirrorNode,
+  type Schema,
+} from "prosemirror-model";
 
 type BlogEditorProps = {
   content: Record<string, unknown>;
@@ -16,11 +26,45 @@ type BlogEditorProps = {
 const toolbarBtn =
   "rounded-md px-2.5 py-1.5 text-sm font-medium transition-all duration-150 ease-out";
 
-export function BlogEditor({
-  content,
-  onChange,
-  className,
-}: BlogEditorProps) {
+function createTableNode(
+  schema: Schema,
+  rows: number,
+  cols: number,
+  withHeaderRow: boolean,
+): ProseMirrorNode | null {
+  const table = schema.nodes.table;
+  const tableRow = schema.nodes.tableRow;
+  const tableCell = schema.nodes.tableCell;
+  const tableHeader = schema.nodes.tableHeader;
+
+  if (!table || !tableRow || !tableCell) {
+    return null;
+  }
+
+  const makeCell = (isHeader: boolean) => {
+    const cellType = isHeader && tableHeader ? tableHeader : tableCell;
+    return cellType.createAndFill();
+  };
+
+  const rowNodes: ProseMirrorNode[] = [];
+  for (let r = 0; r < rows; r++) {
+    const isHeader = withHeaderRow && r === 0;
+    const cellNodes: ProseMirrorNode[] = [];
+    for (let c = 0; c < cols; c++) {
+      const cell = makeCell(isHeader);
+      if (cell) cellNodes.push(cell);
+    }
+    const row = tableRow.createAndFill(
+      undefined,
+      Fragment.fromArray(cellNodes),
+    );
+    if (row) rowNodes.push(row);
+  }
+
+  return table.createAndFill(undefined, Fragment.fromArray(rowNodes));
+}
+
+export function BlogEditor({ content, onChange, className }: BlogEditorProps) {
   const [, forceUpdate] = useState({});
   const editor = useEditor({
     immediatelyRender: false,
@@ -34,6 +78,12 @@ export function BlogEditor({
       Image.configure({
         HTMLAttributes: { loading: "lazy" },
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     editorProps: {
@@ -84,23 +134,27 @@ export function BlogEditor({
     },
   });
 
-  const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
-    const buf = await file.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = typeof btoa !== "undefined" ? btoa(binary) : "";
-    const mimeType = file.type as "image/png" | "image/jpeg" | "image/webp";
-    if (!["image/png", "image/jpeg", "image/webp"].includes(mimeType)) return null;
-    try {
-      const res = await uploadBlogAsset(base64, mimeType, "INLINE");
-      return res.url;
-    } catch {
-      return null;
-    }
-  }, []);
+  const handleImageUpload = useCallback(
+    async (file: File): Promise<string | null> => {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = typeof btoa !== "undefined" ? btoa(binary) : "";
+      const mimeType = file.type as "image/png" | "image/jpeg" | "image/webp";
+      if (!["image/png", "image/jpeg", "image/webp"].includes(mimeType))
+        return null;
+      try {
+        const res = await uploadBlogAsset(base64, mimeType, "INLINE");
+        return res.url;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!editor) return;
@@ -150,14 +204,37 @@ export function BlogEditor({
   const setLink = useCallback(() => {
     if (!editor) return;
     const href = editor.getAttributes("link").href;
-    const url = window.prompt("Link URL (use / for internal, e.g. /blog/post-slug, /demo):", href ?? "");
+    const url = window.prompt(
+      "Link URL (use / for internal, e.g. /blog/post-slug, /demo):",
+      href ?? "",
+    );
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    const hrefNorm = url.startsWith("/") || /^https?:\/\//.test(url) ? url : `https://${url}`;
+    const hrefNorm =
+      url.startsWith("/") || /^https?:\/\//.test(url) ? url : `https://${url}`;
     editor.chain().focus().setLink({ href: hrefNorm }).run();
+  }, [editor]);
+
+  const insertHtml = useCallback(() => {
+    if (!editor) return;
+    const html = window.prompt(
+      "Paste HTML to insert (e.g. <table>...</table>).",
+      "",
+    );
+    if (!html) return;
+
+    // Basic safety: strip script tags (admin UI should still avoid inserting scripts)
+    const safeHtml = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+
+    editor.commands.focus();
+    editor.commands.insertContent(safeHtml, {
+      parseOptions: {
+        preserveWhitespace: "full",
+      },
+    });
   }, [editor]);
 
   if (!editor) return <div className={className}>Loading editor...</div>;
@@ -167,7 +244,9 @@ export function BlogEditor({
   const isLink = editor.isActive("link");
   const isH2 = editor.isActive("heading", { level: 2 });
   const isH3 = editor.isActive("heading", { level: 3 });
-  const isList = editor.isActive("bulletList") || editor.isActive("orderedList");
+  const isList =
+    editor.isActive("bulletList") || editor.isActive("orderedList");
+  const isTable = editor.isActive("table");
 
   return (
     <div className={className}>
@@ -208,7 +287,15 @@ export function BlogEditor({
         <button
           type="button"
           onClick={() =>
-            editor.chain().focus().insertContent({ type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Section title" }] }).run()
+            editor
+              .chain()
+              .focus()
+              .insertContent({
+                type: "heading",
+                attrs: { level: 2 },
+                content: [{ type: "text", text: "Section title" }],
+              })
+              .run()
           }
           className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
         >
@@ -216,7 +303,9 @@ export function BlogEditor({
         </button>
         <button
           type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
           className={`${toolbarBtn} ${
             isH2
               ? "bg-accent-subtle text-accent-strong shadow-sm"
@@ -227,7 +316,9 @@ export function BlogEditor({
         </button>
         <button
           type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
           className={`${toolbarBtn} ${
             isH3
               ? "bg-accent-subtle text-accent-strong shadow-sm"
@@ -249,6 +340,64 @@ export function BlogEditor({
         </button>
         <button
           type="button"
+          onClick={() => {
+            editor.chain().focus().run();
+            const { state, dispatch } = editor.view;
+            const table = createTableNode(state.schema, 8, 3, true);
+            if (!table) return;
+            dispatch(state.tr.replaceSelectionWith(table).scrollIntoView());
+            editor.view.focus();
+          }}
+          className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
+        >
+          Table
+        </button>
+        <button
+          type="button"
+          onClick={insertHtml}
+          className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
+        >
+          Insert HTML
+        </button>
+        {isTable && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                editor.chain().focus().run();
+                addRowAfter(editor.view.state, editor.view.dispatch);
+                editor.view.focus();
+              }}
+              className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
+            >
+              + Row
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                editor.chain().focus().run();
+                addColumnAfter(editor.view.state, editor.view.dispatch);
+                editor.view.focus();
+              }}
+              className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
+            >
+              + Col
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                editor.chain().focus().run();
+                deleteTable(editor.view.state, editor.view.dispatch);
+                editor.view.focus();
+              }}
+              className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
+            >
+              Delete table
+            </button>
+          </>
+        )}
+        <button
+          type="button"
           onClick={addImage}
           className={`${toolbarBtn} text-text-primary hover:bg-accent-subtle/60 hover:text-accent-strong`}
         >
@@ -256,7 +405,8 @@ export function BlogEditor({
         </button>
       </div>
       <p className="mb-2 text-xs text-text-muted">
-        Use &quot;Add section&quot; for sub-headers. Select text and click Link to add internal paths (e.g. /blog/post-slug, /demo) or external URLs.
+        Use &quot;Add section&quot; for sub-headers. Select text and click Link
+        to add internal paths (e.g. /blog/post-slug, /demo) or external URLs.
       </p>
       <div className="min-h-[200px] rounded-md border border-border-subtle bg-surface px-3 py-2 prose prose-sm max-w-none">
         <EditorContent editor={editor} />

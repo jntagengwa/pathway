@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { prisma } from "@pathway/db";
 import { tiptapJsonToHtml } from "./tiptap-to-html";
 import type { CreateBlogPostDto } from "./dto/create-blog-post.dto";
@@ -9,7 +13,9 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
 @Injectable()
 export class BlogService {
   async createDraft(dto: CreateBlogPostDto) {
-    const existing = await prisma.blogPost.findUnique({ where: { slug: dto.slug } });
+    const existing = await prisma.blogPost.findUnique({
+      where: { slug: dto.slug },
+    });
     if (existing) {
       throw new BadRequestException(`Slug "${dto.slug}" is already in use`);
     }
@@ -18,7 +24,10 @@ export class BlogService {
         title: dto.title,
         slug: dto.slug,
         excerpt: dto.excerpt ?? null,
-        contentJson: (dto.contentJson ?? { type: "doc", content: [] }) as object,
+        contentJson: (dto.contentJson ?? {
+          type: "doc",
+          content: [],
+        }) as object,
         contentHtml: "",
         seoTitle: dto.seoTitle ?? null,
         seoDescription: dto.seoDescription ?? null,
@@ -35,7 +44,9 @@ export class BlogService {
     if (!post) throw new NotFoundException("Post not found");
     if (post.status === "PUBLISHED") {
       if (dto.isFeatured === undefined) {
-        throw new BadRequestException("Cannot edit a published post directly; only isFeatured can be updated");
+        throw new BadRequestException(
+          "Cannot edit a published post directly; only isFeatured can be updated",
+        );
       }
       return prisma.blogPost.update({
         where: { id },
@@ -43,8 +54,11 @@ export class BlogService {
       });
     }
     if (dto.slug && dto.slug !== post.slug) {
-      const existing = await prisma.blogPost.findUnique({ where: { slug: dto.slug } });
-      if (existing) throw new BadRequestException(`Slug "${dto.slug}" is already in use`);
+      const existing = await prisma.blogPost.findUnique({
+        where: { slug: dto.slug },
+      });
+      if (existing)
+        throw new BadRequestException(`Slug "${dto.slug}" is already in use`);
     }
     return prisma.blogPost.update({
       where: { id },
@@ -52,11 +66,19 @@ export class BlogService {
         ...(dto.title != null && { title: dto.title }),
         ...(dto.slug != null && { slug: dto.slug }),
         ...(dto.excerpt !== undefined && { excerpt: dto.excerpt }),
-        ...(dto.contentJson != null && { contentJson: dto.contentJson as object }),
+        ...(dto.contentJson != null && {
+          contentJson: dto.contentJson as object,
+        }),
         ...(dto.seoTitle !== undefined && { seoTitle: dto.seoTitle }),
-        ...(dto.seoDescription !== undefined && { seoDescription: dto.seoDescription }),
-        ...(dto.thumbnailImageId !== undefined && { thumbnailImageId: dto.thumbnailImageId }),
-        ...(dto.headerImageId !== undefined && { headerImageId: dto.headerImageId }),
+        ...(dto.seoDescription !== undefined && {
+          seoDescription: dto.seoDescription,
+        }),
+        ...(dto.thumbnailImageId !== undefined && {
+          thumbnailImageId: dto.thumbnailImageId,
+        }),
+        ...(dto.headerImageId !== undefined && {
+          headerImageId: dto.headerImageId,
+        }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
         ...(dto.isFeatured !== undefined && { isFeatured: dto.isFeatured }),
       },
@@ -155,7 +177,10 @@ export class BlogService {
   }
 
   private estimateReadTime(html: string): number {
-    const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const text = html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     const wordCount = text ? text.split(" ").length : 0;
     const minutes = Math.max(1, Math.ceil(wordCount / 200));
     return minutes;
@@ -241,7 +266,9 @@ export class BlogService {
     return post;
   }
 
-  async getAssetById(id: string): Promise<{ bytes: Buffer; mimeType: string } | null> {
+  async getAssetById(
+    id: string,
+  ): Promise<{ bytes: Buffer; mimeType: string } | null> {
     const asset = await prisma.blogAsset.findUnique({
       where: { id },
       select: { bytes: true, mimeType: true },
@@ -261,16 +288,21 @@ export class BlogService {
     height?: number,
   ): Promise<{ id: string; url: string; width?: number; height?: number }> {
     if (!ALLOWED_MIME.includes(mimeType as (typeof ALLOWED_MIME)[number])) {
-      throw new BadRequestException(`Invalid mime type. Allowed: ${ALLOWED_MIME.join(", ")}`);
+      throw new BadRequestException(
+        `Invalid mime type. Allowed: ${ALLOWED_MIME.join(", ")}`,
+      );
     }
     if (buffer.length > MAX_UPLOAD_BYTES) {
-      throw new BadRequestException(`File too large. Max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB`);
+      throw new BadRequestException(
+        `File too large. Max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB`,
+      );
     }
     const crypto = await import("node:crypto");
     const sha256 = crypto.createHash("sha256").update(buffer).digest("hex");
     const existing = await prisma.blogAsset.findUnique({ where: { sha256 } });
     if (existing) {
-      const baseUrl = process.env.PUBLIC_BLOG_BASE_URL ?? "https://nexsteps.dev";
+      const baseUrl =
+        process.env.PUBLIC_BLOG_BASE_URL ?? "https://nexsteps.dev";
       return {
         id: existing.id,
         url: `${baseUrl}/media/${existing.id}`,
