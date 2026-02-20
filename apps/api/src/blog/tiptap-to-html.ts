@@ -33,13 +33,15 @@ function renderMarks(text: string, marks?: TipTapNode["marks"]): string {
       case "italic":
         out = `<em>${out}</em>`;
         break;
-      case "link":
-        {
-          const href = (m.attrs?.href as string) ?? "#";
-          const target = m.attrs?.target === "_blank" ? ' target="_blank" rel="noopener noreferrer"' : "";
-          out = `<a href="${escapeHtml(href)}"${target}>${out}</a>`;
-        }
+      case "link": {
+        const href = (m.attrs?.href as string) ?? "#";
+        const target =
+          m.attrs?.target === "_blank"
+            ? ' target="_blank" rel="noopener noreferrer"'
+            : "";
+        out = `<a href="${escapeHtml(href)}"${target}>${out}</a>`;
         break;
+      }
       case "code":
         out = `<code>${out}</code>`;
         break;
@@ -56,28 +58,104 @@ function renderNode(node: TipTapNode, baseUrl: string): string {
       return renderMarks(node.text ?? "", node.marks);
 
     case "paragraph":
-      return `<p>${(node.content ?? []).map((c) => renderNode(c, baseUrl)).join("")}</p>`;
+      return `<p>${(node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("")}</p>`;
 
     case "heading": {
       const level = Math.min(6, Math.max(1, (node.attrs?.level as number) ?? 1));
-      const inner = (node.content ?? []).map((c) => renderNode(c, baseUrl)).join("");
+      const inner = (node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("");
       return `<h${level}>${inner}</h${level}>`;
     }
 
     case "bulletList":
-      return `<ul>${(node.content ?? []).map((c) => renderNode(c, baseUrl)).join("")}</ul>`;
+      return `<ul>${(node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("")}</ul>`;
 
     case "orderedList":
-      return `<ol>${(node.content ?? []).map((c) => renderNode(c, baseUrl)).join("")}</ol>`;
+      return `<ol>${(node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("")}</ol>`;
 
     case "listItem":
-      return `<li>${(node.content ?? []).map((c) => renderNode(c, baseUrl)).join("")}</li>`;
+      return `<li>${(node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("")}</li>`;
+
+    case "table": {
+      const rows = node.content ?? [];
+      if (rows.length === 0) return "";
+
+      // If the first row contains any tableHeader cells, treat it as a header row.
+      const firstRow = rows[0];
+      const firstRowCells = firstRow?.content ?? [];
+      const hasHeaderCells = firstRowCells.some((c) => c.type === "tableHeader");
+
+      const headHtml = hasHeaderCells
+        ? `<thead>${renderNode(firstRow, baseUrl)}</thead>`
+        : "";
+
+      const bodyRows = hasHeaderCells ? rows.slice(1) : rows;
+      const bodyHtml = `<tbody>${bodyRows
+        .map((r) => renderNode(r, baseUrl))
+        .join("")}</tbody>`;
+
+      return `<table>${headHtml}${bodyHtml}</table>`;
+    }
+
+    case "tableRow":
+      return `<tr>${(node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("")}</tr>`;
+
+    case "tableCell": {
+      const colspan =
+        typeof node.attrs?.colspan === "number"
+          ? (node.attrs?.colspan as number)
+          : undefined;
+      const rowspan =
+        typeof node.attrs?.rowspan === "number"
+          ? (node.attrs?.rowspan as number)
+          : undefined;
+      const colspanAttr = colspan && colspan > 1 ? ` colspan="${colspan}"` : "";
+      const rowspanAttr = rowspan && rowspan > 1 ? ` rowspan="${rowspan}"` : "";
+      const inner = (node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("");
+      return `<td${colspanAttr}${rowspanAttr}>${inner}</td>`;
+    }
+
+    case "tableHeader": {
+      const colspan =
+        typeof node.attrs?.colspan === "number"
+          ? (node.attrs?.colspan as number)
+          : undefined;
+      const rowspan =
+        typeof node.attrs?.rowspan === "number"
+          ? (node.attrs?.rowspan as number)
+          : undefined;
+      const colspanAttr = colspan && colspan > 1 ? ` colspan="${colspan}"` : "";
+      const rowspanAttr = rowspan && rowspan > 1 ? ` rowspan="${rowspan}"` : "";
+      const inner = (node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("");
+      return `<th${colspanAttr}${rowspanAttr}>${inner}</th>`;
+    }
 
     case "blockquote":
-      return `<blockquote>${(node.content ?? []).map((c) => renderNode(c, baseUrl)).join("")}</blockquote>`;
+      return `<blockquote>${(node.content ?? [])
+        .map((c) => renderNode(c, baseUrl))
+        .join("")}</blockquote>`;
 
     case "codeBlock":
-      return `<pre><code>${escapeHtml((node.content ?? []).map((c) => (c.type === "text" ? c.text : "")).join(""))}</code></pre>`;
+      return `<pre><code>${escapeHtml(
+        (node.content ?? [])
+          .map((c) => (c.type === "text" ? c.text : ""))
+          .join(""),
+      )}</code></pre>`;
 
     case "horizontalRule":
       return "<hr />";
@@ -88,7 +166,9 @@ function renderNode(node: TipTapNode, baseUrl: string): string {
       const title = node.attrs?.title as string | undefined;
       if (!src) return "";
       // Use relative /media/:id so images load from same origin (works in dev and prod)
-      const url = src.startsWith("/media/") ? src : src.replace(/^https?:\/\/[^/]+/, "") || src;
+      const url = src.startsWith("/media/")
+        ? src
+        : src.replace(/^https?:\/\/[^/]+/, "") || src;
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
       return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}"${titleAttr} loading="lazy" />`;
     }
@@ -109,10 +189,7 @@ function renderNode(node: TipTapNode, baseUrl: string): string {
  * @param contentJson - TipTap/ProseMirror doc JSON
  * @param baseUrl - Base URL for resolving /media/:id (e.g. https://nexsteps.dev)
  */
-export function tiptapJsonToHtml(
-  contentJson: unknown,
-  baseUrl: string,
-): string {
+export function tiptapJsonToHtml(contentJson: unknown, baseUrl: string): string {
   if (!contentJson || typeof contentJson !== "object") return "";
   const doc = contentJson as TipTapNode;
   if (doc.type !== "doc") return "";
