@@ -5,12 +5,12 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
-import { uploadBlogAsset } from "../../lib/api-client";
+import { addColumnAfter, addRowAfter, deleteTable } from "prosemirror-tables";
 import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
-import { addColumnAfter, addRowAfter, deleteTable } from "prosemirror-tables";
+import { uploadBlogAsset } from "../../lib/api-client";
 import {
   Fragment,
   type Node as ProseMirrorNode,
