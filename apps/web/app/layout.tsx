@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import GoogleAnalytics from "../components/google-analytics";
 import "./globals.css";
 
 const baseUrl = "https://nexsteps.dev";
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
     default: "Nexsteps - School Management Platform",
     template: "%s | Nexsteps",
   },
-  description: "Nexsteps helps schools, clubs, churches, and charities manage attendance, rotas, safeguarding, and parent communication.",
+  description:
+    "Nexsteps helps schools, clubs, churches, and charities manage attendance, rotas, safeguarding, and parent communication.",
   alternates: {
     canonical: baseUrl,
   },
@@ -26,8 +28,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-shell text-text-primary">{children}</body>
+      <body className="bg-shell text-text-primary">
+        {children} 
+        <GoogleAnalytics />
+      </body>
     </html>
   );
 }
-
