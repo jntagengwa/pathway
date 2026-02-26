@@ -1,7 +1,7 @@
-import { OrgsModule } from "./orgs/orgs.module";
-import { BillingModule } from "./billing/billing.module";
 import { Module } from "@nestjs/common";
 import { CommonModule } from "./common/common.module";
+import { OrgsModule } from "./orgs/orgs.module";
+import { BillingModule } from "./billing/billing.module";
 
 // Core modules
 import { HealthModule } from "./health/health.module";
@@ -32,6 +32,7 @@ import { StaffModule } from "./staff/staff.module";
 import { PublicSignupModule } from "./public-signup/public-signup.module";
 import { ExportsModule } from "./exports/exports.module";
 import { BlogModule } from "./blog/blog.module";
+import { HandoverModule } from "./handover/handover.module";
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { BlogModule } from "./blog/blog.module";
     PublicSignupModule,
     ExportsModule,
     BlogModule,
+    HandoverModule,
   ],
 })
 export class AppModule {}

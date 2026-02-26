@@ -117,6 +117,10 @@ export type AdminChildRow = {
   preferredName?: string | null;
   ageGroup?: string | null;
   primaryGroup?: string | null;
+  /**
+   * Primary group id (when available); used for session-scoped UIs like handover.
+   */
+  primaryGroupId?: string | null;
   hasPhotoConsent: boolean;
   hasAllergies: boolean;
   hasAdditionalNeeds: boolean;
@@ -178,6 +182,28 @@ export type AdminAnnouncementDetail = {
   channels?: string[] | null;
   targetsSummary?: string | null;
 };
+
+export type MyNextHandoverUnavailable = { available: false };
+
+export type MyNextHandoverAvailable = {
+  available: true;
+  sessionId: string;
+  startsAt: string;
+  handoverDate: string;
+  logs: Array<{
+    id: string;
+    groupId: string;
+    handoverDate: string;
+    content: unknown;
+  }>;
+};
+
+export type MyNextHandoverResponse =
+  | MyNextHandoverUnavailable
+  | MyNextHandoverAvailable;
+
+export type HandoverLogStatus = "DRAFT" | "PENDING_APPROVAL" | "APPROVED";
+
 
 // ANNOUNCEMENTS FORMS (CreateAnnouncementDto / UpdateAnnouncementDto subset)
 export type AdminAnnouncementFormValues = {
@@ -1991,6 +2017,7 @@ const mapApiChildToAdmin = (c: ApiChild): AdminChildRow => ({
     c.primaryGroup ??
     c.groupId ??
     "-",
+  primaryGroupId: c.groupId ?? null,
   hasPhotoConsent: Boolean(c.hasPhotoConsent ?? c.photoConsent),
   hasAllergies: Array.isArray(c.allergies) && c.allergies.length > 0,
   hasAdditionalNeeds:
@@ -4627,6 +4654,339 @@ export async function fetchGroups(options?: {
   }
 
   const json = (await res.json()) as GroupOption[];
+  return json;
+}
+
+// --- Handover logs ---
+
+export type HandoverLogSummary = {
+  id: string;
+  groupId: string;
+  handoverDate: string;
+  status: HandoverLogStatus;
+};
+
+export async function fetchMyNextHandover(): Promise<MyNextHandoverResponse> {
+  if (isUsingMockApi()) {
+    return { available: false };
+  }
+  const res = await fetch(`${API_BASE_URL}/handover/my-next`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch handover: ${res.status} ${body}`);
+  }
+  return (await res.json()) as MyNextHandoverResponse;
+}
+
+export type HandoverForSessionResponse = {
+  handoverLogId: string | null;
+  status?: string;
+};
+
+export async function fetchHandoverForSession(
+  sessionId: string,
+): Promise<HandoverForSessionResponse> {
+  if (isUsingMockApi()) {
+    return { handoverLogId: null };
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/handover/for-session/${encodeURIComponent(sessionId)}`,
+    { headers: buildAuthHeaders(), cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch handover for session: ${res.status} ${body}`);
+  }
+  return (await res.json()) as HandoverForSessionResponse;
+}
+
+export type StaffHandoverDetail = {
+  id: string;
+  groupId: string;
+  handoverDate: string;
+  status: HandoverLogStatus;
+  currentContentJson: unknown;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function fetchHandoverById(
+  id: string,
+): Promise<StaffHandoverDetail> {
+  if (isUsingMockApi()) {
+    throw new Error("Handover detail requires real API.");
+  }
+  const res = await fetch(`${API_BASE_URL}/handover/${encodeURIComponent(id)}`, {
+    headers: buildAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch handover: ${res.status} ${body}`);
+  }
+  return (await res.json()) as StaffHandoverDetail;
+}
+
+export type AdminHandoverListItem = {
+  id: string;
+  tenantId: string;
+  groupId: string;
+  handoverDate: string;
+  status: HandoverLogStatus;
+  approvedAt: string | null;
+  approvedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminHandoverListFilters = {
+  date?: string;
+  groupId?: string;
+  status?: HandoverLogStatus;
+};
+
+export async function fetchAdminHandoverLogs(
+  filters: AdminHandoverListFilters = {},
+): Promise<AdminHandoverListItem[]> {
+  if (isUsingMockApi()) {
+    return [];
+  }
+
+  const params = new URLSearchParams();
+  if (filters.date) params.set("date", filters.date);
+  if (filters.groupId) params.set("groupId", filters.groupId);
+  if (filters.status) params.set("status", filters.status);
+
+  const qs = params.toString();
+  const url = `${API_BASE_URL}/admin/handover${qs ? `?${qs}` : ""}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to view handover logs for this site. (403)"
+        : `Failed to fetch handover logs: ${res.status}${
+            body ? ` ${body}` : ""
+          }`,
+    );
+  }
+
+  const json = (await res.json()) as AdminHandoverListItem[];
+  return json;
+}
+
+export type AdminHandoverDetail = {
+  id: string;
+  tenantId: string;
+  groupId: string;
+  handoverDate: string;
+  status: HandoverLogStatus;
+  currentContentJson: unknown;
+  createdByUserId: string;
+  approvedByUserId: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminHandoverVersion = {
+  id: string;
+  versionNumber: number;
+  contentSnapshotJson: unknown;
+  editedByUserId: string;
+  editedAt: string;
+  changeSummary: string | null;
+  diffJson: unknown;
+};
+
+export async function fetchAdminHandoverDetail(
+  id: string,
+): Promise<AdminHandoverDetail> {
+  if (isUsingMockApi()) {
+    throw new Error("Handover admin detail requires real API.");
+  }
+
+  const res = await fetch(`${API_BASE_URL}/admin/handover/${encodeURIComponent(id)}`, {
+    method: "GET",
+    headers: buildAuthHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to view this handover. (403)"
+        : res.status === 404
+          ? "Handover log not found."
+          : `Failed to load handover: ${res.status}${body ? ` ${body}` : ""}`,
+    );
+  }
+
+  return (await res.json()) as AdminHandoverDetail;
+}
+
+export async function fetchAdminHandoverVersions(
+  id: string,
+): Promise<AdminHandoverVersion[]> {
+  if (isUsingMockApi()) {
+    return [];
+  }
+
+  const res = await fetch(
+    `${API_BASE_URL}/admin/handover/${encodeURIComponent(id)}/versions`,
+    {
+      method: "GET",
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to view versions for this handover. (403)"
+        : `Failed to load versions: ${res.status}${body ? ` ${body}` : ""}`,
+    );
+  }
+
+  return (await res.json()) as AdminHandoverVersion[];
+}
+
+export async function approveAdminHandover(
+  id: string,
+  changeSummary?: string,
+): Promise<AdminHandoverDetail> {
+  if (isUsingMockApi()) {
+    throw new Error("Handover admin approve requires real API.");
+  }
+
+  const payload = changeSummary ? { changeSummary } : {};
+
+  const res = await fetch(
+    `${API_BASE_URL}/admin/handover/${encodeURIComponent(id)}/approve`,
+    {
+      method: "POST",
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to approve this handover. (403)"
+        : `Failed to approve handover: ${res.status}${
+            body ? ` ${body}` : ""
+          }`,
+    );
+  }
+
+  return (await res.json()) as AdminHandoverDetail;
+}
+
+export async function rejectAdminHandover(
+  id: string,
+  reason: string,
+  status: "DRAFT" | "PENDING_APPROVAL" = "DRAFT",
+): Promise<AdminHandoverDetail> {
+  if (isUsingMockApi()) {
+    throw new Error("Handover admin reject requires real API.");
+  }
+
+  const payload = { reason, status };
+
+  const res = await fetch(
+    `${API_BASE_URL}/admin/handover/${encodeURIComponent(id)}/reject`,
+    {
+      method: "POST",
+      headers: buildAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 403
+        ? "You don’t have permission to reject this handover. (403)"
+        : `Failed to reject handover: ${res.status}${
+            body ? ` ${body}` : ""
+          }`,
+    );
+  }
+
+  return (await res.json()) as AdminHandoverDetail;
+}
+
+export type HandoverUpsertPayload = {
+  groupId: string;
+  handoverDate: string;
+  contentJson: unknown;
+  changeSummary?: string;
+};
+
+export type HandoverUpdatePayload = {
+  contentJson?: unknown;
+  status?: HandoverLogStatus;
+  changeSummary?: string;
+};
+
+export async function upsertHandoverDraft(
+  payload: HandoverUpsertPayload,
+): Promise<{ id: string; status: HandoverLogStatus }> {
+  if (isUsingMockApi()) {
+    return {
+      id: "mock-handover-id",
+      status: "DRAFT",
+    };
+  }
+  const res = await fetch(`${API_BASE_URL}/handover`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to save handover: ${res.status} ${body}`);
+  }
+  const json = (await res.json()) as { id: string; status: HandoverLogStatus };
+  return json;
+}
+
+export async function updateHandover(
+  id: string,
+  payload: HandoverUpdatePayload,
+): Promise<{ id: string; status: HandoverLogStatus }> {
+  if (isUsingMockApi()) {
+    return { id, status: payload.status ?? "DRAFT" };
+  }
+  const res = await fetch(`${API_BASE_URL}/handover/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to update handover: ${res.status} ${body}`);
+  }
+  const json = (await res.json()) as { id: string; status: HandoverLogStatus };
   return json;
 }
 
