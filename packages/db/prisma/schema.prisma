@@ -166,6 +166,12 @@ enum StaffAttendanceStatus {
   UNKNOWN
 }
 
+enum HandoverLogStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+}
+
 // --- Models ---
 
 // NEW: Org (Suite) — business/billing owner; may contain multiple Tenants (sites)
@@ -226,6 +232,7 @@ model Tenant {
   publicSignupLinks      PublicSignupLink[]
   emergencyContacts      EmergencyContact[]
   parentSignupConsents   ParentSignupConsent[]
+  handoverLogs           HandoverLog[]
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
 
@@ -307,6 +314,9 @@ model User {
   parentSignupConsents    ParentSignupConsent[]
   staffAttendanceAsStaff  SessionStaffAttendance[] @relation("StaffAttendanceForUser")
   staffAttendanceMarkedBy SessionStaffAttendance[] @relation("StaffAttendanceMarkedBy")
+  handoverLogsCreated     HandoverLog[]           @relation("HandoverLogCreatedBy")
+  handoverLogsApproved    HandoverLog[]           @relation("HandoverLogApprovedBy")
+  handoverLogVersions     HandoverLogVersion[]    @relation("HandoverLogVersionEditedBy")
 }
 
 // Auth identity linking external providers (e.g., Auth0) to internal users.
@@ -505,11 +515,51 @@ model Group {
   sessions              Session[]   // many-to-many with Session
   lessons               Lesson[]
   staffPreferredGroups  StaffPreferredGroup[]
+  handoverLogs          HandoverLog[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@unique([tenantId, name])
   @@index([tenantId])
+}
+
+model HandoverLog {
+  id               String            @id @default(uuid())
+  tenantId         String
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  groupId          String
+  group            Group             @relation(fields: [groupId], references: [id])
+  handoverDate     DateTime          @db.Date
+  status           HandoverLogStatus @default(DRAFT)
+  currentContentJson Json
+  createdByUserId  String
+  createdByUser    User              @relation("HandoverLogCreatedBy", fields: [createdByUserId], references: [id])
+  approvedByUserId String?
+  approvedByUser   User?             @relation("HandoverLogApprovedBy", fields: [approvedByUserId], references: [id])
+  approvedAt       DateTime?
+  versions         HandoverLogVersion[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([tenantId, groupId, handoverDate])
+  @@index([tenantId, handoverDate])
+  @@index([tenantId, groupId])
+  @@index([status])
+}
+
+model HandoverLogVersion {
+  id                  String       @id @default(uuid())
+  handoverLogId       String
+  handoverLog         HandoverLog  @relation(fields: [handoverLogId], references: [id], onDelete: Cascade)
+  versionNumber       Int
+  contentSnapshotJson Json
+  editedByUserId      String
+  editedByUser        User         @relation("HandoverLogVersionEditedBy", fields: [editedByUserId], references: [id])
+  editedAt            DateTime     @default(now())
+  changeSummary       String?
+  diffJson            Json?
+
+  @@index([handoverLogId, versionNumber])
 }
 
 model Attendance {

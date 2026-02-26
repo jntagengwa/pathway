@@ -19,6 +19,7 @@ import {
   fetchMe,
   fetchSessionById,
   fetchSessionStaffAttendance,
+  fetchHandoverForSession,
   fetchStaffEligibilityForSession,
   updateAssignment,
   updateAssignmentStatus,
@@ -88,6 +89,21 @@ function formatTimeRange(startsAt?: string, endsAt?: string) {
   return { date, range: `${startTime} - ${endTime}` };
 }
 
+function buildHandoverHref(
+  session: AdminSessionDetail & { groupId?: string | null; groupIds?: string[] },
+) {
+  const primaryGroupId =
+    session.groupIds?.[0] ?? session.groupId ?? null;
+  if (!primaryGroupId) return "/handover/write";
+  const start = new Date(session.startsAt);
+  const handoverDate = start.toISOString().slice(0, 10);
+  const params = new URLSearchParams();
+  params.set("sessionId", session.id);
+  params.set("groupId", primaryGroupId);
+  params.set("handoverDate", handoverDate);
+  return `/handover/write?${params.toString()}`;
+}
+
 export default function SessionDetailPage() {
   const params = useParams<{ sessionId: string }>();
   const router = useRouter();
@@ -96,6 +112,10 @@ export default function SessionDetailPage() {
   const sessionId = params.sessionId;
 
   const [session, setSession] = React.useState<AdminSessionDetail | null>(null);
+  const [handoverForSession, setHandoverForSession] = React.useState<{
+    handoverLogId: string | null;
+    status?: string;
+  } | null>(null);
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -128,6 +148,7 @@ export default function SessionDetailPage() {
   const [authDebugContext, setAuthDebugContext] = React.useState<Awaited<ReturnType<typeof fetchAuthDebugContext>> | null>(null);
 
   const isAdmin = canAccessAdminSection(role);
+  const canStartHandover = role.isStaff || isAdmin;
 
   const refreshAssignments = React.useCallback(
     async (sessionMeta: AdminSessionDetail | null) => {
@@ -172,7 +193,11 @@ export default function SessionDetailPage() {
       if (!result) {
         setNotFound(true);
         setAssignments([]);
+        setHandoverForSession({ handoverLogId: null });
       } else {
+        fetchHandoverForSession(sessionId)
+          .then(setHandoverForSession)
+          .catch(() => setHandoverForSession({ handoverLogId: null }));
         setAssignments(result.assignments ?? []);
         await refreshAssignments(result);
         const hasBreakdown =
@@ -202,6 +227,7 @@ export default function SessionDetailPage() {
         err instanceof Error ? err.message : "Failed to load session",
       );
       setSession(null);
+      setHandoverForSession(null);
       setAssignments([]);
       setStaffAttendanceRoster(null);
     } finally {
@@ -330,6 +356,34 @@ export default function SessionDetailPage() {
           <Button size="sm" asChild>
             <Link href={`/attendance/${sessionId}`}>Take attendance</Link>
           </Button>
+          {canStartHandover && session && (
+            handoverForSession?.handoverLogId ? (
+              <Button size="sm" asChild variant="secondary">
+                <Link
+                  href={
+                    isAdmin
+                      ? `/admin/handover/${handoverForSession.handoverLogId}`
+                      : `/handover/write?handoverId=${handoverForSession.handoverLogId}`
+                  }
+                >
+                  View handover
+                </Link>
+              </Button>
+            ) : (
+              <Button size="sm" asChild>
+                <Link
+                  href={buildHandoverHref(
+                    session as AdminSessionDetail & {
+                      groupId?: string | null;
+                      groupIds?: string[];
+                    },
+                  )}
+                >
+                  Start handover
+                </Link>
+              </Button>
+            )
+          )}
           {isAdmin && (
             <Button asChild size="sm">
               <Link href={`/sessions/${sessionId}/edit`}>Edit session</Link>
