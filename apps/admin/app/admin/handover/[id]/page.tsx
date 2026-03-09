@@ -44,7 +44,7 @@ function parseHandoverContent(raw: unknown): ParsedHandoverContent | null {
       : undefined;
 
   const notes = Array.isArray(obj.notes)
-    ? obj.notes.filter((n): n is string => typeof n === "string" && n.trim())
+    ? obj.notes.filter((n): n is string => typeof n === "string" && n.trim() !== "")
     : undefined;
 
   const children = Array.isArray(obj.children)
@@ -518,7 +518,7 @@ export default function AdminHandoverDetailPage() {
                     <p className="font-semibold">Unable to load versions</p>
                     <p className="text-text-muted">{versionsError}</p>
                     <Button
-                      size="xs"
+                      size="sm"
                       variant="secondary"
                       onClick={() => void loadVersions()}
                     >

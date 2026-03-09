@@ -53,7 +53,7 @@ function parseHandoverContent(raw: unknown): ParsedHandoverContent | null {
       : undefined;
 
   const notes = Array.isArray(obj.notes)
-    ? obj.notes.filter((n): n is string => typeof n === "string" && n.trim())
+    ? obj.notes.filter((n): n is string => typeof n === "string" && n.trim() !== "")
     : undefined;
 
   const children = Array.isArray(obj.children)
@@ -316,7 +316,7 @@ export default function HandoverPage() {
               title={`Group handover`}
               description="Handover notes for one of your assigned groups."
               actions={
-                <Badge tone="accent" size="sm">
+                <Badge variant="accent">
                   Approved
                 </Badge>
               }
