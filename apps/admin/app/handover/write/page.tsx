@@ -282,7 +282,7 @@ export default function WriteHandoverPage() {
         actions={
           form.status ? (
             <Badge
-              tone={
+              variant={
                 form.status === "APPROVED"
                   ? "success"
                   : form.status === "PENDING_APPROVAL"
